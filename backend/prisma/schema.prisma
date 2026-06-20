@@ -1,0 +1,190 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  landlord
+  tenant
+  admin
+}
+
+enum UserStatus {
+  pending_verification
+  active
+  rejected
+  suspended
+}
+
+enum DocType {
+  passport
+  nid
+  title
+  other
+}
+
+enum ListingType {
+  rent
+  sale
+}
+
+enum PropertyType {
+  house
+  apartment
+  land
+  commercial
+  other
+}
+
+enum PropertyStatus {
+  pending
+  active
+  rejected
+}
+
+enum TransactionStatus {
+  pending
+  success
+  failed
+}
+
+model User {
+  id            String     @id @default(uuid())
+  role          UserRole
+  name          String
+  email         String     @unique
+  phone         String
+  passwordHash  String     @map("password_hash")
+  status        UserStatus @default(pending_verification)
+  createdAt     DateTime   @default(now()) @map("created_at")
+
+  landlordDocuments LandlordDocument[]
+  properties        Property[]
+  transactions      Transaction[]
+  unlocks           Unlock[]
+  favorites         Favorite[]
+  sentMessages      Message[]          @relation("SentMessages")
+  receivedMessages  Message[]          @relation("ReceivedMessages")
+
+  @@map("users")
+}
+
+model LandlordDocument {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  docType    DocType  @map("doc_type")
+  filePath   String   @map("file_path")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("landlord_documents")
+}
+
+model Property {
+  id              String         @id @default(uuid())
+  landlordId      String         @map("landlord_id")
+  listingType     ListingType    @map("listing_type")
+  title           String
+  description     String
+  price           Decimal        @db.Decimal(12, 2)
+  locationGeneral String         @map("location_general")
+  locationExact   String         @map("location_exact")
+  bedrooms        Int
+  bathrooms       Int
+  propertyType    PropertyType   @map("property_type")
+  status          PropertyStatus @default(pending)
+  rejectionReason String?        @map("rejection_reason")
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  landlord     User            @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+  photos       PropertyPhoto[]
+  amenities    Amenity[]
+  transactions Transaction[]
+  unlocks      Unlock[]
+  favorites    Favorite[]
+  messages     Message[]
+
+  @@map("properties")
+}
+
+model PropertyPhoto {
+  id         String   @id @default(uuid())
+  propertyId String   @map("property_id")
+  filePath   String   @map("file_path")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_photos")
+}
+
+model Amenity {
+  id           String @id @default(uuid())
+  propertyId   String @map("property_id")
+  amenityName  String @map("amenity_name")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("amenities")
+}
+
+model Transaction {
+  id            String            @id @default(uuid())
+  tenantId      String            @map("tenant_id")
+  propertyId    String            @map("property_id")
+  amount        Decimal           @db.Decimal(10, 2)
+  status        TransactionStatus @default(pending)
+  paymentMethod String            @map("payment_method")
+  createdAt     DateTime          @default(now()) @map("created_at")
+
+  tenant   User     @relation(fields: [tenantId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@map("transactions")
+}
+
+model Unlock {
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  propertyId String   @map("property_id")
+  unlockedAt DateTime @default(now()) @map("unlocked_at")
+
+  tenant   User     @relation(fields: [tenantId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([tenantId, propertyId])
+  @@map("unlocks")
+}
+
+model Favorite {
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  propertyId String   @map("property_id")
+  savedAt    DateTime @default(now()) @map("saved_at")
+
+  tenant   User     @relation(fields: [tenantId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([tenantId, propertyId])
+  @@map("favorites")
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  propertyId String   @map("property_id")
+  senderId   String   @map("sender_id")
+  receiverId String   @map("receiver_id")
+  content    String
+  sentAt     DateTime @default(now()) @map("sent_at")
+
+  property Property @relation(fields: [propertyId], references: [id])
+  sender   User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@map("messages")
+}
