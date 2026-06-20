@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 export default function AuthLayout({ title, subtitle, children }) {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-primary px-6 py-4">
+      <header className="bg-white border-b border-gray-100 shadow-sm px-6 py-4">
         <div className="max-w-6xl mx-auto">
-          <Link to="/" className="text-white text-xl font-bold">HausFindrr</Link>
+          <Link to="/" className="text-2xl font-bold text-primary">HausFindrr</Link>
         </div>
       </header>
       <div className="flex-1 flex items-center justify-center px-4 py-12">

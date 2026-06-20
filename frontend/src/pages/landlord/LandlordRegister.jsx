@@ -7,41 +7,34 @@ import api from '../../services/api';
 
 const ID_TYPE_OPTIONS = [
   { value: 'passport', label: 'Passport' },
+  { value: 'drivers_licence', label: "Driver's Licence" },
   { value: 'nid', label: 'National ID (NID)' },
 ];
 
 export default function LandlordRegister() {
   const [form, setForm] = useState({ name: '', phone: '', email: '', password: '', id_type: 'passport' });
-  const [files, setFiles] = useState({ passport_nid: null, title_document: null, supporting_docs: [] });
+  const [idFile, setIdFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const { saveAuth } = useAuth();
   const navigate = useNavigate();
 
-  function handleFile(field, e) {
-    if (field === 'supporting_docs') {
-      setFiles(p => ({ ...p, supporting_docs: Array.from(e.target.files) }));
-    } else {
-      setFiles(p => ({ ...p, [field]: e.target.files[0] }));
-    }
-  }
+  const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!files.passport_nid) return toast.error('Please upload your Passport or NID');
-    if (!files.title_document) return toast.error('Please upload your property title document');
+    if (!idFile) return toast.error('Please upload your ID document');
 
     setLoading(true);
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-      fd.append('passport_nid', files.passport_nid);
-      fd.append('title_document', files.title_document);
-      files.supporting_docs.forEach(f => fd.append('supporting_docs', f));
+      fd.append('id_document', idFile);
 
       const { data } = await api.post('/auth/register/landlord', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       saveAuth(data.token, data.user);
+      toast.success('Account created! Pending verification.');
       navigate('/landlord/dashboard');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Registration failed');
@@ -51,67 +44,76 @@ export default function LandlordRegister() {
   }
 
   return (
-    <AuthLayout title="Landlord Registration" subtitle="Create your account and upload verification documents">
+    <AuthLayout title="Become a Landlord" subtitle="Create your account to list properties on HausFindrr">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="label">Full Name</label>
-          <input className="input" required value={form.name}
-            onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
+          <input className="input" required placeholder="Your full name" value={form.name} onChange={set('name')} />
         </div>
         <div>
           <label className="label">Phone Number</label>
-          <input className="input" type="tel" required value={form.phone}
-            onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} />
+          <input className="input" type="tel" required placeholder="+675 xxx xxxx" value={form.phone} onChange={set('phone')} />
         </div>
         <div>
-          <label className="label">Email</label>
-          <input className="input" type="email" required value={form.email}
-            onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
+          <label className="label">Email Address</label>
+          <input className="input" type="email" required placeholder="you@example.com" value={form.email} onChange={set('email')} />
         </div>
         <div>
           <label className="label">Password</label>
-          <input className="input" type="password" required minLength={8} value={form.password}
-            onChange={e => setForm(p => ({ ...p, password: e.target.value }))} />
+          <input className="input" type="password" required minLength={8} placeholder="Min. 8 characters" value={form.password} onChange={set('password')} />
         </div>
 
-        <div className="border-t pt-4 mt-2">
-          <p className="text-sm font-semibold text-primary mb-3">Identity Verification Documents</p>
+        <div className="pt-2 border-t border-gray-100">
+          <p className="text-sm font-semibold text-gray-800 mb-3">Identity Verification</p>
 
           <div className="mb-3">
             <label className="label">ID Type</label>
-            <select className="input" value={form.id_type}
-              onChange={e => setForm(p => ({ ...p, id_type: e.target.value }))}>
-              {ID_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            <select className="input" value={form.id_type} onChange={set('id_type')}>
+              {ID_TYPE_OPTIONS.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
             </select>
           </div>
 
-          <div className="mb-3">
-            <label className="label">{form.id_type === 'nid' ? 'National ID' : 'Passport'} (PDF/JPG/PNG)</label>
-            <input type="file" className="input py-2" accept=".pdf,.jpg,.jpeg,.png" required
-              onChange={e => handleFile('passport_nid', e)} />
-          </div>
-
-          <div className="mb-3">
-            <label className="label">Property Title Document</label>
-            <input type="file" className="input py-2" accept=".pdf,.jpg,.jpeg,.png" required
-              onChange={e => handleFile('title_document', e)} />
-          </div>
-
           <div>
-            <label className="label">Supporting Documents (optional, multiple allowed)</label>
-            <input type="file" className="input py-2" accept=".pdf,.jpg,.jpeg,.png" multiple
-              onChange={e => handleFile('supporting_docs', e)} />
+            <label className="label">Upload {ID_TYPE_OPTIONS.find(o => o.value === form.id_type)?.label}</label>
+            <div className="mt-1">
+              <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${idFile ? 'border-secondary bg-secondary/5' : 'border-gray-200 hover:border-gray-300 bg-gray-50'}`}>
+                <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setIdFile(e.target.files[0])} />
+                {idFile ? (
+                  <div className="text-center">
+                    <svg className="w-8 h-8 text-secondary mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <p className="text-sm text-secondary font-medium">{idFile.name}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Click to change</p>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <svg className="w-8 h-8 text-gray-300 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <p className="text-sm text-gray-500">Click to upload</p>
+                    <p className="text-xs text-gray-400 mt-0.5">PDF, JPG, or PNG — max 10MB</p>
+                  </div>
+                )}
+              </label>
+            </div>
           </div>
         </div>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
-          Your account will be reviewed by our team before you can post listings. This usually takes 1–2 business days.
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 flex gap-3">
+          <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Your account will be reviewed within 1–2 business days. You'll be able to list properties once verified.</span>
         </div>
 
-        <button className="btn-primary w-full" disabled={loading}>
-          {loading ? 'Submitting…' : 'Create Account'}
+        <button className="btn-primary w-full py-3 text-base" disabled={loading}>
+          {loading ? 'Creating account…' : 'Create Account'}
         </button>
       </form>
+
       <p className="text-center mt-5 text-sm text-gray-500">
         Already registered?{' '}
         <Link to="/landlord/login" className="text-secondary font-medium hover:underline">Sign in</Link>
