@@ -13,7 +13,7 @@ function signToken(user) {
 
 async function registerLandlord(req, res, next) {
   try {
-    const { name, phone, email, password } = req.body;
+    const { name, phone, email, password, id_type } = req.body;
     if (!name || !phone || !email || !password)
       return res.status(400).json({ error: 'All fields required' });
 
@@ -25,21 +25,19 @@ async function registerLandlord(req, res, next) {
       data: { name, phone, email, passwordHash, role: 'landlord', status: 'pending_verification' },
     });
 
-    // Save uploaded documents
+    // Save single ID document
     const files = req.files || {};
-    const docEntries = [];
+    const idFiles = files['id_document'] || [];
+    const docType = normaliseIdDocType(id_type);
 
-    for (const fieldName of ['passport_nid', 'title_document', 'supporting_docs']) {
-      const fieldFiles = files[fieldName] || [];
-      const docType = fieldName === 'passport_nid' ? detectIdDocType(req.body.id_type) :
-                      fieldName === 'title_document' ? 'title' : 'other';
-      for (const f of fieldFiles) {
-        docEntries.push({ userId: user.id, docType, filePath: f.path });
-      }
-    }
-
-    if (docEntries.length > 0) {
-      await prisma.landlordDocument.createMany({ data: docEntries });
+    if (idFiles.length > 0) {
+      await prisma.landlordIdDocument.createMany({
+        data: idFiles.map(f => ({
+          userId: user.id,
+          docType,
+          filePath: f.path,
+        })),
+      });
     }
 
     const token = signToken(user);
@@ -104,8 +102,9 @@ function safeUser(u) {
   return rest;
 }
 
-function detectIdDocType(idType) {
+function normaliseIdDocType(idType) {
   if (idType === 'nid') return 'nid';
+  if (idType === 'drivers_licence') return 'drivers_licence';
   return 'passport';
 }
 

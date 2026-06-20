@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, requireRole } = require('../middleware/auth');
-const { photoUpload } = require('../middleware/upload');
-const { createProperty, getListings, getProperty, getLandlordProperties } = require('../controllers/propertyController');
+const { photoUpload, propertyUpload } = require('../middleware/upload');
+const {
+  createProperty, updateProperty, getListings, getProperty, getLandlordProperties,
+} = require('../controllers/propertyController');
 
-// Public / tenant browse (auth optional for masking)
-router.get('/', (req, res, next) => {
+// Optional auth middleware for public routes
+function optionalAuth(req, res, next) {
   const auth = req.headers.authorization;
   if (auth) {
     const jwt = require('jsonwebtoken');
@@ -14,27 +16,35 @@ router.get('/', (req, res, next) => {
     } catch {}
   }
   next();
-}, getListings);
+}
+
+// Public / tenant browse (auth optional for masking)
+router.get('/', optionalAuth, getListings);
 
 router.get('/my', authenticate, requireRole('landlord'), getLandlordProperties);
 
-router.get('/:id', (req, res, next) => {
-  const auth = req.headers.authorization;
-  if (auth) {
-    const jwt = require('jsonwebtoken');
-    try {
-      req.user = jwt.verify(auth.slice(7), process.env.JWT_SECRET);
-    } catch {}
-  }
-  next();
-}, getProperty);
+router.get('/:id', optionalAuth, getProperty);
 
 router.post(
   '/',
   authenticate,
   requireRole('landlord'),
-  photoUpload.array('photos', 20),
+  propertyUpload.fields([
+    { name: 'photos', maxCount: 20 },
+    { name: 'title_documents', maxCount: 5 },
+  ]),
   createProperty
+);
+
+router.put(
+  '/:id',
+  authenticate,
+  requireRole('landlord'),
+  propertyUpload.fields([
+    { name: 'photos', maxCount: 20 },
+    { name: 'title_documents', maxCount: 5 },
+  ]),
+  updateProperty
 );
 
 module.exports = router;

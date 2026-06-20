@@ -10,6 +10,7 @@ async function createProperty(req, res, next) {
     const {
       listingType, title, description, price,
       locationGeneral, locationExact,
+      location_lat, location_lng,
       bedrooms, bathrooms, propertyType, amenities,
     } = req.body;
 
@@ -22,6 +23,8 @@ async function createProperty(req, res, next) {
         price: parseFloat(price),
         locationGeneral,
         locationExact,
+        locationLat: location_lat ? parseFloat(location_lat) : null,
+        locationLng: location_lng ? parseFloat(location_lng) : null,
         bedrooms: parseInt(bedrooms),
         bathrooms: parseInt(bathrooms),
         propertyType,
@@ -38,16 +41,80 @@ async function createProperty(req, res, next) {
       });
     }
 
-    // Save photos
-    const photos = req.files || [];
-    if (photos.length > 0) {
+    // Save photos (field: photos)
+    const files = req.files || {};
+    const photoFiles = Array.isArray(files) ? files : (files['photos'] || []);
+    if (photoFiles.length > 0) {
       await prisma.propertyPhoto.createMany({
-        data: photos.map(f => ({ propertyId: property.id, filePath: f.path })),
+        data: photoFiles.map(f => ({ propertyId: property.id, filePath: f.path })),
+      });
+    }
+
+    // Save title documents (field: title_documents)
+    const titleDocs = files['title_documents'] || [];
+    if (titleDocs.length > 0) {
+      await prisma.propertyTitleDocument.createMany({
+        data: titleDocs.map((f, i) => ({
+          propertyId: property.id,
+          docType: i === 0 ? 'title' : 'other',
+          filePath: f.path,
+        })),
       });
     }
 
     const full = await getFullProperty(property.id);
     res.status(201).json({ property: full });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function updateProperty(req, res, next) {
+  try {
+    const { id } = req.params;
+    const property = await prisma.property.findUnique({ where: { id } });
+    if (!property) return res.status(404).json({ error: 'Property not found' });
+    if (property.landlordId !== req.user.id)
+      return res.status(403).json({ error: 'Not your property' });
+
+    const {
+      listingType, title, description, price,
+      locationGeneral, locationExact,
+      location_lat, location_lng,
+      bedrooms, bathrooms, propertyType, amenities,
+    } = req.body;
+
+    const updated = await prisma.property.update({
+      where: { id },
+      data: {
+        ...(listingType && { listingType }),
+        ...(title && { title }),
+        ...(description && { description }),
+        ...(price && { price: parseFloat(price) }),
+        ...(locationGeneral && { locationGeneral }),
+        ...(locationExact && { locationExact }),
+        ...(location_lat !== undefined && { locationLat: location_lat ? parseFloat(location_lat) : null }),
+        ...(location_lng !== undefined && { locationLng: location_lng ? parseFloat(location_lng) : null }),
+        ...(bedrooms && { bedrooms: parseInt(bedrooms) }),
+        ...(bathrooms && { bathrooms: parseInt(bathrooms) }),
+        ...(propertyType && { propertyType }),
+      },
+    });
+
+    // Update amenities if provided
+    if (amenities !== undefined) {
+      await prisma.amenity.deleteMany({ where: { propertyId: id } });
+      const amenityList = Array.isArray(amenities) ? amenities :
+                          typeof amenities === 'string' ? JSON.parse(amenities) : [];
+      if (amenityList.length > 0) {
+        await prisma.amenity.createMany({
+          data: amenityList.map(a => ({ propertyId: id, amenityName: a })),
+        });
+      }
+    }
+
+    const full = await getFullProperty(id);
+    res.json({ property: full });
   } catch (err) {
     next(err);
   }
@@ -70,7 +137,11 @@ async function getListings(req, res, next) {
     const [properties, total] = await Promise.all([
       prisma.property.findMany({
         where,
-        include: { photos: true, amenities: true, landlord: { select: { id: true, name: true, phone: true, email: true } } },
+        include: {
+          photos: true,
+          amenities: true,
+          landlord: { select: { id: true, name: true, phone: true, email: true } },
+        },
         skip,
         take: parseInt(limit),
         orderBy: { createdAt: 'desc' },
@@ -121,7 +192,7 @@ async function getLandlordProperties(req, res, next) {
   try {
     const properties = await prisma.property.findMany({
       where: { landlordId: req.user.id },
-      include: { photos: true, amenities: true },
+      include: { photos: true, amenities: true, titleDocuments: true },
       orderBy: { createdAt: 'desc' },
     });
     res.json({ properties });
@@ -131,6 +202,10 @@ async function getLandlordProperties(req, res, next) {
 }
 
 function maskProperty(p, unlocked) {
+  // Approximate lat/lng: round to 2 decimal places (~1km precision)
+  const approxLat = p.locationLat != null ? Math.round(p.locationLat * 100) / 100 : null;
+  const approxLng = p.locationLng != null ? Math.round(p.locationLng * 100) / 100 : null;
+
   const base = {
     id: p.id,
     listingType: p.listingType,
@@ -145,14 +220,20 @@ function maskProperty(p, unlocked) {
     amenities: p.amenities,
     createdAt: p.createdAt,
     unlocked,
+    approxLat,
+    approxLng,
   };
 
   if (unlocked) {
     base.locationExact = p.locationExact;
     base.landlord = p.landlord;
+    base.locationLat = p.locationLat;
+    base.locationLng = p.locationLng;
   } else {
     base.locationExact = null;
     base.landlord = null;
+    base.locationLat = null;
+    base.locationLng = null;
   }
 
   return base;
@@ -164,9 +245,10 @@ async function getFullProperty(id) {
     include: {
       photos: true,
       amenities: true,
+      titleDocuments: true,
       landlord: { select: { id: true, name: true, phone: true, email: true } },
     },
   });
 }
 
-module.exports = { createProperty, getListings, getProperty, getLandlordProperties };
+module.exports = { createProperty, updateProperty, getListings, getProperty, getLandlordProperties };

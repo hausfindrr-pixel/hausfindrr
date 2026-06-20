@@ -7,9 +7,7 @@ const { registerLandlord, registerTenant, login, me } = require('../controllers/
 router.post(
   '/register/landlord',
   documentUpload.fields([
-    { name: 'passport_nid', maxCount: 2 },
-    { name: 'title_document', maxCount: 3 },
-    { name: 'supporting_docs', maxCount: 5 },
+    { name: 'id_document', maxCount: 1 },
   ]),
   registerLandlord
 );

@@ -5,7 +5,7 @@ async function getPendingLandlords(req, res, next) {
   try {
     const landlords = await prisma.user.findMany({
       where: { role: 'landlord', status: 'pending_verification' },
-      include: { landlordDocuments: true },
+      include: { landlordIdDocuments: true },
       orderBy: { createdAt: 'asc' },
     });
     res.json({ landlords });
@@ -15,7 +15,7 @@ async function getPendingLandlords(req, res, next) {
 async function verifyLandlord(req, res, next) {
   try {
     const { id } = req.params;
-    const { action, reason } = req.body; // action: 'approve' | 'reject'
+    const { action } = req.body; // action: 'approve' | 'reject'
     if (!['approve', 'reject'].includes(action))
       return res.status(400).json({ error: 'action must be approve or reject' });
 
@@ -30,7 +30,9 @@ async function getPendingProperties(req, res, next) {
     const properties = await prisma.property.findMany({
       where: { status: 'pending' },
       include: {
-        photos: true, amenities: true,
+        photos: true,
+        amenities: true,
+        titleDocuments: true,
         landlord: { select: { id: true, name: true, email: true } },
       },
       orderBy: { createdAt: 'asc' },
@@ -59,7 +61,10 @@ async function getAllLandlords(req, res, next) {
   try {
     const landlords = await prisma.user.findMany({
       where: { role: 'landlord' },
-      include: { landlordDocuments: true, properties: { select: { id: true, status: true } } },
+      include: {
+        landlordIdDocuments: true,
+        properties: { select: { id: true, status: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
     res.json({ landlords: landlords.map(u => { const { passwordHash, ...r } = u; return r; }) });
@@ -70,7 +75,9 @@ async function getAllListings(req, res, next) {
   try {
     const properties = await prisma.property.findMany({
       include: {
-        photos: true, amenities: true,
+        photos: true,
+        amenities: true,
+        titleDocuments: true,
         landlord: { select: { id: true, name: true, email: true } },
       },
       orderBy: { createdAt: 'desc' },

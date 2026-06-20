@@ -20,9 +20,13 @@ enum UserStatus {
   suspended
 }
 
-enum DocType {
+enum IdDocType {
   passport
+  drivers_licence
   nid
+}
+
+enum TitleDocType {
   title
   other
 }
@@ -62,27 +66,39 @@ model User {
   status        UserStatus @default(pending_verification)
   createdAt     DateTime   @default(now()) @map("created_at")
 
-  landlordDocuments LandlordDocument[]
-  properties        Property[]
-  transactions      Transaction[]
-  unlocks           Unlock[]
-  favorites         Favorite[]
-  sentMessages      Message[]          @relation("SentMessages")
-  receivedMessages  Message[]          @relation("ReceivedMessages")
+  landlordIdDocuments LandlordIdDocument[]
+  properties          Property[]
+  transactions        Transaction[]
+  unlocks             Unlock[]
+  favorites           Favorite[]
+  sentMessages        Message[]            @relation("SentMessages")
+  receivedMessages    Message[]            @relation("ReceivedMessages")
 
   @@map("users")
 }
 
-model LandlordDocument {
-  id         String   @id @default(uuid())
-  userId     String   @map("user_id")
-  docType    DocType  @map("doc_type")
-  filePath   String   @map("file_path")
-  uploadedAt DateTime @default(now()) @map("uploaded_at")
+model LandlordIdDocument {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  docType    IdDocType @map("doc_type")
+  filePath   String    @map("file_path")
+  uploadedAt DateTime  @default(now()) @map("uploaded_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("landlord_documents")
+  @@map("landlord_id_documents")
+}
+
+model PropertyTitleDocument {
+  id         String       @id @default(uuid())
+  propertyId String       @map("property_id")
+  docType    TitleDocType @map("doc_type")
+  filePath   String       @map("file_path")
+  uploadedAt DateTime     @default(now()) @map("uploaded_at")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_title_documents")
 }
 
 model Property {
@@ -94,6 +110,8 @@ model Property {
   price           Decimal        @db.Decimal(12, 2)
   locationGeneral String         @map("location_general")
   locationExact   String         @map("location_exact")
+  locationLat     Float?         @map("location_lat")
+  locationLng     Float?         @map("location_lng")
   bedrooms        Int
   bathrooms       Int
   propertyType    PropertyType   @map("property_type")
@@ -101,13 +119,14 @@ model Property {
   rejectionReason String?        @map("rejection_reason")
   createdAt       DateTime       @default(now()) @map("created_at")
 
-  landlord     User            @relation(fields: [landlordId], references: [id], onDelete: Cascade)
-  photos       PropertyPhoto[]
-  amenities    Amenity[]
-  transactions Transaction[]
-  unlocks      Unlock[]
-  favorites    Favorite[]
-  messages     Message[]
+  landlord       User                    @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+  photos         PropertyPhoto[]
+  amenities      Amenity[]
+  titleDocuments PropertyTitleDocument[]
+  transactions   Transaction[]
+  unlocks        Unlock[]
+  favorites      Favorite[]
+  messages       Message[]
 
   @@map("properties")
 }
@@ -124,9 +143,9 @@ model PropertyPhoto {
 }
 
 model Amenity {
-  id           String @id @default(uuid())
-  propertyId   String @map("property_id")
-  amenityName  String @map("amenity_name")
+  id          String @id @default(uuid())
+  propertyId  String @map("property_id")
+  amenityName String @map("amenity_name")
 
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
