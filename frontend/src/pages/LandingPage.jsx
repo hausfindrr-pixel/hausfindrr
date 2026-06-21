@@ -19,7 +19,10 @@ export default function LandingPage() {
       {/* Minimal header */}
       <header className="bg-white border-b border-gray-100 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <span className="text-2xl font-bold text-primary tracking-tight">HausFindrr</span>
+          <span className="flex items-center gap-2.5">
+            <img src="/logo.svg" alt="HausFindrr" className="w-8 h-8" />
+            <span className="text-2xl font-bold text-primary tracking-tight">HausFindrr</span>
+          </span>
           <div className="flex items-center gap-4">
             <Link to="/browse" className="text-sm text-gray-600 hover:text-primary transition-colors font-medium">Browse</Link>
             <Link to="/tenant/login" className="text-sm text-gray-600 hover:text-primary transition-colors font-medium">Sign in</Link>
@@ -40,9 +43,7 @@ export default function LandingPage() {
         <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, #fff 0%, transparent 70%)', transform: 'translate(-30%, 30%)' }} />
 
         <div className="relative z-10 max-w-3xl mx-auto">
-          <span className="inline-block bg-white/20 text-white font-medium px-4 py-1.5 rounded-full text-sm mb-6 backdrop-blur-sm">
-            Papua New Guinea's Property Marketplace
-          </span>
+          <img src="/logo.svg" alt="HausFindrr" className="w-24 h-24 mx-auto mb-6 drop-shadow-lg" />
           <h1 className="text-5xl sm:text-6xl font-extrabold text-white leading-tight mb-5">
             Find Your Next<br />
             <span className="text-orange-200">Haus in PNG</span>
