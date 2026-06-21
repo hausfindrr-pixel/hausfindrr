@@ -200,7 +200,8 @@ model Message {
   senderId   String   @map("sender_id")
   receiverId String   @map("receiver_id")
   content    String
-  sentAt     DateTime @default(now()) @map("sent_at")
+  sentAt     DateTime  @default(now()) @map("sent_at")
+  readAt     DateTime? @map("read_at")
 
   property Property @relation(fields: [propertyId], references: [id])
   sender   User     @relation("SentMessages", fields: [senderId], references: [id])

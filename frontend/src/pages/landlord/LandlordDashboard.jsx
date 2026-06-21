@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Navbar from '../../components/shared/Navbar';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import MessageThread from '../../components/tenant/MessageThread';
 import { priceLabel } from '../../utils/format';
 
 const STATUS_BADGE = {
@@ -22,14 +23,22 @@ export default function LandlordDashboard() {
   const navigate = useNavigate();
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [conversations, setConversations] = useState({});
+  const [threads, setThreads] = useState([]);
   const [deleting, setDeleting] = useState(null);
+  const [openThread, setOpenThread] = useState(null); // { propertyId, otherUserId, otherName }
+  const [expandedProperty, setExpandedProperty] = useState(null);
 
   useEffect(() => {
     api.get('/properties/my')
       .then(r => setProperties(r.data.properties))
       .finally(() => setLoading(false));
   }, []);
+
+  const loadThreads = useCallback(() => {
+    api.get('/messages/inbox').then(r => setThreads(r.data.threads || [])).catch(() => {});
+  }, []);
+
+  useEffect(() => { loadThreads(); }, [loadThreads]);
 
   async function handleDelete(id) {
     if (!window.confirm('Delete this listing? This cannot be undone.')) return;
@@ -45,24 +54,30 @@ export default function LandlordDashboard() {
     }
   }
 
-  // Load conversations grouped by property using the inbox endpoint
-  useEffect(() => {
-    api.get('/messages/inbox').then(r => {
-      const grouped = {};
-      for (const thread of (r.data.threads || [])) {
-        const pid = thread.propertyId;
-        if (!grouped[pid]) grouped[pid] = [];
-        grouped[pid].push({
-          propertyId: pid,
-          otherUserId: thread.otherUser?.id,
-          otherName: thread.otherUser?.name,
-          lastMessage: thread.latestMessage?.content,
-          lastSentAt: thread.latestMessage?.sentAt,
-        });
-      }
-      setConversations(grouped);
-    }).catch(() => {});
-  }, []);
+  function handleThreadOpen(thread) {
+    const key = `${thread.propertyId}:${thread.otherUser.id}`;
+    const isAlreadyOpen = openThread?.propertyId === thread.propertyId && openThread?.otherUserId === thread.otherUser.id;
+    if (isAlreadyOpen) {
+      setOpenThread(null);
+    } else {
+      setOpenThread({ propertyId: thread.propertyId, otherUserId: thread.otherUser.id, otherName: thread.otherUser.name });
+    }
+  }
+
+  function handleRead() {
+    // Refresh inbox to clear unread counts after marking as read
+    loadThreads();
+  }
+
+  // Group threads by property
+  const threadsByProperty = threads.reduce((acc, t) => {
+    const pid = t.propertyId;
+    if (!acc[pid]) acc[pid] = { property: t.property, threads: [] };
+    acc[pid].threads.push(t);
+    return acc;
+  }, {});
+
+  const totalUnread = threads.reduce((sum, t) => sum + (t.unreadCount || 0), 0);
 
   const isVerified = user?.status === 'active';
   const isPending = user?.status === 'pending_verification';
@@ -97,7 +112,7 @@ export default function LandlordDashboard() {
           </div>
         </div>
 
-        {/* Account status banner */}
+        {/* Account status banners */}
         {isPending && (
           <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
             <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,7 +187,6 @@ export default function LandlordDashboard() {
                     key={p.id}
                     className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 group"
                   >
-                    {/* Photo */}
                     <div className="relative h-44 bg-gray-100">
                       {photoUrl ? (
                         <img src={photoUrl} alt={p.title} className="w-full h-full object-cover" />
@@ -229,72 +243,149 @@ export default function LandlordDashboard() {
           )}
         </div>
 
-        {/* Conversations section */}
-        {Object.keys(conversations).length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Tenant Conversations</h2>
-            <div className="space-y-4">
-              {properties.filter(p => conversations[p.id]).map(p => (
-                <ConversationGroup key={p.id} property={p} threads={conversations[p.id]} />
-              ))}
-            </div>
+        {/* Messages section */}
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
+            {totalUnread > 0 && (
+              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                {totalUnread} new
+              </span>
+            )}
           </div>
-        )}
+
+          {threads.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
+              <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <p className="text-gray-400 font-medium text-sm">No messages yet</p>
+              <p className="text-gray-300 text-xs mt-1">Tenant inquiries will appear here once they unlock your listings</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {Object.entries(threadsByProperty).map(([propertyId, group]) => {
+                const propertyUnread = group.threads.reduce((sum, t) => sum + (t.unreadCount || 0), 0);
+                const isExpanded = expandedProperty === propertyId;
+
+                return (
+                  <div key={propertyId} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    {/* Property header — click to expand/collapse thread list */}
+                    <button
+                      onClick={() => setExpandedProperty(isExpanded ? null : propertyId)}
+                      className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                          </svg>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-gray-900 text-sm truncate">{group.property?.title || 'Property'}</p>
+                          <p className="text-xs text-gray-400">{group.threads.length} conversation{group.threads.length !== 1 ? 's' : ''}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                        {propertyUnread > 0 && (
+                          <span className="bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                            {propertyUnread}
+                          </span>
+                        )}
+                        <svg className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </button>
+
+                    {/* Thread list */}
+                    {isExpanded && (
+                      <div className="border-t border-gray-100 divide-y divide-gray-50">
+                        {group.threads.map(thread => {
+                          const isOpen = openThread?.propertyId === thread.propertyId && openThread?.otherUserId === thread.otherUser.id;
+                          const hasUnread = thread.unreadCount > 0;
+                          const latest = thread.latestMessage;
+
+                          return (
+                            <div key={thread.otherUser.id}>
+                              {/* Thread row */}
+                              <button
+                                onClick={() => handleThreadOpen(thread)}
+                                className={`w-full flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors text-left ${isOpen ? 'bg-primary/5' : ''}`}
+                              >
+                                {/* Avatar */}
+                                <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${hasUnread ? 'bg-secondary text-white' : 'bg-gray-100 text-gray-500'}`}>
+                                  <span className="text-sm font-semibold">{(thread.otherUser.name || 'T')[0].toUpperCase()}</span>
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className={`text-sm truncate ${hasUnread ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>
+                                      {thread.otherUser.name}
+                                    </p>
+                                    {hasUnread && (
+                                      <span className="bg-red-500 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0">
+                                        {thread.unreadCount}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className={`text-xs truncate mt-0.5 ${hasUnread ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
+                                    {latest?.content || 'No messages yet'}
+                                  </p>
+                                </div>
+
+                                <div className="flex-shrink-0 text-right">
+                                  {latest?.sentAt && (
+                                    <p className="text-xs text-gray-300">
+                                      {formatRelativeTime(latest.sentAt)}
+                                    </p>
+                                  )}
+                                  <svg
+                                    className={`w-3.5 h-3.5 text-gray-300 mt-1 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                  >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </div>
+                              </button>
+
+                              {/* Inline message thread */}
+                              {isOpen && (
+                                <div className="border-t border-gray-100">
+                                  <MessageThread
+                                    propertyId={thread.propertyId}
+                                    otherUserId={thread.otherUser.id}
+                                    otherName={thread.otherUser.name}
+                                    onRead={handleRead}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-function ConversationGroup({ property, threads }) {
-  const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
-
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-          </div>
-          <div className="text-left">
-            <p className="font-medium text-gray-900 text-sm">{property.title}</p>
-            <p className="text-xs text-gray-400">{threads.length} conversation{threads.length !== 1 ? 's' : ''}</p>
-          </div>
-        </div>
-        <svg className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {open && (
-        <div className="border-t border-gray-100 divide-y divide-gray-50">
-          {threads.map(thread => (
-            <div
-              key={thread.otherUserId}
-              onClick={() => navigate(`/property/${property.id}`)}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors"
-            >
-              <div className="w-8 h-8 bg-secondary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-secondary text-xs font-semibold">{(thread.otherName || 'T')[0].toUpperCase()}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-800">{thread.otherName}</p>
-                <p className="text-xs text-gray-400 truncate">{thread.lastMessage || 'Start a conversation'}</p>
-              </div>
-              {thread.lastSentAt && (
-                <p className="text-xs text-gray-300 flex-shrink-0">
-                  {new Date(thread.lastSentAt).toLocaleDateString()}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+function formatRelativeTime(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
 }

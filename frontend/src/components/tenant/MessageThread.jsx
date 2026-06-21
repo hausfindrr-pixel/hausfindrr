@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-export default function MessageThread({ propertyId, otherUserId, otherName }) {
+export default function MessageThread({ propertyId, otherUserId, otherName, onRead }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
@@ -12,7 +12,13 @@ export default function MessageThread({ propertyId, otherUserId, otherName }) {
 
   useEffect(() => {
     api.get(`/messages/${propertyId}/${otherUserId}`)
-      .then(r => setMessages(r.data.messages))
+      .then(r => {
+        setMessages(r.data.messages);
+        // Mark received messages as read
+        api.patch(`/messages/${propertyId}/${otherUserId}/read`)
+          .then(() => onRead?.())
+          .catch(() => {});
+      })
       .catch(() => {});
   }, [propertyId, otherUserId]);
 

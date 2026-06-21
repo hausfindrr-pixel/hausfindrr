@@ -46,9 +46,26 @@ async function getThread(req, res, next) {
   }
 }
 
+async function markRead(req, res, next) {
+  try {
+    const { propertyId, otherUserId } = req.params;
+    await prisma.message.updateMany({
+      where: {
+        propertyId,
+        senderId: otherUserId,
+        receiverId: req.user.id,
+        readAt: null,
+      },
+      data: { readAt: new Date() },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getInbox(req, res, next) {
   try {
-    // Get all unique conversation threads for this user
     const messages = await prisma.message.findMany({
       where: {
         OR: [{ senderId: req.user.id }, { receiverId: req.user.id }],
@@ -61,19 +78,33 @@ async function getInbox(req, res, next) {
       orderBy: { sentAt: 'desc' },
     });
 
-    // Deduplicate into threads
+    // Deduplicate into threads and count unread
     const threadMap = new Map();
+    const unreadMap = new Map();
+
     for (const msg of messages) {
       const otherId = msg.senderId === req.user.id ? msg.receiverId : msg.senderId;
       const key = `${msg.propertyId}:${otherId}`;
+
       if (!threadMap.has(key)) {
         threadMap.set(key, {
           propertyId: msg.propertyId,
           property: msg.property,
           otherUser: msg.senderId === req.user.id ? msg.receiver : msg.sender,
           latestMessage: msg,
+          unreadCount: 0,
         });
       }
+
+      // Count messages sent to us that haven't been read yet
+      if (msg.receiverId === req.user.id && !msg.readAt) {
+        unreadMap.set(key, (unreadMap.get(key) || 0) + 1);
+      }
+    }
+
+    // Attach unread counts
+    for (const [key, thread] of threadMap) {
+      thread.unreadCount = unreadMap.get(key) || 0;
     }
 
     res.json({ threads: Array.from(threadMap.values()) });
@@ -82,4 +113,4 @@ async function getInbox(req, res, next) {
   }
 }
 
-module.exports = { sendMessage, getThread, getInbox };
+module.exports = { sendMessage, getThread, markRead, getInbox };
