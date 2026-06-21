@@ -4,7 +4,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "start": "prisma migrate deploy && node src/index.js",
+    "start": "prisma migrate deploy && node prisma/seed.js && node src/index.js",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
