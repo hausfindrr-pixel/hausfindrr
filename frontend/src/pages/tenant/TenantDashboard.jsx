@@ -102,7 +102,7 @@ function PropertyRow({ property, badge, badgeColor }) {
   return (
     <Link to={`/property/${property.id}`} className="card p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
       {photo ? (
-        <img src={`/uploads/photos/${photo.filePath.split('/').pop()}`} className="w-20 h-16 object-cover rounded-lg flex-shrink-0" alt="" />
+        <img src={photo.filePath} className="w-20 h-16 object-cover rounded-lg flex-shrink-0" alt="" />
       ) : (
         <div className="w-20 h-16 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center text-2xl">🏠</div>
       )}

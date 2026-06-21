@@ -149,7 +149,7 @@ export default function LandlordDashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {properties.map(p => {
                 const photo = p.photos?.[0];
-                const photoUrl = photo ? `/uploads/photos/${photo.filePath.split('/').pop()}` : null;
+                const photoUrl = photo ? photo.filePath : null;
                 return (
                   <div
                     key={p.id}

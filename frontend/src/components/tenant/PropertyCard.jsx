@@ -10,7 +10,7 @@ export default function PropertyCard({ property, onFavoriteToggle, isFavorited }
   const [favLoading, setFavLoading] = useState(false);
 
   const photo = property.photos?.[0];
-  const photoUrl = photo ? `/uploads/photos/${photo.filePath.split('/').pop()}` : null;
+  const photoUrl = photo ? photo.filePath : null;
 
   async function handleFavorite(e) {
     e.preventDefault();

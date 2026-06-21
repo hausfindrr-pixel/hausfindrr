@@ -171,7 +171,7 @@ export default function AdminDashboard() {
                             {l.landlordIdDocuments.map(d => (
                               <a
                                 key={d.id}
-                                href={`/uploads/documents/${d.filePath.split('/').pop()}`}
+                                href={d.filePath}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1.5 text-xs bg-secondary/10 text-secondary px-3 py-1.5 rounded-lg hover:bg-secondary/20 transition-colors font-medium"
@@ -231,7 +231,7 @@ export default function AdminDashboard() {
                           {p.photos.map(ph => (
                             <img
                               key={ph.id}
-                              src={`/uploads/photos/${ph.filePath.split('/').pop()}`}
+                              src={ph.filePath}
                               className="w-20 h-16 object-cover rounded-xl border border-gray-100"
                               alt=""
                             />
@@ -247,7 +247,7 @@ export default function AdminDashboard() {
                             {p.titleDocuments.map(d => (
                               <a
                                 key={d.id}
-                                href={`/uploads/documents/${d.filePath.split('/').pop()}`}
+                                href={d.filePath}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1.5 text-xs bg-secondary/10 text-secondary px-3 py-1.5 rounded-lg hover:bg-secondary/20 transition-colors font-medium"
@@ -310,7 +310,7 @@ export default function AdminDashboard() {
                       <div className="flex items-center gap-3">
                         {p.photos?.[0] && (
                           <img
-                            src={`/uploads/photos/${p.photos[0].filePath.split('/').pop()}`}
+                            src={p.photos[0].filePath}
                             className="w-12 h-10 object-cover rounded-xl flex-shrink-0"
                             alt=""
                           />

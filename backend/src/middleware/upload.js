@@ -1,55 +1,47 @@
 const multer = require('multer');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-const fs = require('fs');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
 
-function makeStorage(subfolder) {
-  return multer.diskStorage({
-    destination: (req, file, cb) => {
-      const dir = path.join(__dirname, '../../uploads', subfolder);
-      fs.mkdirSync(dir, { recursive: true });
-      cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname);
-      cb(null, `${uuidv4()}${ext}`);
-    },
-  });
-}
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 const ALLOWED_DOC_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
 const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-// Used for landlord registration: single id_document field
+function makeStorage(folder) {
+  return new CloudinaryStorage({
+    cloudinary,
+    params: async (req, file) => ({
+      folder: `hausfindrr/${folder}`,
+      resource_type: 'auto',
+      public_id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    }),
+  });
+}
+
 const documentUpload = multer({
   storage: makeStorage('documents'),
-  fileFilter: (req, file, cb) => {
-    cb(null, ALLOWED_DOC_TYPES.includes(file.mimetype));
-  },
+  fileFilter: (req, file, cb) => cb(null, ALLOWED_DOC_TYPES.includes(file.mimetype)),
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 const photoUpload = multer({
   storage: makeStorage('photos'),
-  fileFilter: (req, file, cb) => {
-    cb(null, ALLOWED_PHOTO_TYPES.includes(file.mimetype));
-  },
+  fileFilter: (req, file, cb) => cb(null, ALLOWED_PHOTO_TYPES.includes(file.mimetype)),
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-// Combined upload for property creation: photos + title docs
 const propertyUpload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      const subfolder = file.fieldname === 'title_documents' ? 'documents' : 'photos';
-      const dir = path.join(__dirname, '../../uploads', subfolder);
-      fs.mkdirSync(dir, { recursive: true });
-      cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname);
-      cb(null, `${uuidv4()}${ext}`);
-    },
+  storage: new CloudinaryStorage({
+    cloudinary,
+    params: async (req, file) => ({
+      folder: file.fieldname === 'title_documents' ? 'hausfindrr/documents' : 'hausfindrr/photos',
+      resource_type: 'auto',
+      public_id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    }),
   }),
   fileFilter: (req, file, cb) => {
     if (file.fieldname === 'title_documents') {

@@ -133,7 +133,7 @@ export default function PropertyDetail() {
           <div className="relative bg-gray-100" style={{ paddingBottom: photos.length > 0 ? '55%' : '40%' }}>
             {photos.length > 0 ? (
               <img
-                src={`/uploads/photos/${photos[activePhoto].filePath.split('/').pop()}`}
+                src={photos[activePhoto].filePath}
                 className="absolute inset-0 w-full h-full object-cover"
                 alt={property.title}
               />
@@ -156,7 +156,7 @@ export default function PropertyDetail() {
               {photos.map((ph, i) => (
                 <img
                   key={i}
-                  src={`/uploads/photos/${ph.filePath.split('/').pop()}`}
+                  src={ph.filePath}
                   onClick={() => setActivePhoto(i)}
                   className={`w-16 h-12 object-cover rounded-xl cursor-pointer flex-shrink-0 transition-all ${i === activePhoto ? 'ring-2 ring-secondary opacity-100' : 'opacity-60 hover:opacity-80'}`}
                   alt=""
