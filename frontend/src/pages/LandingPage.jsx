@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Navbar from '../components/shared/Navbar';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -16,20 +17,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      {/* Minimal header */}
-      <header className="bg-white border-b border-gray-100 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <span className="flex items-center gap-2.5">
-            <img src="/logo.svg" alt="HausFindrr" className="w-8 h-8" />
-            <span className="text-2xl font-bold text-primary tracking-tight">HausFindrr</span>
-          </span>
-          <div className="flex items-center gap-4">
-            <Link to="/browse" className="text-sm text-gray-600 hover:text-primary transition-colors font-medium">Browse</Link>
-            <Link to="/tenant/login" className="text-sm text-gray-600 hover:text-primary transition-colors font-medium">Sign in</Link>
-            <Link to="/landlord/register" className="btn-primary text-sm py-2 px-4">List a Property</Link>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Hero Section */}
       <section
