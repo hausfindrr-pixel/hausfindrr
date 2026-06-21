@@ -210,7 +210,15 @@ async function deleteProperty(req, res, next) {
     if (req.user.role !== 'admin' && property.landlordId !== req.user.id)
       return res.status(403).json({ error: 'Not your property' });
 
-    await prisma.property.delete({ where: { id } });
+    // Delete referencing records that lack ON DELETE CASCADE before removing the property
+    await prisma.$transaction([
+      prisma.message.deleteMany({ where: { propertyId: id } }),
+      prisma.favorite.deleteMany({ where: { propertyId: id } }),
+      prisma.unlock.deleteMany({ where: { propertyId: id } }),
+      prisma.transaction.deleteMany({ where: { propertyId: id } }),
+      prisma.property.delete({ where: { id } }),
+    ]);
+
     res.json({ success: true });
   } catch (err) {
     next(err);
