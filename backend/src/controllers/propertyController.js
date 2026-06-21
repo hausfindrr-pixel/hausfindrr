@@ -217,7 +217,7 @@ async function deleteProperty(req, res, next) {
   }
 }
 
-
+function maskProperty(p, unlocked) {
   // Approximate lat/lng: round to 2 decimal places (~1km precision)
   const approxLat = p.locationLat != null ? Math.round(p.locationLat * 100) / 100 : null;
   const approxLng = p.locationLng != null ? Math.round(p.locationLng * 100) / 100 : null;
