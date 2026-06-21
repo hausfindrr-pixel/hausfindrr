@@ -11,7 +11,7 @@ async function createProperty(req, res, next) {
       listingType, title, description, price,
       locationGeneral, locationExact,
       location_lat, location_lng,
-      bedrooms, bathrooms, propertyType, amenities,
+      bedrooms, bathrooms, propertyType, amenities, rentFrequency,
     } = req.body;
 
     const property = await prisma.property.create({
@@ -28,6 +28,7 @@ async function createProperty(req, res, next) {
         bedrooms: parseInt(bedrooms),
         bathrooms: parseInt(bathrooms),
         propertyType,
+        rentFrequency: listingType === 'rent' ? (rentFrequency || null) : null,
         status: 'pending',
       },
     });
@@ -81,9 +82,10 @@ async function updateProperty(req, res, next) {
       listingType, title, description, price,
       locationGeneral, locationExact,
       location_lat, location_lng,
-      bedrooms, bathrooms, propertyType, amenities,
+      bedrooms, bathrooms, propertyType, amenities, rentFrequency,
     } = req.body;
 
+    const effectiveType = listingType || property.listingType;
     const updated = await prisma.property.update({
       where: { id },
       data: {
@@ -98,6 +100,7 @@ async function updateProperty(req, res, next) {
         ...(bedrooms && { bedrooms: parseInt(bedrooms) }),
         ...(bathrooms && { bathrooms: parseInt(bathrooms) }),
         ...(propertyType && { propertyType }),
+        rentFrequency: effectiveType === 'rent' ? (rentFrequency || null) : null,
       },
     });
 
@@ -242,6 +245,7 @@ function maskProperty(p, unlocked) {
     propertyType: p.propertyType,
     photos: p.photos,
     amenities: p.amenities,
+    rentFrequency: p.rentFrequency,
     createdAt: p.createdAt,
     unlocked,
     approxLat,

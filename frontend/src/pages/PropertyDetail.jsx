@@ -5,6 +5,7 @@ import Navbar from '../components/shared/Navbar';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import MessageThread from '../components/tenant/MessageThread';
+import { priceLabel } from '../utils/format';
 
 export default function PropertyDetail() {
   const { id } = useParams();
@@ -179,7 +180,7 @@ export default function PropertyDetail() {
                 </svg>
                 {property.locationGeneral}
               </p>
-              <p className="text-3xl font-extrabold text-gray-900 mb-4">K{Number(property.price).toLocaleString()}</p>
+              <p className="text-3xl font-extrabold text-gray-900 mb-4">{priceLabel(property.price, property.listingType, property.rentFrequency)}</p>
               <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                 <span className="flex items-center gap-1.5">
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

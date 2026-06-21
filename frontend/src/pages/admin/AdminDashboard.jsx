@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Navbar from '../../components/shared/Navbar';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { priceLabel } from '../../utils/format';
 
 const TABS = ['pending_landlords', 'pending_properties', 'all_landlords', 'all_listings'];
 const TAB_LABELS = {
@@ -221,7 +222,7 @@ export default function AdminDashboard() {
                             <span className="text-xs text-gray-400 capitalize">{p.propertyType}</span>
                           </div>
                           <p className="font-semibold text-gray-900">{p.title}</p>
-                          <p className="text-gray-500 text-sm mt-0.5">{p.locationGeneral} · K{Number(p.price).toLocaleString()} · {p.bedrooms}bd {p.bathrooms}ba</p>
+                          <p className="text-gray-500 text-sm mt-0.5">{p.locationGeneral} · {priceLabel(p.price, p.listingType, p.rentFrequency)} · {p.bedrooms}bd {p.bathrooms}ba</p>
                           <p className="text-gray-400 text-xs mt-1">By {p.landlord?.name} ({p.landlord?.email})</p>
                         </div>
                         <div className="flex gap-2 flex-shrink-0">
@@ -332,7 +333,7 @@ export default function AdminDashboard() {
                         )}
                         <div>
                           <p className="font-medium text-gray-900 text-sm">{p.title}</p>
-                          <p className="text-gray-500 text-xs">{p.locationGeneral} · K{Number(p.price).toLocaleString()}</p>
+                          <p className="text-gray-500 text-xs">{p.locationGeneral} · {priceLabel(p.price, p.listingType, p.rentFrequency)}</p>
                           <p className="text-gray-400 text-xs">By {p.landlord?.name}</p>
                         </div>
                       </div>

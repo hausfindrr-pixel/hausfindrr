@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
+import { priceLabel } from '../../utils/format';
 
 export default function PropertyCard({ property, onFavoriteToggle, isFavorited }) {
   const { user } = useAuth();
@@ -84,7 +85,7 @@ export default function PropertyCard({ property, onFavoriteToggle, isFavorited }
       {/* Card body */}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-1">
-          <p className="text-xl font-bold text-gray-900">K{Number(property.price).toLocaleString()}</p>
+          <p className="text-xl font-bold text-gray-900">{priceLabel(property.price, property.listingType, property.rentFrequency)}</p>
           {!property.unlocked && (
             <span className="flex items-center gap-1 text-xs text-gray-400 bg-gray-50 rounded-full px-2 py-0.5 border border-gray-200 flex-shrink-0">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

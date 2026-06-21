@@ -41,6 +41,7 @@ export default function LandlordNewListing() {
     title: '',
     description: '',
     price: '',
+    rentFrequency: 'monthly',
     locationGeneral: '',
     locationExact: '',
     bedrooms: '1',
@@ -205,9 +206,18 @@ export default function LandlordNewListing() {
 
             <div>
               <label className="label">Price (Kina)</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">K</span>
-                <input className="input pl-8" type="number" required min="1" value={form.price} onChange={set('price')} placeholder="0" />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">K</span>
+                  <input className="input pl-8" type="number" required min="1" value={form.price} onChange={set('price')} placeholder="0" />
+                </div>
+                {form.listingType === 'rent' && (
+                  <select className="input w-auto flex-shrink-0" value={form.rentFrequency} onChange={set('rentFrequency')}>
+                    <option value="weekly">/ week</option>
+                    <option value="fortnightly">/ fortnight</option>
+                    <option value="monthly">/ month</option>
+                  </select>
+                )}
               </div>
             </div>
           </Section>

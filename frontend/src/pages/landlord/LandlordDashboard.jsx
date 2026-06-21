@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import Navbar from '../../components/shared/Navbar';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { priceLabel } from '../../utils/format';
 
 const STATUS_BADGE = {
   pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
@@ -203,7 +204,7 @@ export default function LandlordDashboard() {
                         {p.locationGeneral}
                       </p>
                       <div className="flex items-center justify-between">
-                        <p className="text-base font-bold text-gray-900">K{Number(p.price).toLocaleString()}</p>
+                        <p className="text-base font-bold text-gray-900">{priceLabel(p.price, p.listingType, p.rentFrequency)}</p>
                         <p className="text-xs text-gray-400">{p.bedrooms}bd · {p.bathrooms}ba</p>
                       </div>
                       {p.rejectionReason && (
