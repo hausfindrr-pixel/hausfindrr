@@ -3,7 +3,7 @@ const router = express.Router();
 const { authenticate, requireRole } = require('../middleware/auth');
 const { photoUpload, propertyUpload } = require('../middleware/upload');
 const {
-  createProperty, updateProperty, getListings, getProperty, getLandlordProperties,
+  createProperty, updateProperty, getListings, getProperty, getLandlordProperties, deleteProperty,
 } = require('../controllers/propertyController');
 
 // Optional auth middleware for public routes
@@ -46,5 +46,8 @@ router.put(
   ]),
   updateProperty
 );
+
+// Landlord deletes own property; admin can delete any
+router.delete('/:id', authenticate, deleteProperty);
 
 module.exports = router;

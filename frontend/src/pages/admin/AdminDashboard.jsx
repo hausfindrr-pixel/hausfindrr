@@ -25,6 +25,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [reason, setReason] = useState('');
   const [rejectTarget, setRejectTarget] = useState(null);
+  const [deleting, setDeleting] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,6 +54,20 @@ export default function AdminDashboard() {
       load();
     } catch {
       toast.error('Action failed');
+    }
+  }
+
+  async function deleteProperty(id) {
+    if (!window.confirm('Permanently delete this listing?')) return;
+    setDeleting(id);
+    try {
+      await api.delete(`/properties/${id}`);
+      toast.success('Listing deleted');
+      load();
+    } catch {
+      toast.error('Delete failed');
+    } finally {
+      setDeleting(null);
     }
   }
 
@@ -321,9 +336,18 @@ export default function AdminDashboard() {
                           <p className="text-gray-400 text-xs">By {p.landlord?.name}</p>
                         </div>
                       </div>
-                      <span className={`badge ${STATUS_BADGE[p.status] || 'bg-gray-100 text-gray-600'} flex-shrink-0`}>
-                        {p.status}
-                      </span>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`badge ${STATUS_BADGE[p.status] || 'bg-gray-100 text-gray-600'}`}>
+                          {p.status}
+                        </span>
+                        <button
+                          onClick={() => deleteProperty(p.id)}
+                          disabled={deleting === p.id}
+                          className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-100 rounded-lg px-2.5 py-1 transition-colors"
+                        >
+                          {deleting === p.id ? '…' : 'Delete'}
+                        </button>
+                      </div>
                     </div>
                   ))}
               </div>

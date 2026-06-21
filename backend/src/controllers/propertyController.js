@@ -201,7 +201,23 @@ async function getLandlordProperties(req, res, next) {
   }
 }
 
-function maskProperty(p, unlocked) {
+async function deleteProperty(req, res, next) {
+  try {
+    const { id } = req.params;
+    const property = await prisma.property.findUnique({ where: { id } });
+    if (!property) return res.status(404).json({ error: 'Property not found' });
+
+    if (req.user.role !== 'admin' && property.landlordId !== req.user.id)
+      return res.status(403).json({ error: 'Not your property' });
+
+    await prisma.property.delete({ where: { id } });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+
   // Approximate lat/lng: round to 2 decimal places (~1km precision)
   const approxLat = p.locationLat != null ? Math.round(p.locationLat * 100) / 100 : null;
   const approxLng = p.locationLng != null ? Math.round(p.locationLng * 100) / 100 : null;
@@ -251,4 +267,4 @@ async function getFullProperty(id) {
   });
 }
 
-module.exports = { createProperty, updateProperty, getListings, getProperty, getLandlordProperties };
+module.exports = { createProperty, updateProperty, getListings, getProperty, getLandlordProperties, deleteProperty };

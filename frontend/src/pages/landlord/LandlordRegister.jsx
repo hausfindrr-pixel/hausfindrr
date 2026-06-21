@@ -51,6 +51,9 @@ export default function LandlordRegister() {
         <div>
           <label className="label">Phone Number</label>
           <input className="input" type="tel" required placeholder="+675 xxx xxxx" value={form.phone} onChange={set('phone')} />
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-1.5">
+            Your phone number will be visible to tenants after they pay to unlock your listing. Make sure it's a number you actively use.
+          </p>
         </div>
         <div>
           <label className="label">Email Address</label>

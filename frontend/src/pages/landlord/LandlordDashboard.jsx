@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import Navbar from '../../components/shared/Navbar';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
@@ -21,12 +22,27 @@ export default function LandlordDashboard() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [conversations, setConversations] = useState({});
+  const [deleting, setDeleting] = useState(null);
 
   useEffect(() => {
     api.get('/properties/my')
       .then(r => setProperties(r.data.properties))
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleDelete(id) {
+    if (!window.confirm('Delete this listing? This cannot be undone.')) return;
+    setDeleting(id);
+    try {
+      await api.delete(`/properties/${id}`);
+      setProperties(prev => prev.filter(p => p.id !== id));
+      toast.success('Listing deleted');
+    } catch {
+      toast.error('Failed to delete listing');
+    } finally {
+      setDeleting(null);
+    }
+  }
 
   // Load conversations grouped by property using the inbox endpoint
   useEffect(() => {
@@ -153,8 +169,7 @@ export default function LandlordDashboard() {
                 return (
                   <div
                     key={p.id}
-                    onClick={() => navigate(`/property/${p.id}`)}
-                    className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group"
+                    className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 group"
                   >
                     {/* Photo */}
                     <div className="relative h-44 bg-gray-100">
@@ -177,7 +192,7 @@ export default function LandlordDashboard() {
                       </div>
                     </div>
 
-                    <div className="p-4">
+                    <div className="p-4 cursor-pointer" onClick={() => navigate(`/property/${p.id}`)}>
                       <p className="font-semibold text-gray-900 truncate group-hover:text-primary transition-colors text-sm">
                         {p.title}
                       </p>
@@ -196,6 +211,15 @@ export default function LandlordDashboard() {
                           <p className="text-xs text-red-600 font-medium">Rejected: {p.rejectionReason}</p>
                         </div>
                       )}
+                    </div>
+                    <div className="px-4 pb-4">
+                      <button
+                        onClick={() => handleDelete(p.id)}
+                        disabled={deleting === p.id}
+                        className="w-full text-xs text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-100 rounded-lg py-1.5 transition-colors"
+                      >
+                        {deleting === p.id ? 'Deleting…' : 'Delete listing'}
+                      </button>
                     </div>
                   </div>
                 );

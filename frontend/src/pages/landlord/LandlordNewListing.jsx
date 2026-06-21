@@ -135,7 +135,7 @@ export default function LandlordNewListing() {
       titleDocs.forEach(f => fd.append('title_documents', f));
       supportingDocs.forEach(f => fd.append('title_documents', f));
 
-      await api.post('/properties', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await api.post('/properties', fd);
       toast.success('Listing submitted for review!');
       navigate('/landlord/dashboard');
     } catch (err) {
@@ -312,7 +312,7 @@ export default function LandlordNewListing() {
           <Section title="Amenities" number="5">
             <div className="grid grid-cols-2 gap-y-3 gap-x-4">
               {AMENITY_OPTIONS.map(a => (
-                <label key={a} className="flex items-center gap-2.5 cursor-pointer group">
+                <label key={a} className="flex items-center gap-2.5 cursor-pointer group" onClick={() => toggleAmenity(a)}>
                   <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
                     selectedAmenities.includes(a) ? 'bg-secondary border-secondary' : 'border-gray-300 group-hover:border-secondary/50'
                   }`}>
@@ -322,7 +322,7 @@ export default function LandlordNewListing() {
                       </svg>
                     )}
                   </div>
-                  <span className="text-sm text-gray-700" onClick={() => toggleAmenity(a)}>{a}</span>
+                  <span className="text-sm text-gray-700">{a}</span>
                 </label>
               ))}
             </div>
