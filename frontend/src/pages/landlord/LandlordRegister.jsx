@@ -30,9 +30,7 @@ export default function LandlordRegister() {
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
       fd.append('id_document', idFile);
 
-      const { data } = await api.post('/auth/register/landlord', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data } = await api.post('/auth/register/landlord', fd);
       saveAuth(data.token, data.user);
       toast.success('Account created! Pending verification.');
       navigate('/landlord/dashboard');

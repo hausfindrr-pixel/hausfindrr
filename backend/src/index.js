@@ -35,6 +35,10 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 app.use((err, req, res, next) => {
   console.error(err);
+  if (err.code === 'P2002') {
+    const field = err.meta?.target?.[0] || 'field';
+    return res.status(409).json({ error: `An account with that ${field} already exists` });
+  }
   res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
 });
 
