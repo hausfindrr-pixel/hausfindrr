@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const path = require('path');
 
 const authRoutes = require('./routes/auth');
@@ -10,7 +11,30 @@ const adminRoutes = require('./routes/admin');
 const propertyRoutes = require('./routes/property');
 const messageRoutes = require('./routes/message');
 
+const { sanitizeBody } = require('./middleware/sanitize');
+
 const app = express();
+
+// Trust one hop of reverse proxy so req.ip is the real client IP for rate limiting.
+// Without this, all clients appear as 127.0.0.1 and the rate limiter blocks everyone at once.
+app.set('trust proxy', 1);
+
+// Security headers — applied before CORS so they're always present
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:     ["'self'"],
+      scriptSrc:      ["'self'"],
+      styleSrc:       ["'self'", "'unsafe-inline'"],   // allow inline styles (common in Express error pages)
+      imgSrc:         ["'self'", 'data:', 'https://res.cloudinary.com'],
+      connectSrc:     ["'self'"],
+      fontSrc:        ["'self'"],
+      objectSrc:      ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  },
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow Cloudinary images from frontend
+}));
 
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',
@@ -22,6 +46,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+app.use(sanitizeBody);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/landlord', landlordRoutes);

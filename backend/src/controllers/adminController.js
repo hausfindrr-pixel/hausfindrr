@@ -228,6 +228,7 @@ async function getAnalytics(req, res, next) {
     }
     const revenueChart = last7Days.map(({ dateStr }) => revByDay[dateStr]);
 
+    res.set('Cache-Control', 'private, max-age=60');
     res.json({
       totalLandlords,
       totalTenants,

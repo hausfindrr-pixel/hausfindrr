@@ -147,26 +147,15 @@ const NAV = [
     key: 'messages', label: 'Messages',
     icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
   },
+  {
+    key: 'security', label: 'Security',
+    icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>,
+  },
 ];
 
-// ─── Main shell ───────────────────────────────────────────────────────────────
-export default function AdminDashboard() {
-  const [section, setSection] = useState('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [pendingCounts, setPendingCounts] = useState({ pendingLandlords: 0, pendingListings: 0 });
-
-  useEffect(() => {
-    api.get('/admin/analytics')
-      .then(({ data }) => setPendingCounts({ pendingLandlords: data.pendingLandlords, pendingListings: data.pendingListings }))
-      .catch(() => {});
-  }, [section]);
-
-  function go(key) {
-    setSection(key);
-    setSidebarOpen(false);
-  }
-
-  const SidebarInner = () => (
+// ─── Sidebar (must be top-level — defining inside AdminDashboard causes remount on every render) ──
+function AdminSidebar({ section, pendingCounts, onNavigate }) {
+  return (
     <div className="flex flex-col h-full">
       <div className="px-5 py-5 border-b border-white/10">
         <div className="flex items-center gap-3">
@@ -187,7 +176,7 @@ export default function AdminDashboard() {
           return (
             <button
               key={item.key}
-              onClick={() => go(item.key)}
+              onClick={() => onNavigate(item.key)}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
                 active ? 'bg-white/15 text-white' : 'text-white/60 hover:bg-white/10 hover:text-white'
               }`}
@@ -213,12 +202,30 @@ export default function AdminDashboard() {
       </div>
     </div>
   );
+}
+
+// ─── Main shell ───────────────────────────────────────────────────────────────
+export default function AdminDashboard() {
+  const [section, setSection] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pendingCounts, setPendingCounts] = useState({ pendingLandlords: 0, pendingListings: 0 });
+
+  useEffect(() => {
+    api.get('/admin/analytics')
+      .then(({ data }) => setPendingCounts({ pendingLandlords: data.pendingLandlords ?? 0, pendingListings: data.pendingListings ?? 0 }))
+      .catch(() => setPendingCounts({ pendingLandlords: 0, pendingListings: 0 }));
+  }, [section]);
+
+  function go(key) {
+    setSection(key);
+    setSidebarOpen(false);
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Desktop sidebar */}
       <aside className="hidden md:block w-64 fixed inset-y-0 left-0 bg-primary z-30">
-        <SidebarInner />
+        <AdminSidebar section={section} pendingCounts={pendingCounts} onNavigate={go} />
       </aside>
 
       {/* Mobile sidebar overlay */}
@@ -226,7 +233,7 @@ export default function AdminDashboard() {
         <div className="md:hidden fixed inset-0 z-40 flex">
           <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
           <aside className="relative w-64 flex flex-col bg-primary z-10">
-            <SidebarInner />
+            <AdminSidebar section={section} pendingCounts={pendingCounts} onNavigate={go} />
           </aside>
         </div>
       )}
@@ -261,18 +268,31 @@ export default function AdminDashboard() {
           {section === 'all_listings'      && <AllListingsSection />}
           {section === 'transactions'      && <TransactionsSection />}
           {section === 'messages'          && <MessagesSection />}
+          {section === 'security'           && <SecuritySection />}
         </main>
       </div>
     </div>
   );
 }
 
+const EMPTY_ANALYTICS = {
+  totalLandlords: 0, totalTenants: 0, totalActiveListings: 0,
+  totalUnlocks: 0, totalRevenue: 0,
+  pendingLandlords: 0, pendingListings: 0,
+  recentActivity: [],
+  registrationChart: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(label => ({ label, landlords: 0, tenants: 0 })),
+  revenueChart: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(label => ({ label, unlocks: 0, revenue: 0 })),
+};
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 function DashboardSection() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    api.get('/admin/analytics').then(({ data: d }) => setData(d)).catch(() => {});
+    setData(null);
+    api.get('/admin/analytics')
+      .then(({ data: d }) => setData(d))
+      .catch(() => setData(EMPTY_ANALYTICS));
   }, []);
 
   if (!data) {
@@ -456,6 +476,7 @@ function PendingLandlordsSection({ onCountChange }) {
   useEffect(() => {
     api.get('/admin/landlords/pending')
       .then(({ data }) => { setLandlords(data.landlords); onCountChange?.(data.landlords.length); })
+      .catch(() => { setLandlords([]); onCountChange?.(0); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -563,6 +584,7 @@ function PendingListingsSection({ onCountChange }) {
   useEffect(() => {
     api.get('/admin/properties/pending')
       .then(({ data }) => { setProperties(data.properties); onCountChange?.(data.properties.length); })
+      .catch(() => { setProperties([]); onCountChange?.(0); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -680,7 +702,10 @@ function AllLandlordsSection() {
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
-    api.get('/admin/landlords').then(({ data }) => setLandlords(data.landlords)).finally(() => setLoading(false));
+    api.get('/admin/landlords')
+      .then(({ data }) => setLandlords(data.landlords))
+      .catch(() => setLandlords([]))
+      .finally(() => setLoading(false));
   }, []);
 
   async function suspend(id) {
@@ -799,7 +824,10 @@ function AllListingsSection() {
   const [rejectTarget, setRejectTarget] = useState(null);
 
   useEffect(() => {
-    api.get('/admin/properties').then(({ data }) => setProperties(data.properties)).finally(() => setLoading(false));
+    api.get('/admin/properties')
+      .then(({ data }) => setProperties(data.properties))
+      .catch(() => setProperties([]))
+      .finally(() => setLoading(false));
   }, []);
 
   async function reviewProp(id, action, reason = '') {
@@ -901,7 +929,10 @@ function TransactionsSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/admin/transactions').then(({ data: d }) => setData(d)).finally(() => setLoading(false));
+    api.get('/admin/transactions')
+      .then(({ data: d }) => setData(d))
+      .catch(() => setData({ transactions: [], totalRevenue: 0, thisMonthRevenue: 0, totalCount: 0 }))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -974,7 +1005,10 @@ function MessagesSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/admin/messages').then(({ data }) => setThreads(data.threads)).finally(() => setLoading(false));
+    api.get('/admin/messages')
+      .then(({ data }) => setThreads(data.threads))
+      .catch(() => setThreads([]))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -1013,6 +1047,264 @@ function MessagesSection() {
             </div>
           )
       }
+    </div>
+  );
+}
+
+// ─── Security / 2FA ───────────────────────────────────────────────────────────
+function SecuritySection() {
+  const [status, setStatus] = useState('idle'); // 'idle' | 'setup' | 'done' | 'disabling'
+  const [qrDataUrl, setQrDataUrl] = useState('');
+  const [secret, setSecret] = useState('');
+  const [confirmCode, setConfirmCode] = useState('');
+  const [disableCode, setDisableCode] = useState('');
+  const [backupCode, setBackupCode] = useState('');
+  const [twoFaEnabled, setTwoFaEnabled] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [fetched, setFetched] = useState(false);
+
+  useEffect(() => {
+    api.get('/auth/me')
+      .then(({ data }) => setTwoFaEnabled(!!data.user.twoFactorEnabled))
+      .catch(() => {})
+      .finally(() => setFetched(true));
+  }, []);
+
+  async function startSetup() {
+    setLoading(true);
+    try {
+      const { data } = await api.get('/admin/2fa/setup');
+      setQrDataUrl(data.qrDataUrl);
+      setSecret(data.secret);
+      setStatus('setup');
+      setConfirmCode('');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to start 2FA setup');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function confirmSetup(e) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { data } = await api.post('/admin/2fa/confirm', { code: confirmCode });
+      setBackupCode(data.backupCode);
+      setTwoFaEnabled(true);
+      setStatus('done');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Invalid code — try again');
+      setConfirmCode('');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function disable2fa(e) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await api.post('/admin/2fa/disable', { code: disableCode });
+      setTwoFaEnabled(false);
+      setStatus('idle');
+      setDisableCode('');
+      setQrDataUrl('');
+      setSecret('');
+      setBackupCode('');
+      toast.success('Two-factor authentication disabled');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Invalid code');
+      setDisableCode('');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!fetched) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Security</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Two-factor authentication settings</p>
+        </div>
+        <div className="h-32 bg-gray-100 animate-pulse rounded-2xl" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-xl font-bold text-gray-900">Security</h1>
+        <p className="text-sm text-gray-400 mt-0.5">Two-factor authentication settings for your admin account</p>
+      </div>
+
+      {/* Status banner */}
+      <div className={`flex items-center gap-3 px-5 py-4 rounded-2xl border ${twoFaEnabled ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${twoFaEnabled ? 'bg-green-100' : 'bg-amber-100'}`}>
+          <svg className={`w-5 h-5 ${twoFaEnabled ? 'text-green-600' : 'text-amber-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {twoFaEnabled
+              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            }
+          </svg>
+        </div>
+        <div>
+          <p className={`font-semibold text-sm ${twoFaEnabled ? 'text-green-800' : 'text-amber-800'}`}>
+            {twoFaEnabled ? '2FA is enabled' : '2FA is not enabled'}
+          </p>
+          <p className={`text-xs mt-0.5 ${twoFaEnabled ? 'text-green-600' : 'text-amber-600'}`}>
+            {twoFaEnabled
+              ? 'Your account is protected with time-based one-time passwords.'
+              : 'Enable two-factor authentication to add an extra layer of security.'}
+          </p>
+        </div>
+      </div>
+
+      {/* Setup flow */}
+      {status === 'idle' && !twoFaEnabled && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <h2 className="font-semibold text-gray-900 mb-1">Enable Two-Factor Authentication</h2>
+          <p className="text-sm text-gray-400 mb-5">
+            Use an authenticator app like Google Authenticator or Authy to generate one-time codes.
+          </p>
+          <button className="btn-primary" onClick={startSetup} disabled={loading}>
+            {loading ? 'Loading…' : 'Set up 2FA'}
+          </button>
+        </div>
+      )}
+
+      {status === 'setup' && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+          <div>
+            <h2 className="font-semibold text-gray-900 mb-1">Scan QR Code</h2>
+            <p className="text-sm text-gray-400">Open your authenticator app and scan the QR code below.</p>
+          </div>
+          {qrDataUrl && (
+            <div className="flex justify-center">
+              <img src={qrDataUrl} alt="2FA QR code" className="w-48 h-48 border border-gray-200 rounded-xl p-2" />
+            </div>
+          )}
+          {secret && (
+            <div>
+              <p className="text-xs text-gray-400 mb-1">Or enter the key manually:</p>
+              <code className="block bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono text-gray-700 tracking-widest select-all break-all">
+                {secret}
+              </code>
+            </div>
+          )}
+          <form onSubmit={confirmSetup} className="space-y-3">
+            <div>
+              <label className="label">Enter the 6-digit code to confirm</label>
+              <input
+                className="input text-center text-2xl tracking-widest font-mono"
+                type="text"
+                inputMode="numeric"
+                pattern="\d{6}"
+                maxLength={6}
+                required
+                autoFocus
+                value={confirmCode}
+                onChange={e => setConfirmCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="000000"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button className="btn-primary flex-1" disabled={loading || confirmCode.length !== 6}>
+                {loading ? 'Verifying…' : 'Enable 2FA'}
+              </button>
+              <button
+                type="button"
+                className="flex-1 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                onClick={() => { setStatus('idle'); setQrDataUrl(''); setSecret(''); setConfirmCode(''); }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {status === 'done' && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <h2 className="font-semibold text-gray-900">2FA enabled successfully!</h2>
+          </div>
+          <div>
+            <p className="text-sm text-amber-700 font-medium mb-1">Save your backup code — it is shown only once.</p>
+            <p className="text-xs text-gray-400 mb-2">
+              Use this code to access your account if you lose your authenticator device. It is single-use.
+            </p>
+            <code className="block bg-gray-900 text-green-400 font-mono text-lg tracking-widest text-center rounded-xl px-4 py-4 select-all">
+              {backupCode}
+            </code>
+          </div>
+          <button
+            className="w-full px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+            onClick={() => setStatus('idle')}
+          >
+            Done
+          </button>
+        </div>
+      )}
+
+      {/* Disable flow */}
+      {twoFaEnabled && status === 'idle' && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <h2 className="font-semibold text-gray-900 mb-1">Disable Two-Factor Authentication</h2>
+          <p className="text-sm text-gray-400 mb-5">
+            You will need your current authenticator code to disable 2FA.
+          </p>
+          <button
+            className="px-4 py-2 rounded-xl border border-red-200 text-sm text-red-600 hover:bg-red-50 transition-colors"
+            onClick={() => setStatus('disabling')}
+          >
+            Disable 2FA
+          </button>
+        </div>
+      )}
+
+      {status === 'disabling' && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+          <h2 className="font-semibold text-gray-900">Confirm Disable 2FA</h2>
+          <form onSubmit={disable2fa} className="space-y-3">
+            <div>
+              <label className="label">Enter your 6-digit authenticator code</label>
+              <input
+                className="input text-center text-2xl tracking-widest font-mono"
+                type="text"
+                inputMode="numeric"
+                pattern="\d{6}"
+                maxLength={6}
+                required
+                autoFocus
+                value={disableCode}
+                onChange={e => setDisableCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="000000"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                className="flex-1 px-4 py-2 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+                disabled={loading || disableCode.length !== 6}
+              >
+                {loading ? 'Disabling…' : 'Confirm Disable'}
+              </button>
+              <button
+                type="button"
+                className="flex-1 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                onClick={() => { setStatus('idle'); setDisableCode(''); }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
