@@ -25,7 +25,9 @@ export default function LandlordDashboard() {
   const [loading, setLoading] = useState(true);
   const [threads, setThreads] = useState([]);
   const [deleting, setDeleting] = useState(null);
-  const [openThread, setOpenThread] = useState(null); // { propertyId, otherUserId, otherName }
+  const [togglingOccupied, setTogglingOccupied] = useState(null);
+  const [markingSold, setMarkingSold] = useState(null);
+  const [openThread, setOpenThread] = useState(null);
   const [expandedProperty, setExpandedProperty] = useState(null);
 
   useEffect(() => {
@@ -54,8 +56,39 @@ export default function LandlordDashboard() {
     }
   }
 
+  async function handleToggleOccupied(id, currentOccupied) {
+    setTogglingOccupied(id);
+    // Optimistic update
+    setProperties(prev => prev.map(p => p.id === id ? { ...p, occupied: !currentOccupied } : p));
+    try {
+      const { data } = await api.patch(`/properties/${id}/occupied`);
+      // Confirm with server value
+      setProperties(prev => prev.map(p => p.id === id ? { ...p, occupied: data.occupied } : p));
+      toast.success(data.occupied ? 'Listing marked as occupied — hidden from browse' : 'Listing is available again');
+    } catch {
+      // Revert on failure
+      setProperties(prev => prev.map(p => p.id === id ? { ...p, occupied: currentOccupied } : p));
+      toast.error('Failed to update occupied status');
+    } finally {
+      setTogglingOccupied(null);
+    }
+  }
+
+  async function handleMarkSold(id) {
+    if (!window.confirm('Mark this listing as sold? It will be permanently removed from your dashboard.')) return;
+    setMarkingSold(id);
+    try {
+      await api.patch(`/properties/${id}/sold`);
+      setProperties(prev => prev.filter(p => p.id !== id));
+      toast.success('Listing marked as sold and removed');
+    } catch {
+      toast.error('Failed to mark as sold');
+    } finally {
+      setMarkingSold(null);
+    }
+  }
+
   function handleThreadOpen(thread) {
-    const key = `${thread.propertyId}:${thread.otherUser.id}`;
     const isAlreadyOpen = openThread?.propertyId === thread.propertyId && openThread?.otherUserId === thread.otherUser.id;
     if (isAlreadyOpen) {
       setOpenThread(null);
@@ -65,7 +98,6 @@ export default function LandlordDashboard() {
   }
 
   function handleRead() {
-    // Refresh inbox to clear unread counts after marking as read
     loadThreads();
   }
 
@@ -182,12 +214,14 @@ export default function LandlordDashboard() {
               {properties.map(p => {
                 const photo = p.photos?.[0];
                 const photoUrl = photo ? photo.filePath : null;
+                const isActive = p.status === 'active';
                 return (
                   <div
                     key={p.id}
-                    className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 group"
+                    className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 group flex flex-col"
                   >
-                    <div className="relative h-44 bg-gray-100">
+                    {/* Photo */}
+                    <div className="relative h-44 bg-gray-100 flex-shrink-0">
                       {photoUrl ? (
                         <img src={photoUrl} alt={p.title} className="w-full h-full object-cover" />
                       ) : (
@@ -197,17 +231,23 @@ export default function LandlordDashboard() {
                           </svg>
                         </div>
                       )}
-                      <div className="absolute top-3 left-3 flex gap-1.5">
+                      <div className="absolute top-3 left-3 flex gap-1.5 flex-wrap">
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${STATUS_BADGE[p.status]}`}>
                           {p.status.charAt(0).toUpperCase() + p.status.slice(1)}
                         </span>
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${LISTING_TYPE_BADGE[p.listingType]}`}>
                           {p.listingType === 'rent' ? 'Rent' : 'Sale'}
                         </span>
+                        {isActive && p.listingType === 'rent' && p.occupied && (
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
+                            Occupied
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    <div className="p-4 cursor-pointer" onClick={() => navigate(`/property/${p.id}`)}>
+                    {/* Card body */}
+                    <div className="p-4 cursor-pointer flex-1" onClick={() => navigate(`/property/${p.id}`)}>
                       <p className="font-semibold text-gray-900 truncate group-hover:text-primary transition-colors text-sm">
                         {p.title}
                       </p>
@@ -227,7 +267,40 @@ export default function LandlordDashboard() {
                         </div>
                       )}
                     </div>
-                    <div className="px-4 pb-4">
+
+                    {/* Card footer actions */}
+                    <div className="px-4 pb-4 space-y-2">
+                      {/* Occupied toggle — rental + active only */}
+                      {isActive && p.listingType === 'rent' && (
+                        <button
+                          onClick={() => handleToggleOccupied(p.id, p.occupied)}
+                          disabled={togglingOccupied === p.id}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
+                            p.occupied
+                              ? 'bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100'
+                              : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                          }`}
+                        >
+                          <span>{p.occupied ? 'Occupied — hidden from browse' : 'Mark as Occupied'}</span>
+                          {/* Toggle pill */}
+                          <span className={`relative inline-flex h-4 w-7 flex-shrink-0 rounded-full transition-colors ml-2 ${p.occupied ? 'bg-orange-400' : 'bg-gray-300'}`}>
+                            <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform mt-0.5 ${p.occupied ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                          </span>
+                        </button>
+                      )}
+
+                      {/* Mark as Sold — sale + active only */}
+                      {isActive && p.listingType === 'sale' && (
+                        <button
+                          onClick={() => handleMarkSold(p.id)}
+                          disabled={markingSold === p.id}
+                          className="w-full text-xs font-medium text-secondary hover:text-secondary/80 hover:bg-secondary/5 border border-secondary/20 rounded-lg py-2 transition-colors"
+                        >
+                          {markingSold === p.id ? 'Processing…' : 'Mark as Sold'}
+                        </button>
+                      )}
+
+                      {/* Delete listing */}
                       <button
                         onClick={() => handleDelete(p.id)}
                         disabled={deleting === p.id}
@@ -272,7 +345,7 @@ export default function LandlordDashboard() {
 
                 return (
                   <div key={propertyId} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    {/* Property header — click to expand/collapse thread list */}
+                    {/* Property header */}
                     <button
                       onClick={() => setExpandedProperty(isExpanded ? null : propertyId)}
                       className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors text-left"
@@ -310,16 +383,13 @@ export default function LandlordDashboard() {
 
                           return (
                             <div key={thread.otherUser.id}>
-                              {/* Thread row */}
                               <button
                                 onClick={() => handleThreadOpen(thread)}
                                 className={`w-full flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors text-left ${isOpen ? 'bg-primary/5' : ''}`}
                               >
-                                {/* Avatar */}
                                 <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${hasUnread ? 'bg-secondary text-white' : 'bg-gray-100 text-gray-500'}`}>
                                   <span className="text-sm font-semibold">{(thread.otherUser.name || 'T')[0].toUpperCase()}</span>
                                 </div>
-
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2">
                                     <p className={`text-sm truncate ${hasUnread ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>
@@ -335,23 +405,16 @@ export default function LandlordDashboard() {
                                     {latest?.content || 'No messages yet'}
                                   </p>
                                 </div>
-
                                 <div className="flex-shrink-0 text-right">
                                   {latest?.sentAt && (
-                                    <p className="text-xs text-gray-300">
-                                      {formatRelativeTime(latest.sentAt)}
-                                    </p>
+                                    <p className="text-xs text-gray-300">{formatRelativeTime(latest.sentAt)}</p>
                                   )}
-                                  <svg
-                                    className={`w-3.5 h-3.5 text-gray-300 mt-1 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                  >
+                                  <svg className={`w-3.5 h-3.5 text-gray-300 mt-1 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                   </svg>
                                 </div>
                               </button>
 
-                              {/* Inline message thread */}
                               {isOpen && (
                                 <div className="border-t border-gray-100">
                                   <MessageThread

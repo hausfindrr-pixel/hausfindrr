@@ -116,6 +116,8 @@ model Property {
   bathrooms       Int
   propertyType    PropertyType   @map("property_type")
   rentFrequency   String?        @map("rent_frequency")
+  occupied        Boolean        @default(false)
+  sold            Boolean        @default(false)
   status          PropertyStatus @default(pending)
   rejectionReason String?        @map("rejection_reason")
   createdAt       DateTime       @default(now()) @map("created_at")

@@ -123,10 +123,52 @@ async function updateProperty(req, res, next) {
   }
 }
 
+async function toggleOccupied(req, res, next) {
+  try {
+    const { id } = req.params;
+    const property = await prisma.property.findUnique({ where: { id } });
+    if (!property) return res.status(404).json({ error: 'Property not found' });
+    if (property.landlordId !== req.user.id)
+      return res.status(403).json({ error: 'Not your property' });
+    if (property.listingType !== 'rent')
+      return res.status(400).json({ error: 'Occupied toggle only applies to rental listings' });
+    if (property.status !== 'active')
+      return res.status(400).json({ error: 'Only active listings can be toggled' });
+
+    const updated = await prisma.property.update({
+      where: { id },
+      data: { occupied: !property.occupied },
+    });
+    res.json({ occupied: updated.occupied });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function markSold(req, res, next) {
+  try {
+    const { id } = req.params;
+    const property = await prisma.property.findUnique({ where: { id } });
+    if (!property) return res.status(404).json({ error: 'Property not found' });
+    if (property.landlordId !== req.user.id)
+      return res.status(403).json({ error: 'Not your property' });
+    if (property.listingType !== 'sale')
+      return res.status(400).json({ error: 'Mark as sold only applies to sale listings' });
+    if (property.status !== 'active')
+      return res.status(400).json({ error: 'Only active listings can be marked as sold' });
+
+    await prisma.property.update({ where: { id }, data: { sold: true } });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getListings(req, res, next) {
   try {
     const { type, location, minPrice, maxPrice, bedrooms, page = 1, limit = 12 } = req.query;
-    const where = { status: 'active' };
+    // Hide occupied rentals and sold properties from public browse
+    const where = { status: 'active', occupied: false, sold: false };
     if (type) where.listingType = type;
     if (location) where.locationGeneral = { contains: location, mode: 'insensitive' };
     if (bedrooms) where.bedrooms = parseInt(bedrooms);
@@ -173,7 +215,8 @@ async function getProperty(req, res, next) {
   try {
     const property = await getFullProperty(req.params.id);
     if (!property) return res.status(404).json({ error: 'Property not found' });
-    if (property.status !== 'active') return res.status(404).json({ error: 'Property not available' });
+    if (property.status !== 'active' || property.sold)
+      return res.status(404).json({ error: 'Property not available' });
 
     let unlocked = false;
     if (req.user?.role === 'tenant') {
@@ -193,8 +236,9 @@ async function getProperty(req, res, next) {
 
 async function getLandlordProperties(req, res, next) {
   try {
+    // Exclude sold listings — they're done and off the dashboard
     const properties = await prisma.property.findMany({
-      where: { landlordId: req.user.id },
+      where: { landlordId: req.user.id, sold: false },
       include: { photos: true, amenities: true, titleDocuments: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -246,6 +290,7 @@ function maskProperty(p, unlocked) {
     photos: p.photos,
     amenities: p.amenities,
     rentFrequency: p.rentFrequency,
+    occupied: p.occupied,
     createdAt: p.createdAt,
     unlocked,
     approxLat,
@@ -279,4 +324,7 @@ async function getFullProperty(id) {
   });
 }
 
-module.exports = { createProperty, updateProperty, getListings, getProperty, getLandlordProperties, deleteProperty };
+module.exports = {
+  createProperty, updateProperty, getListings, getProperty,
+  getLandlordProperties, deleteProperty, toggleOccupied, markSold,
+};
