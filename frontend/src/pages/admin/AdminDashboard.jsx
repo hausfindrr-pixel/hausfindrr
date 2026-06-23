@@ -149,24 +149,9 @@ const NAV = [
   },
 ];
 
-// ─── Main shell ───────────────────────────────────────────────────────────────
-export default function AdminDashboard() {
-  const [section, setSection] = useState('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [pendingCounts, setPendingCounts] = useState({ pendingLandlords: 0, pendingListings: 0 });
-
-  useEffect(() => {
-    api.get('/admin/analytics')
-      .then(({ data }) => setPendingCounts({ pendingLandlords: data.pendingLandlords, pendingListings: data.pendingListings }))
-      .catch(() => {});
-  }, [section]);
-
-  function go(key) {
-    setSection(key);
-    setSidebarOpen(false);
-  }
-
-  const SidebarInner = () => (
+// ─── Sidebar (must be top-level — defining inside AdminDashboard causes remount on every render) ──
+function AdminSidebar({ section, pendingCounts, onNavigate }) {
+  return (
     <div className="flex flex-col h-full">
       <div className="px-5 py-5 border-b border-white/10">
         <div className="flex items-center gap-3">
@@ -187,7 +172,7 @@ export default function AdminDashboard() {
           return (
             <button
               key={item.key}
-              onClick={() => go(item.key)}
+              onClick={() => onNavigate(item.key)}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
                 active ? 'bg-white/15 text-white' : 'text-white/60 hover:bg-white/10 hover:text-white'
               }`}
@@ -213,12 +198,30 @@ export default function AdminDashboard() {
       </div>
     </div>
   );
+}
+
+// ─── Main shell ───────────────────────────────────────────────────────────────
+export default function AdminDashboard() {
+  const [section, setSection] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pendingCounts, setPendingCounts] = useState({ pendingLandlords: 0, pendingListings: 0 });
+
+  useEffect(() => {
+    api.get('/admin/analytics')
+      .then(({ data }) => setPendingCounts({ pendingLandlords: data.pendingLandlords, pendingListings: data.pendingListings }))
+      .catch(() => {});
+  }, [section]);
+
+  function go(key) {
+    setSection(key);
+    setSidebarOpen(false);
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Desktop sidebar */}
       <aside className="hidden md:block w-64 fixed inset-y-0 left-0 bg-primary z-30">
-        <SidebarInner />
+        <AdminSidebar section={section} pendingCounts={pendingCounts} onNavigate={go} />
       </aside>
 
       {/* Mobile sidebar overlay */}
@@ -226,7 +229,7 @@ export default function AdminDashboard() {
         <div className="md:hidden fixed inset-0 z-40 flex">
           <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
           <aside className="relative w-64 flex flex-col bg-primary z-10">
-            <SidebarInner />
+            <AdminSidebar section={section} pendingCounts={pendingCounts} onNavigate={go} />
           </aside>
         </div>
       )}
@@ -270,10 +273,24 @@ export default function AdminDashboard() {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 function DashboardSection() {
   const [data, setData] = useState(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    api.get('/admin/analytics').then(({ data: d }) => setData(d)).catch(() => {});
+    setData(null);
+    setError(false);
+    api.get('/admin/analytics')
+      .then(({ data: d }) => setData(d))
+      .catch(() => setError(true));
   }, []);
+
+  if (error) {
+    return (
+      <div className="text-center py-24">
+        <p className="text-gray-400 font-medium">Failed to load analytics.</p>
+        <button className="mt-3 text-sm text-primary underline" onClick={() => { setError(false); setData(null); }}>Retry</button>
+      </div>
+    );
+  }
 
   if (!data) {
     return (
