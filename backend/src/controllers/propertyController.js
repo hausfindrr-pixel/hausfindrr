@@ -166,16 +166,26 @@ async function markSold(req, res, next) {
 
 async function getListings(req, res, next) {
   try {
-    const { type, location, minPrice, maxPrice, bedrooms, page = 1, limit = 12 } = req.query;
+    const { type, location, minPrice, maxPrice, bedrooms, bathrooms, propertyType, amenities, page = 1, limit = 12 } = req.query;
     // Hide occupied rentals and sold properties from public browse
     const where = { status: 'active', occupied: false, sold: false };
     if (type) where.listingType = type;
+    if (propertyType) where.propertyType = propertyType;
     if (location) where.locationGeneral = { contains: location, mode: 'insensitive' };
-    if (bedrooms) where.bedrooms = parseInt(bedrooms);
+    if (bedrooms) where.bedrooms = { gte: parseInt(bedrooms) };
+    if (bathrooms) where.bathrooms = { gte: parseInt(bathrooms) };
     if (minPrice || maxPrice) {
       where.price = {};
       if (minPrice) where.price.gte = parseFloat(minPrice);
       if (maxPrice) where.price.lte = parseFloat(maxPrice);
+    }
+    if (amenities) {
+      const amenityList = amenities.split(',').map(a => a.trim()).filter(Boolean);
+      if (amenityList.length > 0) {
+        where.AND = amenityList.map(a => ({
+          amenities: { some: { amenityName: { equals: a, mode: 'insensitive' } } },
+        }));
+      }
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
