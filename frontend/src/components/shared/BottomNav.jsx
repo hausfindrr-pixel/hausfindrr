@@ -1,13 +1,10 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-const HIDDEN_PATHS = [
-  '/landlord/',
-  '/admin',
-  '/tenant/login',
-  '/tenant/register',
-  '/landlord/login',
-  '/landlord/register',
+const ALLOWED_PATHS = [
+  '/browse',
+  '/tenant/dashboard',
+  '/landlord/dashboard',
 ];
 
 export default function BottomNav() {
@@ -15,7 +12,8 @@ export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  if (HIDDEN_PATHS.some(p => location.pathname.startsWith(p))) return null;
+  const visible = ALLOWED_PATHS.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+  if (!visible) return null;
 
   const at = (...paths) => paths.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
 
