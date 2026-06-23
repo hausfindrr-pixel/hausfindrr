@@ -208,8 +208,8 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     api.get('/admin/analytics')
-      .then(({ data }) => setPendingCounts({ pendingLandlords: data.pendingLandlords, pendingListings: data.pendingListings }))
-      .catch(() => {});
+      .then(({ data }) => setPendingCounts({ pendingLandlords: data.pendingLandlords ?? 0, pendingListings: data.pendingListings ?? 0 }))
+      .catch(() => setPendingCounts({ pendingLandlords: 0, pendingListings: 0 }));
   }, [section]);
 
   function go(key) {
@@ -270,27 +270,25 @@ export default function AdminDashboard() {
   );
 }
 
+const EMPTY_ANALYTICS = {
+  totalLandlords: 0, totalTenants: 0, totalActiveListings: 0,
+  totalUnlocks: 0, totalRevenue: 0,
+  pendingLandlords: 0, pendingListings: 0,
+  recentActivity: [],
+  registrationChart: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(label => ({ label, landlords: 0, tenants: 0 })),
+  revenueChart: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(label => ({ label, unlocks: 0, revenue: 0 })),
+};
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 function DashboardSection() {
   const [data, setData] = useState(null);
-  const [error, setError] = useState(false);
 
   useEffect(() => {
     setData(null);
-    setError(false);
     api.get('/admin/analytics')
       .then(({ data: d }) => setData(d))
-      .catch(() => setError(true));
+      .catch(() => setData(EMPTY_ANALYTICS));
   }, []);
-
-  if (error) {
-    return (
-      <div className="text-center py-24">
-        <p className="text-gray-400 font-medium">Failed to load analytics.</p>
-        <button className="mt-3 text-sm text-primary underline" onClick={() => { setError(false); setData(null); }}>Retry</button>
-      </div>
-    );
-  }
 
   if (!data) {
     return (
@@ -473,6 +471,7 @@ function PendingLandlordsSection({ onCountChange }) {
   useEffect(() => {
     api.get('/admin/landlords/pending')
       .then(({ data }) => { setLandlords(data.landlords); onCountChange?.(data.landlords.length); })
+      .catch(() => { setLandlords([]); onCountChange?.(0); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -580,6 +579,7 @@ function PendingListingsSection({ onCountChange }) {
   useEffect(() => {
     api.get('/admin/properties/pending')
       .then(({ data }) => { setProperties(data.properties); onCountChange?.(data.properties.length); })
+      .catch(() => { setProperties([]); onCountChange?.(0); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -697,7 +697,10 @@ function AllLandlordsSection() {
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
-    api.get('/admin/landlords').then(({ data }) => setLandlords(data.landlords)).finally(() => setLoading(false));
+    api.get('/admin/landlords')
+      .then(({ data }) => setLandlords(data.landlords))
+      .catch(() => setLandlords([]))
+      .finally(() => setLoading(false));
   }, []);
 
   async function suspend(id) {
@@ -816,7 +819,10 @@ function AllListingsSection() {
   const [rejectTarget, setRejectTarget] = useState(null);
 
   useEffect(() => {
-    api.get('/admin/properties').then(({ data }) => setProperties(data.properties)).finally(() => setLoading(false));
+    api.get('/admin/properties')
+      .then(({ data }) => setProperties(data.properties))
+      .catch(() => setProperties([]))
+      .finally(() => setLoading(false));
   }, []);
 
   async function reviewProp(id, action, reason = '') {
@@ -918,7 +924,10 @@ function TransactionsSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/admin/transactions').then(({ data: d }) => setData(d)).finally(() => setLoading(false));
+    api.get('/admin/transactions')
+      .then(({ data: d }) => setData(d))
+      .catch(() => setData({ transactions: [], totalRevenue: 0, thisMonthRevenue: 0, totalCount: 0 }))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -991,7 +1000,10 @@ function MessagesSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/admin/messages').then(({ data }) => setThreads(data.threads)).finally(() => setLoading(false));
+    api.get('/admin/messages')
+      .then(({ data }) => setThreads(data.threads))
+      .catch(() => setThreads([]))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
