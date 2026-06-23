@@ -26,6 +26,10 @@ function stripHtml(val) {
     .trim();
 }
 
+// Fields that must never be sanitized — they go straight into bcrypt/TOTP comparison.
+// Altering them would cause auth to fail even with valid credentials.
+const SKIP_SANITIZE = new Set(['password', 'code', 'backupCode', 'currentPassword', 'newPassword']);
+
 // Recursively sanitize all string values in req.body
 function sanitizeBody(req, res, next) {
   if (req.body && typeof req.body === 'object') {
@@ -34,12 +38,12 @@ function sanitizeBody(req, res, next) {
   next();
 }
 
-function sanitizeObject(obj) {
-  if (Array.isArray(obj)) return obj.map(sanitizeObject);
+function sanitizeObject(obj, parentKey) {
+  if (Array.isArray(obj)) return obj.map(item => sanitizeObject(item));
   if (obj !== null && typeof obj === 'object') {
     const clean = {};
     for (const key of Object.keys(obj)) {
-      clean[key] = sanitizeObject(obj[key]);
+      clean[key] = SKIP_SANITIZE.has(key) ? obj[key] : sanitizeObject(obj[key], key);
     }
     return clean;
   }
