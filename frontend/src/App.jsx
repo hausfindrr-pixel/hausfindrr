@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import BottomNav from './components/shared/BottomNav';
 
 import LandingPage from './pages/LandingPage';
 import LandlordLogin from './pages/landlord/LandlordLogin';
@@ -69,6 +70,7 @@ export default function App() {
   return (
     <AuthProvider>
       <AppRoutes />
+      <BottomNav />
     </AuthProvider>
   );
 }

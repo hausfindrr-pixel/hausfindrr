@@ -8,6 +8,14 @@
   body {
     font-family: 'Inter', sans-serif;
     @apply bg-white text-gray-900;
+    /* Prevent horizontal overflow on mobile */
+    overflow-x: hidden;
+    /* Support iPhone safe area insets */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  * {
+    /* Prevent tap highlight flash on iOS */
+    -webkit-tap-highlight-color: transparent;
   }
 }
 

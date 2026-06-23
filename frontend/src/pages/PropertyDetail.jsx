@@ -15,6 +15,7 @@ export default function PropertyDetail() {
   const [unlocked, setUnlocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showPayment, setShowPayment] = useState(false);
+  const [showMobilePayment, setShowMobilePayment] = useState(false);
   const [card, setCard] = useState({ number: '', expiry: '', cvv: '', name: '' });
   const [paying, setPaying] = useState(false);
   const [showMessages, setShowMessages] = useState(false);
@@ -22,6 +23,7 @@ export default function PropertyDetail() {
 
   const fuzzyMapRef = useRef(null);
   const fuzzyLeafletRef = useRef(null);
+  const touchStartX = useRef(null);
 
   useEffect(() => {
     api.get(`/properties/${id}`)
@@ -30,11 +32,9 @@ export default function PropertyDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // Fuzzy map (before unlock)
   useEffect(() => {
     if (!property || unlocked || !fuzzyMapRef.current) return;
     if (fuzzyLeafletRef.current) return;
-
     const lat = property.approxLat;
     const lng = property.approxLng;
     if (!lat || !lng) return;
@@ -42,32 +42,18 @@ export default function PropertyDetail() {
     async function initFuzzyMap() {
       const L = (await import('leaflet')).default;
       await import('leaflet/dist/leaflet.css');
-
       const map = L.map(fuzzyMapRef.current, { zoomControl: true, scrollWheelZoom: false })
         .setView([lat, lng], 12);
-
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors',
       }).addTo(map);
-
-      // Approximate circle overlay — not a precise pin
-      L.circle([lat, lng], {
-        color: '#975536',
-        fillColor: '#975536',
-        fillOpacity: 0.15,
-        radius: 1000,
-      }).addTo(map);
-
+      L.circle([lat, lng], { color: '#975536', fillColor: '#975536', fillOpacity: 0.15, radius: 1000 }).addTo(map);
       fuzzyLeafletRef.current = map;
     }
 
     initFuzzyMap().catch(console.error);
-
     return () => {
-      if (fuzzyLeafletRef.current) {
-        fuzzyLeafletRef.current.remove();
-        fuzzyLeafletRef.current = null;
-      }
+      if (fuzzyLeafletRef.current) { fuzzyLeafletRef.current.remove(); fuzzyLeafletRef.current = null; }
     };
   }, [property, unlocked]);
 
@@ -76,8 +62,7 @@ export default function PropertyDetail() {
     setPaying(true);
     try {
       const { data } = await api.post(`/tenant/unlock/${id}`, {
-        cardNumber: card.number, cardExpiry: card.expiry,
-        cardCvv: card.cvv, cardName: card.name,
+        cardNumber: card.number, cardExpiry: card.expiry, cardCvv: card.cvv, cardName: card.name,
       });
       if (data.unlocked || data.already_unlocked) {
         toast.success('Property unlocked! Full details revealed.');
@@ -85,6 +70,7 @@ export default function PropertyDetail() {
         setProperty(r.data.property);
         setUnlocked(true);
         setShowPayment(false);
+        setShowMobilePayment(false);
         setShowMessages(true);
       }
     } catch (err) {
@@ -94,13 +80,27 @@ export default function PropertyDetail() {
     }
   }
 
+  function handleTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+
+  function handleTouchEnd(e) {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(dx) < 50) return;
+    const photos = property?.photos || [];
+    if (dx < 0) setActivePhoto(p => Math.min(p + 1, photos.length - 1));
+    else setActivePhoto(p => Math.max(p - 1, 0));
+  }
+
   const setCard_ = k => e => setCard(p => ({ ...p, [k]: e.target.value }));
 
   if (loading) return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <div className="max-w-5xl mx-auto px-4 py-12">
-        <div className="h-80 bg-gray-200 animate-pulse rounded-2xl mb-6" />
+        <div className="h-64 sm:h-80 bg-gray-200 animate-pulse rounded-2xl mb-6" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-4">
             {[1, 2, 3].map(i => <div key={i} className="h-24 bg-gray-100 animate-pulse rounded-2xl" />)}
@@ -121,22 +121,29 @@ export default function PropertyDetail() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Link to="/browse" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary transition-colors mb-6">
+      <div className={`max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 ${!unlocked ? 'pb-36 md:pb-8' : 'pb-24 md:pb-8'}`}>
+        <Link to="/browse" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary transition-colors mb-5">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Back to listings
         </Link>
 
-        {/* Photo gallery */}
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 mb-6">
-          <div className="relative bg-gray-100" style={{ paddingBottom: photos.length > 0 ? '55%' : '40%' }}>
+        {/* Photo carousel */}
+        <div className="mb-5">
+          {/* Main photo — swipeable on mobile */}
+          <div
+            className="relative bg-gray-100 rounded-2xl overflow-hidden shadow-sm"
+            style={{ paddingBottom: photos.length > 0 ? '58%' : '40%' }}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             {photos.length > 0 ? (
               <img
                 src={photos[activePhoto].filePath}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover select-none"
                 alt={property.title}
+                draggable={false}
               />
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-200">
@@ -145,21 +152,74 @@ export default function PropertyDetail() {
                 </svg>
               </div>
             )}
+
+            {/* Listing type badge */}
             <div className="absolute top-4 left-4">
               <span className={`text-sm font-semibold px-3 py-1.5 rounded-full ${property.listingType === 'rent' ? 'bg-primary text-white' : 'bg-secondary text-white'}`}>
                 {property.listingType === 'rent' ? 'For Rent' : 'For Sale'}
               </span>
             </div>
+
+            {/* Photo counter — mobile only */}
+            {photos.length > 1 && (
+              <div className="md:hidden absolute bottom-3 right-3 bg-black/50 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+                {activePhoto + 1} / {photos.length}
+              </div>
+            )}
+
+            {/* Swipe arrows — desktop only */}
+            {photos.length > 1 && (
+              <>
+                {activePhoto > 0 && (
+                  <button
+                    onClick={() => setActivePhoto(p => p - 1)}
+                    className="hidden md:flex absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 rounded-full items-center justify-center shadow hover:bg-white transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                )}
+                {activePhoto < photos.length - 1 && (
+                  <button
+                    onClick={() => setActivePhoto(p => p + 1)}
+                    className="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 rounded-full items-center justify-center shadow hover:bg-white transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                )}
+              </>
+            )}
           </div>
 
+          {/* Dots indicator — mobile only */}
           {photos.length > 1 && (
-            <div className="flex gap-2 p-3 overflow-x-auto bg-gray-50">
+            <div className="flex justify-center items-center gap-1.5 mt-2.5 md:hidden">
+              {photos.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActivePhoto(i)}
+                  className={`rounded-full transition-all ${
+                    i === activePhoto ? 'w-4 h-1.5 bg-primary' : 'w-1.5 h-1.5 bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Thumbnails — desktop only */}
+          {photos.length > 1 && (
+            <div className="hidden md:flex gap-2 mt-2.5 overflow-x-auto scrollbar-hide">
               {photos.map((ph, i) => (
                 <img
                   key={i}
                   src={ph.filePath}
                   onClick={() => setActivePhoto(i)}
-                  className={`w-16 h-12 object-cover rounded-xl cursor-pointer flex-shrink-0 transition-all ${i === activePhoto ? 'ring-2 ring-secondary opacity-100' : 'opacity-60 hover:opacity-80'}`}
+                  className={`w-16 h-12 object-cover rounded-xl cursor-pointer flex-shrink-0 transition-all ${
+                    i === activePhoto ? 'ring-2 ring-secondary opacity-100' : 'opacity-60 hover:opacity-80'
+                  }`}
                   alt=""
                 />
               ))}
@@ -167,20 +227,23 @@ export default function PropertyDetail() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Main content */}
-          <div className="md:col-span-2 space-y-5">
+          <div className="md:col-span-2 space-y-4">
+
             {/* Header */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">{property.title}</h1>
-              <p className="text-gray-500 text-sm flex items-center gap-1.5 mb-4">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">{property.title}</h1>
+              <p className="text-gray-500 text-sm flex items-center gap-1.5 mb-3">
+                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 {property.locationGeneral}
               </p>
-              <p className="text-3xl font-extrabold text-gray-900 mb-4">{priceLabel(property.price, property.listingType, property.rentFrequency)}</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-4">
+                {priceLabel(property.price, property.listingType, property.rentFrequency)}
+              </p>
               <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                 <span className="flex items-center gap-1.5">
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -204,20 +267,20 @@ export default function PropertyDetail() {
             </div>
 
             {/* Description */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
               <h2 className="font-semibold text-gray-900 mb-3">About this property</h2>
-              <p className="text-gray-600 leading-relaxed whitespace-pre-line">{property.description}</p>
+              <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{property.description}</p>
             </div>
 
             {/* Amenities */}
             {property.amenities?.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
                 <h2 className="font-semibold text-gray-900 mb-4">What this place offers</h2>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-wrap gap-2">
                   {property.amenities.map(a => (
-                    <div key={a.id} className="flex items-center gap-2.5 text-sm text-gray-700">
-                      <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div key={a.id} className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 rounded-xl px-3 py-2 border border-gray-100">
+                      <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-2.5 h-2.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
@@ -230,7 +293,7 @@ export default function PropertyDetail() {
 
             {/* Unlocked: exact address */}
             {unlocked && property.locationExact && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm border-l-4 border-secondary border border-gray-100">
+              <div className="bg-white rounded-2xl p-5 shadow-sm border-l-4 border-secondary border border-gray-100">
                 <h2 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
                   <svg className="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -238,20 +301,20 @@ export default function PropertyDetail() {
                   </svg>
                   Exact Address
                 </h2>
-                <p className="text-gray-700 font-medium">{property.locationExact}</p>
+                <p className="text-gray-700 font-medium text-sm">{property.locationExact}</p>
               </div>
             )}
 
             {/* Unlocked: Google Maps embed */}
             {unlocked && hasCoords && (
               <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
-                <div className="px-6 py-4 border-b border-gray-50">
+                <div className="px-5 py-4 border-b border-gray-50">
                   <h2 className="font-semibold text-gray-900">Property Location</h2>
                 </div>
                 <iframe
                   src={`https://maps.google.com/maps?q=${property.locationLat},${property.locationLng}&output=embed`}
                   width="100%"
-                  height="300"
+                  height="280"
                   style={{ border: 0 }}
                   allowFullScreen=""
                   loading="lazy"
@@ -262,7 +325,7 @@ export default function PropertyDetail() {
 
             {/* Unlocked: landlord contact */}
             {unlocked && property.landlord && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
                 <h2 className="font-semibold text-gray-900 mb-4">Landlord Contact</h2>
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center flex-shrink-0">
@@ -282,7 +345,7 @@ export default function PropertyDetail() {
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <button
                   onClick={() => setShowMessages(!showMessages)}
-                  className="w-full px-6 py-4 text-left font-semibold text-gray-900 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  className="w-full px-5 py-4 text-left font-semibold text-gray-900 flex items-center justify-between hover:bg-gray-50 transition-colors"
                 >
                   <span className="flex items-center gap-2">
                     <svg className="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -308,16 +371,12 @@ export default function PropertyDetail() {
           {/* Sidebar */}
           <div className="md:sticky md:top-24 self-start space-y-4">
             {!unlocked ? (
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
                 {/* Fuzzy map */}
                 {hasApprox && (
                   <div className="mb-5">
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Approximate Area</p>
-                    <div
-                      ref={fuzzyMapRef}
-                      className="w-full rounded-xl overflow-hidden border border-gray-100"
-                      style={{ height: 160 }}
-                    />
+                    <div ref={fuzzyMapRef} className="w-full rounded-xl overflow-hidden border border-gray-100" style={{ height: 150 }} />
                     <p className="text-xs text-gray-400 mt-1">Exact location revealed after unlock</p>
                   </div>
                 )}
@@ -358,29 +417,16 @@ export default function PropertyDetail() {
                 ) : (
                   <div className="space-y-3">
                     <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Card Details</p>
-                    <input
-                      className="input text-sm"
-                      placeholder="Card number"
-                      maxLength={19}
-                      value={card.number}
-                      onChange={setCard_('number')}
-                    />
+                    <input className="input text-sm" placeholder="Card number" maxLength={19} value={card.number} onChange={setCard_('number')} />
                     <div className="grid grid-cols-2 gap-2">
                       <input className="input text-sm" placeholder="MM/YY" value={card.expiry} onChange={setCard_('expiry')} />
                       <input className="input text-sm" placeholder="CVV" maxLength={4} value={card.cvv} onChange={setCard_('cvv')} />
                     </div>
                     <input className="input text-sm" placeholder="Name on card" value={card.name} onChange={setCard_('name')} />
-                    <button
-                      onClick={handleUnlock}
-                      disabled={paying || !card.number}
-                      className="btn-secondary w-full py-3"
-                    >
+                    <button onClick={handleUnlock} disabled={paying || !card.number} className="btn-secondary w-full py-3">
                       {paying ? 'Processing…' : 'Pay K25 & Unlock'}
                     </button>
-                    <button
-                      onClick={() => setShowPayment(false)}
-                      className="text-gray-400 text-xs w-full text-center hover:text-gray-600 py-1"
-                    >
+                    <button onClick={() => setShowPayment(false)} className="text-gray-400 text-xs w-full text-center hover:text-gray-600 py-1">
                       Cancel
                     </button>
                     <p className="text-xs text-gray-400 text-center leading-relaxed">
@@ -390,7 +436,7 @@ export default function PropertyDetail() {
                 )}
               </div>
             ) : (
-              <div className="bg-green-50 rounded-2xl p-6 border border-green-200 text-center">
+              <div className="bg-green-50 rounded-2xl p-5 border border-green-200 text-center">
                 <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
                   <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
@@ -411,6 +457,66 @@ export default function PropertyDetail() {
           </div>
         </div>
       </div>
+
+      {/* Mobile sticky unlock button — fixed above bottom nav */}
+      {!unlocked && (
+        <div
+          className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-100 px-4 pt-3"
+          style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+        >
+          <button
+            onClick={() => user ? setShowMobilePayment(true) : navigate('/tenant/login')}
+            className="w-full py-3.5 bg-secondary text-white rounded-xl text-base font-semibold hover:bg-secondary/90 transition-colors shadow-sm"
+          >
+            {user ? 'Unlock Landlord Details — K25' : 'Sign In to Unlock — K25'}
+          </button>
+        </div>
+      )}
+
+      {/* Mobile payment bottom sheet */}
+      {showMobilePayment && (
+        <div className="md:hidden fixed inset-0 z-50 flex items-end">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowMobilePayment(false)} />
+          <div className="relative bg-white w-full rounded-t-3xl shadow-2xl px-6 pb-8 pt-4">
+            <div className="flex justify-center mb-4">
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+            </div>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-gray-900">Unlock Property</h3>
+              <button onClick={() => setShowMobilePayment(false)} className="text-gray-400 hover:text-gray-600 p-1">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex items-center justify-between mb-5 bg-gray-50 rounded-2xl p-4">
+              <div>
+                <p className="text-sm text-gray-600">One-time unlock fee</p>
+                <p className="text-xs text-gray-400">Reveals landlord contact &amp; exact address</p>
+              </div>
+              <p className="text-2xl font-extrabold text-gray-900">K25</p>
+            </div>
+            <div className="space-y-3">
+              <input className="input text-sm" placeholder="Card number" maxLength={19} value={card.number} onChange={setCard_('number')} />
+              <div className="grid grid-cols-2 gap-3">
+                <input className="input text-sm" placeholder="MM/YY" value={card.expiry} onChange={setCard_('expiry')} />
+                <input className="input text-sm" placeholder="CVV" maxLength={4} value={card.cvv} onChange={setCard_('cvv')} />
+              </div>
+              <input className="input text-sm" placeholder="Name on card" value={card.name} onChange={setCard_('name')} />
+              <button
+                onClick={handleUnlock}
+                disabled={paying || !card.number}
+                className="btn-secondary w-full py-3.5 text-base mt-2"
+              >
+                {paying ? 'Processing…' : 'Pay K25 & Unlock'}
+              </button>
+              <p className="text-xs text-gray-400 text-center">
+                Simulated payment — use any card number not ending in 0000
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
