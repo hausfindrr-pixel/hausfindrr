@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import LandingPage from './pages/LandingPage';
 import LandlordLogin from './pages/landlord/LandlordLogin';
 import LandlordRegister from './pages/landlord/LandlordRegister';
+import LandlordAgreement from './pages/landlord/LandlordAgreement';
 import LandlordDashboard from './pages/landlord/LandlordDashboard';
 import LandlordNewListing from './pages/landlord/LandlordNewListing';
 import TenantLogin from './pages/tenant/TenantLogin';
@@ -14,17 +15,19 @@ import PropertyDetail from './pages/PropertyDetail';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 
-function ProtectedRoute({ children, role }) {
+function ProtectedRoute({ children, role, requireTerms = true }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="flex items-center justify-center h-screen text-primary">Loading…</div>;
   if (!user) return <Navigate to="/" replace />;
   if (role && user.role !== role) return <Navigate to="/" replace />;
+  // Landlords must accept terms before accessing any protected landlord page
+  if (requireTerms && user.role === 'landlord' && !user.termsAccepted) {
+    return <Navigate to="/landlord/agreement" replace />;
+  }
   return children;
 }
 
 function AppRoutes() {
-  const { user } = useAuth();
-
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
@@ -32,6 +35,9 @@ function AppRoutes() {
       {/* Landlord */}
       <Route path="/landlord/login" element={<LandlordLogin />} />
       <Route path="/landlord/register" element={<LandlordRegister />} />
+      <Route path="/landlord/agreement" element={
+        <ProtectedRoute role="landlord" requireTerms={false}><LandlordAgreement /></ProtectedRoute>
+      } />
       <Route path="/landlord/dashboard" element={
         <ProtectedRoute role="landlord"><LandlordDashboard /></ProtectedRoute>
       } />

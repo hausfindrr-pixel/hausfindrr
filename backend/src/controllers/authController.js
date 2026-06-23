@@ -97,6 +97,29 @@ async function me(req, res, next) {
   }
 }
 
+async function acceptTerms(req, res, next) {
+  try {
+    if (req.user.role !== 'landlord')
+      return res.status(403).json({ error: 'Only landlords accept this agreement' });
+
+    const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || 'unknown';
+
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        termsAccepted: true,
+        termsAcceptedAt: new Date(),
+        termsAcceptedIp: ip,
+      },
+    });
+
+    console.log(`[TERMS] Landlord ${user.id} (${user.email}) accepted terms at ${new Date().toISOString()} from IP ${ip}`);
+    res.json({ user: safeUser(user) });
+  } catch (err) {
+    next(err);
+  }
+}
+
 function safeUser(u) {
   const { passwordHash, ...rest } = u;
   return rest;
@@ -108,4 +131,4 @@ function normaliseIdDocType(idType) {
   return 'passport';
 }
 
-module.exports = { registerLandlord, registerTenant, login, me };
+module.exports = { registerLandlord, registerTenant, login, me, acceptTerms };

@@ -13,7 +13,10 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('hf_token');
     if (!token) { setLoading(false); return; }
     api.get('/auth/me')
-      .then(r => setUser(r.data.user))
+      .then(r => {
+        localStorage.setItem('hf_user', JSON.stringify(r.data.user));
+        setUser(r.data.user);
+      })
       .catch(() => { localStorage.removeItem('hf_token'); localStorage.removeItem('hf_user'); })
       .finally(() => setLoading(false));
   }, []);
@@ -24,6 +27,14 @@ export function AuthProvider({ children }) {
     setUser(user);
   }
 
+  async function refreshUser() {
+    const r = await api.get('/auth/me');
+    const updated = r.data.user;
+    localStorage.setItem('hf_user', JSON.stringify(updated));
+    setUser(updated);
+    return updated;
+  }
+
   function logout() {
     localStorage.removeItem('hf_token');
     localStorage.removeItem('hf_user');
@@ -31,7 +42,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, saveAuth, logout }}>
+    <AuthContext.Provider value={{ user, loading, saveAuth, refreshUser, logout }}>
       {children}
     </AuthContext.Provider>
   );
