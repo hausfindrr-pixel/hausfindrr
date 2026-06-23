@@ -1,21 +1,8 @@
-const validator = require('validator');
+// Fields that must never be sanitized — they go straight into bcrypt/TOTP comparison.
+// Altering them would cause auth to fail even with valid credentials.
+const SKIP_SANITIZE = new Set(['password', 'code', 'backupCode', 'currentPassword', 'newPassword']);
 
-// Strip HTML tags and null-byte characters from a single string value.
-function cleanString(val) {
-  if (typeof val !== 'string') return val;
-  // Remove null bytes, then strip all HTML tags
-  return validator.stripLow(validator.escape(val), true)
-    // unescape back to plain text — escape() encodes entities for display;
-    // we want to strip tags but keep readable text for DB storage
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')   // these survive stripLow so strip the raw chars below
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .replace(/&#x60;/g, '`');
-}
-
-// A simpler, more direct approach: strip HTML tags without entity-encoding the rest
+// Strip HTML tags and dangerous patterns from a single string value.
 function stripHtml(val) {
   if (typeof val !== 'string') return val;
   return val
@@ -25,10 +12,6 @@ function stripHtml(val) {
     .replace(/on\w+\s*=/gi, '')                   // inline event handlers
     .trim();
 }
-
-// Fields that must never be sanitized — they go straight into bcrypt/TOTP comparison.
-// Altering them would cause auth to fail even with valid credentials.
-const SKIP_SANITIZE = new Set(['password', 'code', 'backupCode', 'currentPassword', 'newPassword']);
 
 // Recursively sanitize all string values in req.body
 function sanitizeBody(req, res, next) {

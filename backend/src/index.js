@@ -15,6 +15,10 @@ const { sanitizeBody } = require('./middleware/sanitize');
 
 const app = express();
 
+// Trust one hop of reverse proxy so req.ip is the real client IP for rate limiting.
+// Without this, all clients appear as 127.0.0.1 and the rate limiter blocks everyone at once.
+app.set('trust proxy', 1);
+
 // Security headers — applied before CORS so they're always present
 app.use(helmet({
   contentSecurityPolicy: {

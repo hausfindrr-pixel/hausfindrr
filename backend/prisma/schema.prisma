@@ -80,6 +80,8 @@ model User {
   sentMessages        Message[]            @relation("SentMessages")
   receivedMessages    Message[]            @relation("ReceivedMessages")
 
+  @@index([role, status])
+  @@index([createdAt])
   @@map("users")
 }
 
@@ -137,6 +139,9 @@ model Property {
   favorites      Favorite[]
   messages       Message[]
 
+  @@index([status])
+  @@index([landlordId])
+  @@index([createdAt])
   @@map("properties")
 }
 
@@ -173,6 +178,10 @@ model Transaction {
   tenant   User     @relation(fields: [tenantId], references: [id])
   property Property @relation(fields: [propertyId], references: [id])
 
+  @@index([status])
+  @@index([tenantId])
+  @@index([propertyId])
+  @@index([createdAt])
   @@map("transactions")
 }
 
@@ -186,6 +195,7 @@ model Unlock {
   property Property @relation(fields: [propertyId], references: [id])
 
   @@unique([tenantId, propertyId])
+  @@index([unlockedAt])
   @@map("unlocks")
 }
 
@@ -215,5 +225,9 @@ model Message {
   sender   User     @relation("SentMessages", fields: [senderId], references: [id])
   receiver User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
 
+  @@index([propertyId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([sentAt])
   @@map("messages")
 }
