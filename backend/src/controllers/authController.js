@@ -1,7 +1,20 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const validator = require('validator');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+
+// Normalise + validate an email address
+function normaliseEmail(raw) {
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim().toLowerCase();
+  return validator.isEmail(trimmed) ? trimmed : null;
+}
+
+// Enforce safe length limits on text fields
+function clamp(val, max = 255) {
+  return typeof val === 'string' ? val.slice(0, max) : val;
+}
 
 function signToken(user) {
   return jwt.sign(
@@ -11,18 +24,36 @@ function signToken(user) {
   );
 }
 
+function signTempToken(userId) {
+  return jwt.sign(
+    { id: userId, type: '2fa_pending' },
+    process.env.JWT_SECRET,
+    { expiresIn: '5m' }
+  );
+}
+
 async function registerLandlord(req, res, next) {
   try {
-    const { name, phone, email, password, id_type } = req.body;
+    const { name, phone, id_type } = req.body;
+    const password = req.body.password;
+    const email = normaliseEmail(req.body.email);
+
     if (!name || !phone || !email || !password)
       return res.status(400).json({ error: 'All fields required' });
+    if (!validator.isEmail(email))
+      return res.status(400).json({ error: 'Invalid email address' });
+    if (password.length < 8)
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+    const safeName  = clamp(name, 100);
+    const safePhone = clamp(phone, 30);
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) return res.status(409).json({ error: 'Email already registered' });
 
     const passwordHash = await bcrypt.hash(password, 12);
     const user = await prisma.user.create({
-      data: { name, phone, email, passwordHash, role: 'landlord', status: 'pending_verification' },
+      data: { name: safeName, phone: safePhone, email, passwordHash, role: 'landlord', status: 'pending_verification' },
     });
 
     // Save single ID document
@@ -49,16 +80,26 @@ async function registerLandlord(req, res, next) {
 
 async function registerTenant(req, res, next) {
   try {
-    const { name, phone, email, password } = req.body;
+    const { name, phone } = req.body;
+    const password = req.body.password;
+    const email = normaliseEmail(req.body.email);
+
     if (!name || !phone || !email || !password)
       return res.status(400).json({ error: 'All fields required' });
+    if (!validator.isEmail(email))
+      return res.status(400).json({ error: 'Invalid email address' });
+    if (password.length < 8)
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+    const safeName  = clamp(name, 100);
+    const safePhone = clamp(phone, 30);
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) return res.status(409).json({ error: 'Email already registered' });
 
     const passwordHash = await bcrypt.hash(password, 12);
     const user = await prisma.user.create({
-      data: { name, phone, email, passwordHash, role: 'tenant', status: 'active' },
+      data: { name: safeName, phone: safePhone, email, passwordHash, role: 'tenant', status: 'active' },
     });
 
     const token = signToken(user);
@@ -70,7 +111,10 @@ async function registerTenant(req, res, next) {
 
 async function login(req, res, next) {
   try {
-    const { email, password, role } = req.body;
+    const { role } = req.body;
+    const password = req.body.password;
+    const email = normaliseEmail(req.body.email);
+
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
     const user = await prisma.user.findUnique({ where: { email } });
@@ -79,6 +123,11 @@ async function login(req, res, next) {
 
     if (role && user.role !== role)
       return res.status(403).json({ error: `This account is not registered as a ${role}` });
+
+    // Admin with 2FA enabled: issue a short-lived temp token instead of full access
+    if (user.role === 'admin' && user.twoFactorEnabled) {
+      return res.json({ requiresTwoFactor: true, tempToken: signTempToken(user.id) });
+    }
 
     const token = signToken(user);
     res.json({ token, user: safeUser(user) });

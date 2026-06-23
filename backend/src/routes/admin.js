@@ -11,6 +11,7 @@ const {
   suspendLandlord,
   deleteLandlord,
 } = require('../controllers/adminController');
+const { setupTwoFactor, confirmTwoFactor, disableTwoFactor } = require('../controllers/twoFactorController');
 
 router.use(authenticate, requireRole('admin'));
 
@@ -27,5 +28,9 @@ router.get('/properties', getAllListings);
 router.get('/analytics', getAnalytics);
 router.get('/transactions', getAllTransactions);
 router.get('/messages', getAllMessages);
+
+router.get('/2fa/setup', setupTwoFactor);
+router.post('/2fa/confirm', confirmTwoFactor);
+router.post('/2fa/disable', disableTwoFactor);
 
 module.exports = router;
