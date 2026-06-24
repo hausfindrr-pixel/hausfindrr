@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { priceLabel } from '../../utils/format';
@@ -154,7 +155,7 @@ const NAV = [
 ];
 
 // ─── Sidebar (must be top-level — defining inside AdminDashboard causes remount on every render) ──
-function AdminSidebar({ section, pendingCounts, onNavigate }) {
+function AdminSidebar({ section, pendingCounts, onNavigate, onLogout }) {
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 py-5 border-b border-white/10">
@@ -198,19 +199,17 @@ function AdminSidebar({ section, pendingCounts, onNavigate }) {
       </nav>
 
       <div className="px-3 pb-2">
-        <a
-          href="/"
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          onClick={onLogout}
           className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-white/60 hover:bg-white/10 hover:text-white transition-all group w-full"
         >
           <span className="text-white/50 group-hover:text-white/80 transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
           </span>
-          View Site
-        </a>
+          Logout
+        </button>
       </div>
 
       <div className="px-4 py-3 border-t border-white/10">
@@ -222,6 +221,7 @@ function AdminSidebar({ section, pendingCounts, onNavigate }) {
 
 // ─── Main shell ───────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
+  const { logout } = useAuth();
   const [section, setSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pendingCounts, setPendingCounts] = useState({ pendingLandlords: 0, pendingListings: 0 });
@@ -237,11 +237,16 @@ export default function AdminDashboard() {
     setSidebarOpen(false);
   }
 
+  function handleLogout() {
+    logout();
+    window.location.href = '/';
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Desktop sidebar */}
       <aside className="hidden md:block w-64 fixed inset-y-0 left-0 bg-primary z-30">
-        <AdminSidebar section={section} pendingCounts={pendingCounts} onNavigate={go} />
+        <AdminSidebar section={section} pendingCounts={pendingCounts} onNavigate={go} onLogout={handleLogout} />
       </aside>
 
       {/* Mobile sidebar overlay */}
@@ -249,7 +254,7 @@ export default function AdminDashboard() {
         <div className="md:hidden fixed inset-0 z-40 flex">
           <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
           <aside className="relative w-64 flex flex-col bg-primary z-10">
-            <AdminSidebar section={section} pendingCounts={pendingCounts} onNavigate={go} />
+            <AdminSidebar section={section} pendingCounts={pendingCounts} onNavigate={go} onLogout={handleLogout} />
           </aside>
         </div>
       )}
