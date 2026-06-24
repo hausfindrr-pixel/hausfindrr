@@ -35,7 +35,11 @@ export default function LandlordRegister() {
       toast.success('Account created! Pending verification.');
       navigate('/landlord/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Registration failed');
+      if (!err.response) {
+        toast.error('Cannot reach the server. Please try again shortly.');
+      } else {
+        toast.error(err.response.data?.error || 'Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

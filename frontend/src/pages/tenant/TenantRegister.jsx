@@ -19,7 +19,11 @@ export default function TenantRegister() {
       saveAuth(data.token, data.user);
       navigate('/browse');
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Registration failed');
+      if (!err.response) {
+        toast.error('Cannot reach the server. Please try again shortly.');
+      } else {
+        toast.error(err.response.data?.error || 'Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

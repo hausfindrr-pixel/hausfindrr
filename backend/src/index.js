@@ -39,6 +39,10 @@ app.use(helmet({
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'https://hausfindrr.vercel.app',
+  'https://hausfindrr.com',
+  'https://www.hausfindrr.com',
+  // Additional origins can be injected at runtime via CORS_ORIGINS env var (comma-separated)
+  ...((process.env.CORS_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean)),
 ];
 
 app.use(cors({
