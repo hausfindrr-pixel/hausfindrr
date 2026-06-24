@@ -11,7 +11,7 @@ const STATUS_COLORS = {
   rejected:            'bg-red-100 text-red-700',
   suspended:           'bg-gray-100 text-gray-500',
   pending:             'bg-amber-100 text-amber-700',
-  successful:          'bg-green-100 text-green-700',
+  success:             'bg-green-100 text-green-700',
   failed:              'bg-red-100 text-red-700',
 };
 
@@ -31,6 +31,20 @@ function timeAgo(date) {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
+}
+
+const AVATAR_PALETTE = [
+  ['bg-primary/10', 'text-primary'],
+  ['bg-secondary/10', 'text-secondary'],
+  ['bg-blue-100', 'text-blue-600'],
+  ['bg-purple-100', 'text-purple-600'],
+  ['bg-teal-100', 'text-teal-600'],
+  ['bg-rose-100', 'text-rose-600'],
+];
+function avatarColor(name) {
+  let h = 0;
+  for (let i = 0; i < (name || '').length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff;
+  return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
 }
 
 // ─── Shared components ────────────────────────────────────────────────────────
@@ -53,8 +67,7 @@ function DocLightbox({ url, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/85 z-[60] flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="relative w-full max-w-4xl bg-white rounded-2xl overflow-hidden shadow-2xl"
-        style={{ maxHeight: '90vh' }}
+        className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <button
@@ -65,10 +78,19 @@ function DocLightbox({ url, onClose }) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        {isImage
-          ? <img src={url} alt="Document" className="w-full object-contain" style={{ maxHeight: '90vh' }} />
-          : <iframe src={url} className="w-full" style={{ height: '80vh' }} title="Document" />
-        }
+        {isImage ? (
+          <img
+            src={url}
+            alt="Document"
+            style={{ display: 'block', width: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: '1rem' }}
+          />
+        ) : (
+          <iframe
+            src={url}
+            title="Document"
+            style={{ display: 'block', width: '100%', height: '80vh', border: 'none', borderRadius: '1rem' }}
+          />
+        )}
       </div>
     </div>
   );
@@ -532,9 +554,11 @@ function PendingLandlordsSection({ onCountChange }) {
                 <div key={l.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary font-bold text-lg">{l.name?.[0]?.toUpperCase()}</span>
-                      </div>
+                      {(() => { const [bg, text] = avatarColor(l.name); return (
+                        <div className={`w-12 h-12 ${bg} rounded-2xl flex items-center justify-center flex-shrink-0`}>
+                          <span className={`${text} font-bold text-lg`}>{l.name?.[0]?.toUpperCase()}</span>
+                        </div>
+                      ); })()}
                       <div>
                         <p className="font-semibold text-gray-900">{l.name}</p>
                         <p className="text-gray-500 text-sm">{l.email}</p>
@@ -796,9 +820,11 @@ function AllLandlordsSection() {
                 {filtered.map(l => (
                   <div key={l.id} className="flex items-center justify-between gap-3 px-5 py-4">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary font-bold text-sm">{l.name?.[0]?.toUpperCase()}</span>
-                      </div>
+                      {(() => { const [bg, text] = avatarColor(l.name); return (
+                        <div className={`w-9 h-9 ${bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                          <span className={`${text} font-bold text-sm`}>{l.name?.[0]?.toUpperCase()}</span>
+                        </div>
+                      ); })()}
                       <div className="min-w-0">
                         <p className="font-medium text-gray-900 text-sm truncate">{l.name}</p>
                         <p className="text-gray-400 text-xs truncate">{l.email}</p>

@@ -102,7 +102,7 @@ async function getAnalytics(req, res, next) {
       prisma.property.count({ where: { status: 'active' } }),
       prisma.unlock.count(),
       prisma.transaction.aggregate({
-        where: { status: 'successful' },
+        where: { status: 'success' },
         _sum: { amount: true },
       }),
       prisma.user.count({ where: { role: 'landlord', status: 'pending_verification' } }),
@@ -254,7 +254,7 @@ async function getAllTransactions(req, res, next) {
       orderBy: { createdAt: 'desc' },
     });
 
-    const successfulTxns = transactions.filter(t => t.status === 'successful');
+    const successfulTxns = transactions.filter(t => t.status === 'success');
 
     const totalRevenue = Number(
       successfulTxns.reduce((sum, t) => sum + Number(t.amount || 0), 0)
