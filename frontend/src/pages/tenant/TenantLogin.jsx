@@ -3,23 +3,52 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AuthLayout from '../../components/shared/AuthLayout';
 import { useAuth } from '../../context/AuthContext';
+import { useLoginAttempts, LoginAttemptsWarning } from '../../components/shared/LoginAttemptsWarning';
 import api from '../../services/api';
 
+const REMEMBERED_EMAIL_KEY = 'hf_remembered_email_tenant';
+
 export default function TenantLogin() {
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({
+    email: localStorage.getItem(REMEMBERED_EMAIL_KEY) || '',
+    password: '',
+  });
+  const [rememberMe, setRememberMe] = useState(
+    Boolean(localStorage.getItem(REMEMBERED_EMAIL_KEY)),
+  );
   const [loading, setLoading] = useState(false);
   const { saveAuth } = useAuth();
   const navigate = useNavigate();
+  const { state: attemptState, onLoginError, clearLock } = useLoginAttempts();
+
+  const isLocked = Boolean(attemptState.lockedUntil);
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (isLocked) return;
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/login', { ...form, role: 'tenant' });
-      saveAuth(data.token, data.user);
+      const { data } = await api.post('/auth/login', {
+        ...form,
+        role: 'tenant',
+        rememberMe,
+      });
+
+      if (rememberMe) {
+        localStorage.setItem(REMEMBERED_EMAIL_KEY, form.email);
+      } else {
+        localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+      }
+
+      saveAuth(data.token, data.user, rememberMe);
       navigate('/browse');
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Login failed');
+      const status = err.response?.status;
+      if (status === 401 || status === 403 || status === 429) {
+        onLoginError(err);
+      } else {
+        toast.error(err.response?.data?.error || 'Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -30,15 +59,38 @@ export default function TenantLogin() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="label">Email</label>
-          <input className="input" type="email" required value={form.email}
-            onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
+          <input
+            className="input"
+            type="email"
+            required
+            value={form.email}
+            onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+          />
         </div>
         <div>
           <label className="label">Password</label>
-          <input className="input" type="password" required value={form.password}
-            onChange={e => setForm(p => ({ ...p, password: e.target.value }))} />
+          <input
+            className="input"
+            type="password"
+            required
+            value={form.password}
+            onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+          />
         </div>
-        <button className="btn-secondary w-full mt-2" disabled={loading}>
+
+        <label className="flex items-center gap-2.5 cursor-pointer select-none w-fit">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={e => setRememberMe(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[#975536]"
+          />
+          <span className="text-sm text-gray-600">Remember me</span>
+        </label>
+
+        <LoginAttemptsWarning state={attemptState} onExpire={clearLock} />
+
+        <button className="btn-secondary w-full mt-2" disabled={loading || isLocked}>
           {loading ? 'Signing in…' : 'Sign In'}
         </button>
       </form>

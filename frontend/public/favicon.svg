@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Roof main body -->
+  <polygon points="50,7 3,64 97,64" fill="#c27a45"/>
+
+  <!-- Thatch texture lines radiating from peak -->
+  <line x1="50" y1="7" x2="10" y2="64" stroke="#41271b" stroke-width="1" opacity="0.25"/>
+  <line x1="50" y1="7" x2="19" y2="64" stroke="#41271b" stroke-width="1" opacity="0.25"/>
+  <line x1="50" y1="7" x2="28" y2="64" stroke="#41271b" stroke-width="1" opacity="0.25"/>
+  <line x1="50" y1="7" x2="37" y2="64" stroke="#41271b" stroke-width="1" opacity="0.25"/>
+  <line x1="50" y1="7" x2="50" y2="64" stroke="#41271b" stroke-width="1" opacity="0.25"/>
+  <line x1="50" y1="7" x2="63" y2="64" stroke="#41271b" stroke-width="1" opacity="0.25"/>
+  <line x1="50" y1="7" x2="72" y2="64" stroke="#41271b" stroke-width="1" opacity="0.25"/>
+  <line x1="50" y1="7" x2="81" y2="64" stroke="#41271b" stroke-width="1" opacity="0.25"/>
+  <line x1="50" y1="7" x2="90" y2="64" stroke="#41271b" stroke-width="1" opacity="0.25"/>
+
+  <!-- Dark roof cap -->
+  <polygon points="50,7 43,23 57,23" fill="#41271b"/>
+
+  <!-- Eave band at base of roof -->
+  <rect x="1" y="61" width="98" height="7" rx="1.5" fill="#a06030"/>
+
+  <!-- Walls -->
+  <rect x="17" y="66" width="66" height="26" rx="1" fill="#c27a45"/>
+
+  <!-- Vertical bamboo strips -->
+  <line x1="23" y1="66" x2="23" y2="92" stroke="#41271b" stroke-width="1.2" opacity="0.28"/>
+  <line x1="30" y1="66" x2="30" y2="92" stroke="#41271b" stroke-width="1.2" opacity="0.28"/>
+  <line x1="37" y1="66" x2="37" y2="92" stroke="#41271b" stroke-width="1.2" opacity="0.28"/>
+  <line x1="44" y1="66" x2="44" y2="92" stroke="#41271b" stroke-width="1.2" opacity="0.28"/>
+  <line x1="56" y1="66" x2="56" y2="92" stroke="#41271b" stroke-width="1.2" opacity="0.28"/>
+  <line x1="63" y1="66" x2="63" y2="92" stroke="#41271b" stroke-width="1.2" opacity="0.28"/>
+  <line x1="70" y1="66" x2="70" y2="92" stroke="#41271b" stroke-width="1.2" opacity="0.28"/>
+  <line x1="77" y1="66" x2="77" y2="92" stroke="#41271b" stroke-width="1.2" opacity="0.28"/>
+
+  <!-- Horizontal binding bands on walls -->
+  <rect x="17" y="74" width="66" height="3" rx="0.5" fill="#41271b" opacity="0.18"/>
+  <rect x="17" y="83" width="66" height="3" rx="0.5" fill="#41271b" opacity="0.18"/>
+
+  <!-- Doorway -->
+  <rect x="40" y="73" width="20" height="19" rx="1.5" fill="#41271b"/>
+
+  <!-- Subtle ground shadow -->
+  <ellipse cx="50" cy="94" rx="38" ry="3" fill="#41271b" opacity="0.08"/>
+</svg>
