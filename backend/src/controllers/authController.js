@@ -16,11 +16,12 @@ function clamp(val, max = 255) {
   return typeof val === 'string' ? val.slice(0, max) : val;
 }
 
-function signToken(user) {
+function signToken(user, rememberMe = false) {
+  const expiresIn = rememberMe ? '30d' : (process.env.JWT_EXPIRES_IN || '7d');
   return jwt.sign(
     { id: user.id, role: user.role, status: user.status },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    { expiresIn }
   );
 }
 
@@ -114,6 +115,7 @@ async function login(req, res, next) {
     const { role } = req.body;
     const password = req.body.password;
     const email = normaliseEmail(req.body.email);
+    const rememberMe = req.body.rememberMe === true;
 
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
@@ -129,7 +131,7 @@ async function login(req, res, next) {
       return res.json({ requiresTwoFactor: true, tempToken: signTempToken(user.id) });
     }
 
-    const token = signToken(user);
+    const token = signToken(user, rememberMe);
     res.json({ token, user: safeUser(user) });
   } catch (err) {
     next(err);

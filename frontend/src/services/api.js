@@ -3,7 +3,7 @@ import axios from 'axios';
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api' });
 
 api.interceptors.request.use(config => {
-  const token = localStorage.getItem('hf_token');
+  const token = localStorage.getItem('hf_token') || sessionStorage.getItem('hf_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -14,6 +14,8 @@ api.interceptors.response.use(
     if (err.response?.status === 401) {
       localStorage.removeItem('hf_token');
       localStorage.removeItem('hf_user');
+      sessionStorage.removeItem('hf_token');
+      sessionStorage.removeItem('hf_user');
       window.location.href = '/';
     }
     return Promise.reject(err);
