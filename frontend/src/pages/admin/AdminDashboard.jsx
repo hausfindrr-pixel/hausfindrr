@@ -47,6 +47,26 @@ function avatarColor(name) {
   return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
 }
 
+// ─── Document URL helpers ─────────────────────────────────────────────────────
+function docIsPdf(url) {
+  if (!url) return false;
+  // Cloudinary raw uploads and anything ending in .pdf
+  return /\.pdf($|\?)/i.test(url) || url.includes('/raw/upload/');
+}
+function docIsImage(url) {
+  if (!url) return false;
+  if (docIsPdf(url)) return false;
+  return /\.(jpg|jpeg|png|webp|gif)($|\?)/i.test(url) || url.includes('/image/upload/');
+}
+// Call this instead of setLightbox directly — PDFs open in a new tab
+function openDocUrl(url, setLightbox) {
+  if (docIsPdf(url)) {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  } else {
+    setLightbox(url);
+  }
+}
+
 // ─── Shared components ────────────────────────────────────────────────────────
 function Empty({ text }) {
   return (
@@ -62,34 +82,55 @@ function Empty({ text }) {
 }
 
 function DocLightbox({ url, onClose }) {
+  const [zoomed, setZoomed] = useState(false);
   if (!url) return null;
-  const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(url) || url.includes('/image/upload/');
   return (
-    <div className="fixed inset-0 bg-black/85 z-[60] flex items-center justify-center p-4" onClick={onClose}>
-      <div
-        className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
+    <div
+      className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center"
+      onClick={onClose}
+    >
+      {/* Toolbar — always visible, fixed to top-right */}
+      <div className="fixed top-4 right-4 z-[61] flex items-center gap-2" onClick={e => e.stopPropagation()}>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-black/60 hover:bg-black/80 text-white rounded-full px-3 h-8 flex items-center gap-1.5 text-xs font-medium transition-colors"
+          title="Open in new tab"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+          New tab
+        </a>
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+          className="bg-black/60 hover:bg-black/80 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+          title="Close"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        {isImage ? (
-          <img
-            src={url}
-            alt="Document"
-            style={{ display: 'block', width: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: '1rem' }}
-          />
-        ) : (
-          <iframe
-            src={url}
-            title="Document"
-            style={{ display: 'block', width: '100%', height: '80vh', border: 'none', borderRadius: '1rem' }}
-          />
+      </div>
+
+      {/* Image — click to zoom, click backdrop to close */}
+      <div
+        className={zoomed ? 'overflow-auto w-full h-full flex items-start justify-center p-4 pt-14' : 'p-4'}
+        onClick={e => e.stopPropagation()}
+      >
+        <img
+          src={url}
+          alt="Document"
+          onClick={() => setZoomed(z => !z)}
+          onError={e => { e.currentTarget.style.display = 'none'; }}
+          style={zoomed
+            ? { display: 'block', maxWidth: 'none', width: 'auto', height: 'auto', cursor: 'zoom-out', borderRadius: '0.5rem' }
+            : { display: 'block', maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', cursor: 'zoom-in', borderRadius: '0.75rem' }
+          }
+        />
+        {!zoomed && (
+          <p className="text-white/40 text-xs text-center mt-2">Click image to zoom · Click outside to close</p>
         )}
       </div>
     </div>
@@ -591,18 +632,18 @@ function PendingLandlordsSection({ onCountChange }) {
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2.5">ID Documents</p>
                       <div className="flex flex-wrap gap-2">
                         {l.landlordIdDocuments.map(d => {
-                          const isImg = /\.(jpg|jpeg|png|webp)$/i.test(d.filePath) || d.filePath.includes('/image/upload/');
+                          const pdf = docIsPdf(d.filePath);
                           return (
                             <button
                               key={d.id}
-                              onClick={() => setLightbox(d.filePath)}
+                              onClick={() => openDocUrl(d.filePath, setLightbox)}
                               className="flex items-center gap-1.5 text-xs bg-secondary/10 text-secondary hover:bg-secondary/20 px-3 py-2 rounded-xl transition-colors font-medium"
                             >
-                              {isImg
-                                ? <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                              {pdf
+                                ? <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                               }
-                              {d.docType.replace(/_/g, ' ')}
+                              {d.docType.replace(/_/g, ' ')}{pdf ? ' ↗' : ''}
                             </button>
                           );
                         })}
@@ -697,7 +738,7 @@ function PendingListingsSection({ onCountChange }) {
                   {p.photos?.length > 0 && (
                     <div className="flex gap-2 flex-wrap mb-3">
                       {p.photos.map(ph => (
-                        <button key={ph.id} onClick={() => setLightbox(ph.filePath)} className="flex-shrink-0">
+                        <button key={ph.id} onClick={() => openDocUrl(ph.filePath, setLightbox)} className="flex-shrink-0">
                           <img src={ph.filePath} className="w-20 h-14 object-cover rounded-xl border border-gray-100 hover:opacity-90 transition-opacity" alt="" />
                         </button>
                       ))}
@@ -708,16 +749,22 @@ function PendingListingsSection({ onCountChange }) {
                     <div className="mb-3">
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Ownership Docs</p>
                       <div className="flex flex-wrap gap-2">
-                        {p.titleDocuments.map(d => (
-                          <button
-                            key={d.id}
-                            onClick={() => setLightbox(d.filePath)}
-                            className="flex items-center gap-1.5 text-xs bg-secondary/10 text-secondary hover:bg-secondary/20 px-3 py-1.5 rounded-xl transition-colors font-medium"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                            {d.docType}
-                          </button>
-                        ))}
+                        {p.titleDocuments.map(d => {
+                          const pdf = docIsPdf(d.filePath);
+                          return (
+                            <button
+                              key={d.id}
+                              onClick={() => openDocUrl(d.filePath, setLightbox)}
+                              className="flex items-center gap-1.5 text-xs bg-secondary/10 text-secondary hover:bg-secondary/20 px-3 py-1.5 rounded-xl transition-colors font-medium"
+                            >
+                              {pdf
+                                ? <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                              }
+                              {d.docType}{pdf ? ' ↗' : ''}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
