@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { priceLabel } from '../../utils/format';
@@ -199,8 +198,10 @@ function AdminSidebar({ section, pendingCounts, onNavigate }) {
       </nav>
 
       <div className="px-3 pb-2">
-        <Link
-          to="/"
+        <a
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
           className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-white/60 hover:bg-white/10 hover:text-white transition-all group w-full"
         >
           <span className="text-white/50 group-hover:text-white/80 transition-colors">
@@ -209,7 +210,7 @@ function AdminSidebar({ section, pendingCounts, onNavigate }) {
             </svg>
           </span>
           View Site
-        </Link>
+        </a>
       </div>
 
       <div className="px-4 py-3 border-t border-white/10">
