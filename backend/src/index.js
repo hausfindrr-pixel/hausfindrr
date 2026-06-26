@@ -48,6 +48,10 @@ const ALLOWED_ORIGINS = [
 app.use(cors({
   origin: (origin, cb) => cb(null, !origin || ALLOWED_ORIGINS.includes(origin)),
   credentials: true,
+  // Expose rate-limit headers so the browser lets axios read them.
+  // Without this, RateLimit-Remaining and Retry-After are blocked by CORS
+  // and the login attempts counter on the frontend silently shows nothing.
+  exposedHeaders: ['RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset', 'Retry-After'],
 }));
 app.use(express.json());
 app.use(sanitizeBody);
