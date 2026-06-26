@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from '../../components/shared/Navbar';
 import PropertyCard from '../../components/tenant/PropertyCard';
 import { useAuth } from '../../context/AuthContext';
@@ -101,6 +101,25 @@ const EMPTY_PANEL = { location: '', minPrice: '', maxPrice: '', bedrooms: '', ba
 
 const TOGGLE_OPTIONS = [['', 'All'], ['rent', 'For Rent'], ['sale', 'For Sale']];
 
+function useHideOnScroll() {
+  const [hidden, setHidden] = useState(false);
+  const lastY = useRef(0);
+  useEffect(() => {
+    function onScroll() {
+      const y = window.scrollY;
+      const delta = y - lastY.current;
+      if (Math.abs(delta) < 8) return;
+      if (y < 80) { setHidden(false); }
+      else if (delta > 0) { setHidden(true); }
+      else { setHidden(false); }
+      lastY.current = y;
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  return hidden;
+}
+
 export default function TenantBrowse() {
   const { user } = useAuth();
   const [properties, setProperties] = useState([]);
@@ -181,12 +200,15 @@ export default function TenantBrowse() {
     }));
   }
 
+  const headerHidden = useHideOnScroll();
+
   return (
     <div className="min-h-screen bg-white">
-      <Navbar />
+      {/* Unified sticky header — Navbar + filters slide together on scroll */}
+      <div className={`sticky top-0 z-50 transition-transform duration-300 ease-in-out ${headerHidden ? '-translate-y-full' : 'translate-y-0'}`}>
+        <Navbar nonSticky />
 
-      {/* Sticky filter header — sits below the sticky navbar (top-16 = navbar h-16) */}
-      <div className="sticky top-16 z-30 bg-white border-b border-gray-100 shadow-sm">
+      <div className="bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 space-y-2.5">
 
           {/* Row 1: Search input + Filters button (all screen sizes) */}
@@ -286,6 +308,7 @@ export default function TenantBrowse() {
           </div>
         </div>
       </div>
+      </div>{/* end unified sticky header */}
 
       {/* Listings grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 pb-24 md:pb-8">
