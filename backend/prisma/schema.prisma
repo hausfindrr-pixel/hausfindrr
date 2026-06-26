@@ -120,10 +120,11 @@ model Property {
   locationExact   String         @map("location_exact")
   locationLat     Float?         @map("location_lat")
   locationLng     Float?         @map("location_lng")
-  bedrooms        Int
-  bathrooms       Int
+  bedrooms        Int?
+  bathrooms       Int?
   propertyType    PropertyType   @map("property_type")
   rentFrequency   String?        @map("rent_frequency")
+  metadata        Json?
   occupied        Boolean        @default(false)
   sold            Boolean        @default(false)
   status          PropertyStatus @default(pending)

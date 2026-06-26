@@ -4,7 +4,6 @@ import toast from 'react-hot-toast';
 import Navbar from '../../components/shared/Navbar';
 import api from '../../services/api';
 
-// Port Moresby coordinates
 const DEFAULT_LAT = -9.4438;
 const DEFAULT_LNG = 147.1803;
 
@@ -14,12 +13,48 @@ const AMENITY_OPTIONS = [
 ];
 
 const PROPERTY_TYPES = [
-  { value: 'house', label: 'House' },
-  { value: 'apartment', label: 'Apartment' },
-  { value: 'land', label: 'Land' },
+  { value: 'house',      label: 'House' },
+  { value: 'apartment',  label: 'Apartment' },
+  { value: 'land',       label: 'Land' },
   { value: 'commercial', label: 'Commercial' },
-  { value: 'other', label: 'Other' },
+  { value: 'other',      label: 'Other' },
 ];
+
+const EMPTY_FORM = {
+  listingType: 'rent',
+  title: '',
+  description: '',
+  price: '',
+  rentFrequency: 'monthly',
+  locationGeneral: '',
+  locationExact: '',
+  propertyType: 'house',
+  // House / Apartment
+  bedrooms: '1',
+  bathrooms: '1',
+  furnishing: '',
+  floorLevel: '',
+  parkingAvailable: '',
+  // Land
+  landSize: '',
+  landType: '',
+  fenced: '',
+  roadAccess: '',
+  titleType: '',
+  waterConnection: '',
+  electricityConnection: '',
+  // Commercial
+  floorArea: '',
+  commercialType: '',
+  numRooms: '',
+  numCubicles: '',
+  numToilets: '',
+  parkingSpaces: '',
+  commercialFloorLevel: '',
+  buildingType: '',
+  // Other
+  additionalDetails: '',
+};
 
 export default function LandlordNewListing() {
   const navigate = useNavigate();
@@ -36,20 +71,14 @@ export default function LandlordNewListing() {
   const leafletMapRef = useRef(null);
   const markerRef = useRef(null);
 
-  const [form, setForm] = useState({
-    listingType: 'rent',
-    title: '',
-    description: '',
-    price: '',
-    rentFrequency: 'monthly',
-    locationGeneral: '',
-    locationExact: '',
-    bedrooms: '1',
-    bathrooms: '1',
-    propertyType: 'house',
-  });
-
+  const [form, setForm] = useState(EMPTY_FORM);
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
+
+  const pt = form.propertyType;
+  const isResidential = pt === 'house' || pt === 'apartment';
+  const isLand = pt === 'land';
+  const isCommercial = pt === 'commercial';
+  const isOther = pt === 'other';
 
   function toggleAmenity(a) {
     setSelectedAmenities(prev =>
@@ -65,73 +94,107 @@ export default function LandlordNewListing() {
     setCustomAmenity('');
   }
 
-  // Initialize Leaflet map
   useEffect(() => {
     let map;
-    let marker;
-
     async function initMap() {
       if (!mapRef.current || leafletMapRef.current) return;
-
       const L = (await import('leaflet')).default;
       await import('leaflet/dist/leaflet.css');
-
-      // Fix default icon paths (known Vite/Leaflet issue)
       delete L.Icon.Default.prototype._getIconUrl;
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
         iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       });
-
       map = L.map(mapRef.current).setView([DEFAULT_LAT, DEFAULT_LNG], 13);
-
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       }).addTo(map);
-
-      marker = L.marker([DEFAULT_LAT, DEFAULT_LNG], { draggable: true }).addTo(map);
-
+      const marker = L.marker([DEFAULT_LAT, DEFAULT_LNG], { draggable: true }).addTo(map);
       marker.on('dragend', () => {
         const pos = marker.getLatLng();
         setPinLat(parseFloat(pos.lat.toFixed(6)));
         setPinLng(parseFloat(pos.lng.toFixed(6)));
       });
-
-      map.on('click', (e) => {
+      map.on('click', e => {
         const { lat, lng } = e.latlng;
         marker.setLatLng([lat, lng]);
         setPinLat(parseFloat(lat.toFixed(6)));
         setPinLng(parseFloat(lng.toFixed(6)));
       });
-
       leafletMapRef.current = map;
       markerRef.current = marker;
       setMapReady(true);
     }
-
     initMap().catch(console.error);
-
     return () => {
-      if (leafletMapRef.current) {
-        leafletMapRef.current.remove();
-        leafletMapRef.current = null;
-      }
+      if (leafletMapRef.current) { leafletMapRef.current.remove(); leafletMapRef.current = null; }
     };
   }, []);
+
+  function buildMetadata() {
+    if (isResidential) {
+      return {
+        furnishing: form.furnishing || null,
+        floorLevel: form.floorLevel || null,
+        parkingAvailable: form.parkingAvailable || null,
+      };
+    }
+    if (isLand) {
+      return {
+        landSize: form.landSize || null,
+        landType: form.landType || null,
+        fenced: form.fenced || null,
+        roadAccess: form.roadAccess || null,
+        titleType: form.titleType || null,
+        waterConnection: form.waterConnection || null,
+        electricityConnection: form.electricityConnection || null,
+      };
+    }
+    if (isCommercial) {
+      return {
+        floorArea: form.floorArea || null,
+        commercialType: form.commercialType || null,
+        numRooms: form.numRooms || null,
+        numCubicles: form.numCubicles || null,
+        numToilets: form.numToilets || null,
+        parkingSpaces: form.parkingSpaces || null,
+        floorLevel: form.commercialFloorLevel || null,
+        buildingType: form.buildingType || null,
+      };
+    }
+    if (isOther) {
+      return { additionalDetails: form.additionalDetails || null };
+    }
+    return null;
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (photos.length === 0) return toast.error('Please add at least one property photo');
     if (titleDocs.length === 0) return toast.error('Please upload your property title document');
+    if (isLand && !form.landSize) return toast.error('Please enter the land size');
+    if (isCommercial && !form.floorArea) return toast.error('Please enter the floor area');
 
     setLoading(true);
     try {
       const fd = new FormData();
-      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+      fd.append('listingType', form.listingType);
+      fd.append('title', form.title);
+      fd.append('description', form.description);
+      fd.append('price', form.price);
+      fd.append('rentFrequency', form.rentFrequency);
+      fd.append('locationGeneral', form.locationGeneral);
+      fd.append('locationExact', form.locationExact);
+      fd.append('propertyType', form.propertyType);
+      if (isResidential) {
+        fd.append('bedrooms', form.bedrooms);
+        fd.append('bathrooms', form.bathrooms);
+      }
       fd.append('amenities', JSON.stringify(selectedAmenities));
       fd.append('location_lat', pinLat.toString());
       fd.append('location_lng', pinLng.toString());
+      fd.append('metadata', JSON.stringify(buildMetadata()));
       photos.forEach(f => fd.append('photos', f));
       titleDocs.forEach(f => fd.append('title_documents', f));
       supportingDocs.forEach(f => fd.append('title_documents', f));
@@ -168,23 +231,17 @@ export default function LandlordNewListing() {
 
           {/* Section 1: Listing basics */}
           <Section title="Listing Basics" number="1">
-            {/* Listing type pill toggle */}
             <div>
               <label className="label">Listing Type</label>
               <div className="flex gap-2 p-1 bg-gray-100 rounded-xl w-fit">
                 {[{ value: 'rent', label: 'For Rent' }, { value: 'sale', label: 'For Sale' }].map(t => (
                   <button
-                    key={t.value}
-                    type="button"
+                    key={t.value} type="button"
                     onClick={() => setForm(p => ({ ...p, listingType: t.value }))}
-                    className={`px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                      form.listingType === t.value
-                        ? 'bg-white text-primary shadow-sm font-semibold'
-                        : 'text-gray-500 hover:text-gray-700'
+                    className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+                      form.listingType === t.value ? 'bg-white text-primary shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'
                     }`}
-                  >
-                    {t.label}
-                  </button>
+                  >{t.label}</button>
                 ))}
               </div>
             </div>
@@ -200,7 +257,7 @@ export default function LandlordNewListing() {
               <textarea className="input h-28 resize-none" required value={form.description} onChange={set('description')}
                 placeholder="Describe your property — its features, condition, nearby amenities…" />
               <p className="text-xs text-gray-400 mt-1.5">
-                Keep your description general. Avoid sharing exact addresses or contact details here — this helps your listing get approved faster.
+                Keep your description general. Avoid sharing exact addresses or contact details here.
               </p>
             </div>
 
@@ -222,26 +279,188 @@ export default function LandlordNewListing() {
             </div>
           </Section>
 
-          {/* Section 2: Property details */}
+          {/* Section 2: Property details — dynamic by type */}
           <Section title="Property Details" number="2">
+            {/* Property type selector */}
             <div>
               <label className="label">Property Type</label>
-              <select className="input" value={form.propertyType} onChange={set('propertyType')}>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                 {PROPERTY_TYPES.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
+                  <button
+                    key={t.value} type="button"
+                    onClick={() => setForm(p => ({ ...p, propertyType: t.value }))}
+                    className={`py-2.5 px-2 rounded-xl border text-sm font-semibold transition-all text-center ${
+                      form.propertyType === t.value
+                        ? 'bg-primary text-white border-primary'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                    }`}
+                  >{t.label}</button>
                 ))}
-              </select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Bedrooms</label>
-                <input className="input" type="number" min="0" required value={form.bedrooms} onChange={set('bedrooms')} />
-              </div>
-              <div>
-                <label className="label">Bathrooms</label>
-                <input className="input" type="number" min="0" required value={form.bathrooms} onChange={set('bathrooms')} />
               </div>
             </div>
+
+            {/* ── HOUSE / APARTMENT ── */}
+            {isResidential && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Bedrooms</label>
+                    <input className="input" type="number" min="0" required value={form.bedrooms} onChange={set('bedrooms')} />
+                  </div>
+                  <div>
+                    <label className="label">Bathrooms</label>
+                    <input className="input" type="number" min="0" required value={form.bathrooms} onChange={set('bathrooms')} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label">Furnishing Status</label>
+                  <select className="input" value={form.furnishing} onChange={set('furnishing')}>
+                    <option value="">Select…</option>
+                    <option value="furnished">Furnished</option>
+                    <option value="semi-furnished">Semi-furnished</option>
+                    <option value="unfurnished">Unfurnished</option>
+                  </select>
+                </div>
+
+                {pt === 'apartment' && (
+                  <div>
+                    <label className="label">Floor Level</label>
+                    <input className="input" type="number" min="0" value={form.floorLevel} onChange={set('floorLevel')}
+                      placeholder="e.g. 3" />
+                  </div>
+                )}
+
+                <div>
+                  <label className="label">Parking Available</label>
+                  <div className="flex gap-2">
+                    {['yes', 'no'].map(v => (
+                      <button key={v} type="button"
+                        onClick={() => setForm(p => ({ ...p, parkingAvailable: v }))}
+                        className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold capitalize transition-all ${
+                          form.parkingAvailable === v
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                        }`}
+                      >{v === 'yes' ? 'Yes' : 'No'}</button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ── LAND ── */}
+            {isLand && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Land Size (m²) <span className="text-red-400">*</span></label>
+                    <input className="input" type="number" min="1" required value={form.landSize} onChange={set('landSize')}
+                      placeholder="e.g. 1200" />
+                  </div>
+                  <div>
+                    <label className="label">Land Type</label>
+                    <select className="input" value={form.landType} onChange={set('landType')}>
+                      <option value="">Select…</option>
+                      <option value="residential">Residential</option>
+                      <option value="agricultural">Agricultural</option>
+                      <option value="industrial">Industrial</option>
+                      <option value="mixed-use">Mixed Use</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label">Title Type</label>
+                  <select className="input" value={form.titleType} onChange={set('titleType')}>
+                    <option value="">Select…</option>
+                    <option value="state-lease">State Lease</option>
+                    <option value="customary">Customary Land</option>
+                    <option value="freehold">Freehold</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <YesNoField label="Fenced?" value={form.fenced} onChange={v => setForm(p => ({ ...p, fenced: v }))} />
+                  <YesNoField label="Road Access?" value={form.roadAccess} onChange={v => setForm(p => ({ ...p, roadAccess: v }))} />
+                  <YesNoField label="Water Connection?" value={form.waterConnection} onChange={v => setForm(p => ({ ...p, waterConnection: v }))} />
+                  <YesNoField label="Electricity?" value={form.electricityConnection} onChange={v => setForm(p => ({ ...p, electricityConnection: v }))} />
+                </div>
+              </>
+            )}
+
+            {/* ── COMMERCIAL ── */}
+            {isCommercial && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Floor Area (m²) <span className="text-red-400">*</span></label>
+                    <input className="input" type="number" min="1" required value={form.floorArea} onChange={set('floorArea')}
+                      placeholder="e.g. 250" />
+                  </div>
+                  <div>
+                    <label className="label">Floor Level</label>
+                    <input className="input" type="number" min="0" value={form.commercialFloorLevel} onChange={set('commercialFloorLevel')}
+                      placeholder="e.g. 2" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label">Commercial Type</label>
+                  <select className="input" value={form.commercialType} onChange={set('commercialType')}>
+                    <option value="">Select…</option>
+                    <option value="office">Office Space</option>
+                    <option value="retail">Retail Shop</option>
+                    <option value="warehouse">Warehouse</option>
+                    <option value="restaurant">Restaurant Space</option>
+                    <option value="cubicles">Cubicles</option>
+                    <option value="mixed-use">Mixed Use</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label">Whole Building or Partial Floor?</label>
+                  <select className="input" value={form.buildingType} onChange={set('buildingType')}>
+                    <option value="">Select…</option>
+                    <option value="whole-building">Whole Building</option>
+                    <option value="partial-floor">Partial Floor</option>
+                    <option value="single-unit">Single Unit / Shop</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Rooms / Offices</label>
+                    <input className="input" type="number" min="0" value={form.numRooms} onChange={set('numRooms')} placeholder="0" />
+                  </div>
+                  <div>
+                    <label className="label">Cubicles</label>
+                    <input className="input" type="number" min="0" value={form.numCubicles} onChange={set('numCubicles')} placeholder="0" />
+                  </div>
+                  <div>
+                    <label className="label">Toilets / Bathrooms</label>
+                    <input className="input" type="number" min="0" value={form.numToilets} onChange={set('numToilets')} placeholder="0" />
+                  </div>
+                  <div>
+                    <label className="label">Parking Spaces</label>
+                    <input className="input" type="number" min="0" value={form.parkingSpaces} onChange={set('parkingSpaces')} placeholder="0" />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ── OTHER ── */}
+            {isOther && (
+              <div>
+                <label className="label">Additional Details</label>
+                <textarea
+                  className="input h-28 resize-none"
+                  value={form.additionalDetails}
+                  onChange={set('additionalDetails')}
+                  placeholder="Describe what makes this property unique — size, use case, features…"
+                />
+              </div>
+            )}
           </Section>
 
           {/* Section 3: Location */}
@@ -256,16 +475,10 @@ export default function LandlordNewListing() {
               <input className="input" required value={form.locationExact} onChange={set('locationExact')}
                 placeholder="Full street address" />
             </div>
-
-            {/* Leaflet map */}
             <div>
               <label className="label">Pin Location on Map</label>
               <p className="text-xs text-gray-400 mb-2">Click on the map or drag the pin to set the property location.</p>
-              <div
-                ref={mapRef}
-                className="w-full rounded-xl overflow-hidden border border-gray-200"
-                style={{ height: 280 }}
-              />
+              <div ref={mapRef} className="w-full rounded-xl overflow-hidden border border-gray-200" style={{ height: 280 }} />
               {mapReady && (
                 <p className="text-xs text-gray-500 mt-2">
                   Coordinates: <span className="font-mono">{pinLat.toFixed(5)}, {pinLng.toFixed(5)}</span>
@@ -282,7 +495,9 @@ export default function LandlordNewListing() {
 
             <div>
               <label className="label">Property Title Document <span className="text-red-400">*</span></label>
-              <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${titleDocs.length > 0 ? 'border-secondary bg-secondary/5' : 'border-gray-200 hover:border-gray-300 bg-gray-50'}`}>
+              <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
+                titleDocs.length > 0 ? 'border-secondary bg-secondary/5' : 'border-gray-200 hover:border-gray-300 bg-gray-50'
+              }`}>
                 <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png"
                   onChange={e => setTitleDocs(Array.from(e.target.files))} />
                 {titleDocs.length > 0 ? (
@@ -377,12 +592,9 @@ export default function LandlordNewListing() {
                   <div key={i} className="relative group">
                     <img src={URL.createObjectURL(f)} className="w-full aspect-square object-cover rounded-xl" alt="" />
                     <button
-                      type="button"
-                      onClick={() => removePhoto(i)}
+                      type="button" onClick={() => removePhoto(i)}
                       className="absolute top-1 right-1 w-5 h-5 bg-black/60 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      ×
-                    </button>
+                    >×</button>
                     {i === 0 && (
                       <span className="absolute bottom-1 left-1 text-xs bg-black/60 text-white px-1.5 py-0.5 rounded-md">Cover</span>
                     )}
@@ -390,7 +602,6 @@ export default function LandlordNewListing() {
                 ))}
               </div>
             )}
-
             <p className="text-xs text-gray-400 mt-2">
               Use clear, well-lit photos. Listings with quality photos get rented or sold faster.
             </p>
@@ -400,6 +611,25 @@ export default function LandlordNewListing() {
             {loading ? 'Submitting…' : 'Submit for Review'}
           </button>
         </form>
+      </div>
+    </div>
+  );
+}
+
+function YesNoField({ label, value, onChange }) {
+  return (
+    <div>
+      <label className="label text-xs">{label}</label>
+      <div className="flex gap-1.5">
+        {['yes', 'no'].map(v => (
+          <button key={v} type="button" onClick={() => onChange(v)}
+            className={`flex-1 py-2 rounded-xl border text-xs font-semibold transition-all ${
+              value === v
+                ? 'bg-primary text-white border-primary'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+            }`}
+          >{v === 'yes' ? 'Yes' : 'No'}</button>
+        ))}
       </div>
     </div>
   );
