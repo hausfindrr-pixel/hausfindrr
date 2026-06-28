@@ -5,6 +5,7 @@ import Navbar from '../components/shared/Navbar';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import MessageThread from '../components/tenant/MessageThread';
+import FeedbackBubble from '../components/shared/FeedbackBubble';
 import { priceLabel } from '../utils/format';
 
 export default function PropertyDetail() {
@@ -516,6 +517,15 @@ export default function PropertyDetail() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Feedback bubble — only visible after unlocking, tenant only */}
+      {unlocked && user?.role === 'tenant' && property?.landlord && (
+        <FeedbackBubble
+          mode="landlord"
+          landlordId={property.landlord.id}
+          propertyId={id}
+        />
       )}
     </div>
   );

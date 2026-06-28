@@ -41,7 +41,7 @@ export default function TenantLogin() {
       }
 
       saveAuth(data.token, data.user, rememberMe);
-      navigate('/browse');
+      navigate('/');
     } catch (err) {
       const status = err.response?.status;
       if (status === 401 || status === 403 || status === 429) {

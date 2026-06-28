@@ -12,7 +12,12 @@ async function createProperty(req, res, next) {
       locationGeneral, locationExact,
       location_lat, location_lng,
       bedrooms, bathrooms, propertyType, amenities, rentFrequency,
+      metadata,
     } = req.body;
+
+    const parsedMetadata = metadata
+      ? (typeof metadata === 'string' ? JSON.parse(metadata) : metadata)
+      : null;
 
     const property = await prisma.property.create({
       data: {
@@ -25,10 +30,11 @@ async function createProperty(req, res, next) {
         locationExact,
         locationLat: location_lat ? parseFloat(location_lat) : null,
         locationLng: location_lng ? parseFloat(location_lng) : null,
-        bedrooms: parseInt(bedrooms),
-        bathrooms: parseInt(bathrooms),
+        bedrooms: bedrooms !== undefined && bedrooms !== '' ? parseInt(bedrooms) : null,
+        bathrooms: bathrooms !== undefined && bathrooms !== '' ? parseInt(bathrooms) : null,
         propertyType,
         rentFrequency: listingType === 'rent' ? (rentFrequency || null) : null,
+        metadata: parsedMetadata,
         status: 'pending',
       },
     });
@@ -83,6 +89,7 @@ async function updateProperty(req, res, next) {
       locationGeneral, locationExact,
       location_lat, location_lng,
       bedrooms, bathrooms, propertyType, amenities, rentFrequency,
+      metadata,
     } = req.body;
 
     const effectiveType = listingType || property.listingType;
@@ -97,10 +104,15 @@ async function updateProperty(req, res, next) {
         ...(locationExact && { locationExact }),
         ...(location_lat !== undefined && { locationLat: location_lat ? parseFloat(location_lat) : null }),
         ...(location_lng !== undefined && { locationLng: location_lng ? parseFloat(location_lng) : null }),
-        ...(bedrooms && { bedrooms: parseInt(bedrooms) }),
-        ...(bathrooms && { bathrooms: parseInt(bathrooms) }),
+        bedrooms: bedrooms !== undefined && bedrooms !== '' ? parseInt(bedrooms) : null,
+        bathrooms: bathrooms !== undefined && bathrooms !== '' ? parseInt(bathrooms) : null,
         ...(propertyType && { propertyType }),
         rentFrequency: effectiveType === 'rent' ? (rentFrequency || null) : null,
+        ...(metadata !== undefined && {
+          metadata: metadata
+            ? (typeof metadata === 'string' ? JSON.parse(metadata) : metadata)
+            : null,
+        }),
       },
     });
 
@@ -300,6 +312,7 @@ function maskProperty(p, unlocked) {
     photos: p.photos,
     amenities: p.amenities,
     rentFrequency: p.rentFrequency,
+    metadata: p.metadata,
     occupied: p.occupied,
     createdAt: p.createdAt,
     unlocked,
