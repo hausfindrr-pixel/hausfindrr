@@ -10,6 +10,8 @@ const tenantRoutes = require('./routes/tenant');
 const adminRoutes = require('./routes/admin');
 const propertyRoutes = require('./routes/property');
 const messageRoutes = require('./routes/message');
+const complaintRoutes = require('./routes/complaint');
+const announcementRoutes = require('./routes/announcement');
 
 const { sanitizeBody } = require('./middleware/sanitize');
 
@@ -58,6 +60,8 @@ app.use('/api/tenant', tenantRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/complaints', complaintRoutes);
+app.use('/api/announcements', announcementRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

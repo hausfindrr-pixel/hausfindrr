@@ -171,6 +171,10 @@ const NAV = [
     icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
   },
   {
+    key: 'complaints', label: 'Complaints', pendingKey: 'complaints',
+    icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
+  },
+  {
     key: 'security', label: 'Security',
     icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>,
   },
@@ -246,13 +250,27 @@ export default function AdminDashboard() {
   const { logout } = useAuth();
   const [section, setSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [pendingCounts, setPendingCounts] = useState({ pendingLandlords: 0, pendingListings: 0 });
+  const [pendingCounts, setPendingCounts] = useState({ pendingLandlords: 0, pendingListings: 0, complaints: 0 });
+  const [messageTarget, setMessageTarget] = useState(null); // { userId, userName } pre-fill in Messages
 
   useEffect(() => {
-    api.get('/admin/analytics')
-      .then(({ data }) => setPendingCounts({ pendingLandlords: data.pendingLandlords ?? 0, pendingListings: data.pendingListings ?? 0 }))
-      .catch(() => setPendingCounts({ pendingLandlords: 0, pendingListings: 0 }));
+    Promise.all([
+      api.get('/admin/analytics'),
+      api.get('/admin/complaints'),
+    ]).then(([analytics, complaints]) => {
+      setPendingCounts({
+        pendingLandlords: analytics.data.pendingLandlords ?? 0,
+        pendingListings:  analytics.data.pendingListings ?? 0,
+        complaints: complaints.data.complaints?.filter(c => c.status === 'new').length ?? 0,
+      });
+    }).catch(() => setPendingCounts({ pendingLandlords: 0, pendingListings: 0, complaints: 0 }));
   }, [section]);
+
+  function goMessages(target) {
+    setMessageTarget(target);
+    setSection('messages');
+    setSidebarOpen(false);
+  }
 
   function go(key) {
     setSection(key);
@@ -310,8 +328,9 @@ export default function AdminDashboard() {
           {section === 'all_landlords'     && <AllLandlordsSection />}
           {section === 'all_listings'      && <AllListingsSection />}
           {section === 'transactions'      && <TransactionsSection />}
-          {section === 'messages'          && <MessagesSection />}
-          {section === 'security'           && <SecuritySection />}
+          {section === 'messages'    && <MessagesSection messageTarget={messageTarget} onClearTarget={() => setMessageTarget(null)} />}
+          {section === 'complaints'  && <ComplaintsSection onMessageLandlord={goMessages} onCountChange={n => setPendingCounts(p => ({ ...p, complaints: n }))} />}
+          {section === 'security'    && <SecuritySection />}
         </main>
       </div>
     </div>
@@ -1047,7 +1066,40 @@ function TransactionsSection() {
 }
 
 // ─── Messages ─────────────────────────────────────────────────────────────────
-function MessagesSection() {
+function MessagesSection({ messageTarget, onClearTarget }) {
+  const [tab, setTab] = useState(messageTarget ? 'announcements' : 'threads');
+
+  // Switch to announcements tab if a target was pre-set from Complaints
+  useEffect(() => {
+    if (messageTarget) setTab('announcements');
+  }, [messageTarget]);
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-xl font-bold text-gray-900">Messages</h1>
+        <p className="text-sm text-gray-400 mt-0.5">Platform conversations and announcements</p>
+      </div>
+
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+        {['threads', 'announcements'].map(t => (
+          <button
+            key={t}
+            onClick={() => { setTab(t); if (t !== 'announcements') onClearTarget?.(); }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${tab === t ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-primary'}`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'threads' && <MessageThreadsTab />}
+      {tab === 'announcements' && <AnnouncementsTab messageTarget={messageTarget} onClearTarget={onClearTarget} />}
+    </div>
+  );
+}
+
+function MessageThreadsTab() {
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -1058,36 +1110,434 @@ function MessagesSection() {
       .finally(() => setLoading(false));
   }, []);
 
+  if (loading) return <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-gray-100 animate-pulse rounded-2xl" />)}</div>;
+  if (threads.length === 0) return <Empty text="No messages yet" />;
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="divide-y divide-gray-50">
+        {threads.map(t => (
+          <div key={t.key} className="flex items-start gap-4 px-5 py-4">
+            <div className="w-9 h-9 bg-secondary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-medium text-gray-900 text-sm">{t.participants.join(' ↔ ')}</p>
+                <p className="text-gray-400 text-xs flex-shrink-0">{timeAgo(t.lastMessage.sentAt)}</p>
+              </div>
+              <p className="text-gray-400 text-xs mt-0.5 truncate">{t.property?.title}</p>
+              <p className="text-gray-400 text-xs mt-0.5 truncate">{t.lastMessage.senderName}: {t.lastMessage.content}</p>
+            </div>
+            <span className="flex-shrink-0 bg-gray-100 text-gray-500 text-xs font-medium px-2 py-0.5 rounded-full">
+              {t.messageCount}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AnnouncementsTab({ messageTarget, onClearTarget }) {
+  const [landlordMode, setLandlordMode] = useState('broadcast'); // 'broadcast' | 'individual'
+  const [tenantContent, setTenantContent] = useState('');
+  const [landlordContent, setLandlordContent] = useState('');
+  const [selectedLandlord, setSelectedLandlord] = useState(messageTarget || null);
+  const [landlordSearch, setLandlordSearch] = useState(messageTarget?.userName || '');
+  const [landlords, setLandlords] = useState([]);
+  const [landlordResults, setLandlordResults] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [sending, setSending] = useState(false);
+  const [activeAudienceTab, setActiveAudienceTab] = useState('tenants');
+
+  useEffect(() => {
+    api.get('/admin/announcements').then(({ data }) => setAnnouncements(data.announcements || [])).catch(() => {});
+    api.get('/admin/landlords').then(({ data }) => setLandlords(data.landlords || [])).catch(() => {});
+  }, []);
+
+  // Pre-select landlord from complaints
+  useEffect(() => {
+    if (messageTarget) {
+      setLandlordMode('individual');
+      setSelectedLandlord(messageTarget);
+      setLandlordSearch(messageTarget.userName);
+      setActiveAudienceTab('landlords');
+    }
+  }, [messageTarget]);
+
+  function searchLandlords(q) {
+    setLandlordSearch(q);
+    setSelectedLandlord(null);
+    onClearTarget?.();
+    if (!q.trim()) { setLandlordResults([]); return; }
+    const filtered = landlords.filter(l =>
+      l.name.toLowerCase().includes(q.toLowerCase()) ||
+      l.email.toLowerCase().includes(q.toLowerCase())
+    );
+    setLandlordResults(filtered.slice(0, 6));
+  }
+
+  async function sendTenantAnnouncement() {
+    if (!tenantContent.trim()) return;
+    setSending(true);
+    try {
+      const { data } = await api.post('/admin/announcements', { targetRole: 'tenant', content: tenantContent.trim() });
+      setAnnouncements(prev => [data.announcement, ...prev]);
+      setTenantContent('');
+      toast.success('Announcement sent to all tenants');
+    } catch {
+      toast.error('Failed to send announcement');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function sendLandlordMessage() {
+    if (!landlordContent.trim()) return;
+    if (landlordMode === 'individual' && !selectedLandlord) {
+      toast.error('Select a landlord first');
+      return;
+    }
+    setSending(true);
+    try {
+      if (landlordMode === 'broadcast') {
+        const { data } = await api.post('/admin/announcements', { targetRole: 'landlord', content: landlordContent.trim() });
+        setAnnouncements(prev => [data.announcement, ...prev]);
+        toast.success('Announcement sent to all landlords');
+      } else {
+        await api.post('/admin/direct-message', { receiverId: selectedLandlord.userId, content: landlordContent.trim() });
+        toast.success(`Message sent to ${selectedLandlord.userName}`);
+      }
+      setLandlordContent('');
+    } catch {
+      toast.error('Failed to send message');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  const shownAnnouncements = announcements.filter(a =>
+    activeAudienceTab === 'tenants' ? a.targetRole === 'tenant' : a.targetRole === 'landlord'
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Audience tabs */}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+        {[{k:'tenants',l:'Tenant Announcements'},{k:'landlords',l:'Landlord Messages'}].map(({k,l}) => (
+          <button
+            key={k}
+            onClick={() => setActiveAudienceTab(k)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeAudienceTab === k ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-primary'}`}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Tenants: always broadcast ── */}
+      {activeAudienceTab === 'tenants' && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900 text-sm">Broadcast to All Tenants</p>
+              <p className="text-xs text-gray-400">Appears as a HausFindrr Team announcement in tenant inboxes</p>
+            </div>
+          </div>
+          <textarea
+            className="input resize-none text-sm h-28"
+            placeholder="Write your announcement…"
+            value={tenantContent}
+            onChange={e => setTenantContent(e.target.value)}
+          />
+          <button
+            onClick={sendTenantAnnouncement}
+            disabled={!tenantContent.trim() || sending}
+            className="btn-primary text-sm disabled:opacity-40"
+          >
+            {sending ? 'Sending…' : 'Send to All Tenants'}
+          </button>
+        </div>
+      )}
+
+      {/* ── Landlords: broadcast or individual ── */}
+      {activeAudienceTab === 'landlords' && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+          {/* Mode toggle */}
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio" name="landlordMode" value="broadcast"
+                checked={landlordMode === 'broadcast'}
+                onChange={() => { setLandlordMode('broadcast'); setSelectedLandlord(null); setLandlordSearch(''); onClearTarget?.(); }}
+                className="accent-primary"
+              />
+              <span className="text-sm font-medium text-gray-700">Send as Announcement</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio" name="landlordMode" value="individual"
+                checked={landlordMode === 'individual'}
+                onChange={() => setLandlordMode('individual')}
+                className="accent-primary"
+              />
+              <span className="text-sm font-medium text-gray-700">Send to Individual</span>
+            </label>
+          </div>
+
+          {landlordMode === 'broadcast' ? (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-secondary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                </svg>
+              </div>
+              <p className="text-xs text-gray-500">Sends to <strong>all landlords</strong> as a platform announcement</p>
+            </div>
+          ) : (
+            <div className="relative">
+              <input
+                className="input text-sm pr-4"
+                placeholder="Search landlord by name or email…"
+                value={landlordSearch}
+                onChange={e => searchLandlords(e.target.value)}
+              />
+              {landlordResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 bg-white rounded-xl shadow-xl border border-gray-100 z-20 mt-1 overflow-hidden">
+                  {landlordResults.map(l => (
+                    <button
+                      key={l.id}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                      onClick={() => { setSelectedLandlord({ userId: l.id, userName: l.name }); setLandlordSearch(l.name); setLandlordResults([]); }}
+                    >
+                      <div className="w-7 h-7 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-primary text-xs font-bold">{l.name[0]}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{l.name}</p>
+                        <p className="text-xs text-gray-400">{l.email}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {selectedLandlord && (
+                <p className="text-xs text-primary mt-1">Sending to: <strong>{selectedLandlord.userName}</strong></p>
+              )}
+            </div>
+          )}
+
+          <textarea
+            className="input resize-none text-sm h-28"
+            placeholder={landlordMode === 'broadcast' ? 'Write announcement for all landlords…' : `Write a private message to ${selectedLandlord?.userName || 'landlord'}…`}
+            value={landlordContent}
+            onChange={e => setLandlordContent(e.target.value)}
+          />
+          <button
+            onClick={sendLandlordMessage}
+            disabled={!landlordContent.trim() || sending}
+            className="btn-primary text-sm disabled:opacity-40"
+          >
+            {sending ? 'Sending…' : landlordMode === 'broadcast' ? 'Send to All Landlords' : `Send to ${selectedLandlord?.userName || 'Landlord'}`}
+          </button>
+        </div>
+      )}
+
+      {/* History */}
+      {shownAnnouncements.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Sent History</p>
+          <div className="space-y-2">
+            {shownAnnouncements.map(a => (
+              <div key={a.id} className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex gap-3 items-start">
+                <div className="w-7 h-7 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg className="w-3.5 h-3.5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-700 leading-relaxed">{a.content}</p>
+                  <p className="text-xs text-gray-400 mt-1">{timeAgo(a.createdAt)} · to all {a.targetRole}s</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Complaints ────────────────────────────────────────────────────────────────
+const COMPLAINT_TYPE_LABELS = {
+  landlord_not_responding:   'Landlord not responding',
+  listing_details_incorrect: 'Listing details incorrect',
+  suspicious_activity:       'Suspicious activity',
+  other:                     'Other',
+  platform_feedback:         'Platform feedback',
+};
+
+const COMPLAINT_STATUS_COLORS = {
+  new:          'bg-red-100 text-red-700',
+  under_review: 'bg-amber-100 text-amber-700',
+  resolved:     'bg-green-100 text-green-700',
+};
+
+function ComplaintsSection({ onMessageLandlord, onCountChange }) {
+  const [complaints, setComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [expanded, setExpanded] = useState(null);
+
+  function load() {
+    api.get('/admin/complaints').then(({ data }) => {
+      setComplaints(data.complaints || []);
+      onCountChange?.(data.complaints?.filter(c => c.status === 'new').length || 0);
+    }).catch(() => setComplaints([]))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function updateStatus(id, status) {
+    try {
+      const { data } = await api.patch(`/admin/complaints/${id}/status`, { status });
+      setComplaints(prev => prev.map(c => c.id === id ? { ...c, status: data.complaint.status } : c));
+      const newCount = complaints.filter(c => c.id === id ? status === 'new' : c.status === 'new').length;
+      onCountChange?.(newCount);
+    } catch {
+      toast.error('Failed to update status');
+    }
+  }
+
+  const filtered = statusFilter === 'all' ? complaints : complaints.filter(c => c.status === statusFilter);
+
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Messages</h1>
-        <p className="text-sm text-gray-400 mt-0.5">{loading ? '…' : threads.length} active conversation threads</p>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Complaints</h1>
+          <p className="text-sm text-gray-400 mt-0.5">
+            {complaints.filter(c => c.status === 'new').length} new · {complaints.length} total
+          </p>
+        </div>
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
+          {['all','new','under_review','resolved'].map(s => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${statusFilter === s ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-primary'}`}
+            >
+              {s.replace('_', ' ')}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading
-        ? <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-gray-100 animate-pulse rounded-2xl" />)}</div>
-        : threads.length === 0
-          ? <Empty text="No messages yet" />
+        ? <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-20 bg-gray-100 animate-pulse rounded-2xl" />)}</div>
+        : filtered.length === 0
+          ? <Empty text="No complaints" />
           : (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="divide-y divide-gray-50">
-                {threads.map(t => (
-                  <div key={t.key} className="flex items-start gap-4 px-5 py-4">
-                    <div className="w-9 h-9 bg-secondary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="font-medium text-gray-900 text-sm">{t.participants.join(' ↔ ')}</p>
-                        <p className="text-gray-400 text-xs flex-shrink-0">{timeAgo(t.lastMessage.sentAt)}</p>
+                {filtered.map(c => (
+                  <div key={c.id}>
+                    <div
+                      className="flex items-start gap-4 px-5 py-4 cursor-pointer hover:bg-gray-50/50 transition-colors"
+                      onClick={() => setExpanded(expanded === c.id ? null : c.id)}
+                    >
+                      {/* Status dot */}
+                      <div className="flex-shrink-0 mt-1">
+                        <div className={`w-2.5 h-2.5 rounded-full ${c.status === 'new' ? 'bg-red-500' : c.status === 'under_review' ? 'bg-amber-400' : 'bg-green-500'}`} />
                       </div>
-                      <p className="text-gray-400 text-xs mt-0.5 truncate">{t.property?.title}</p>
-                      <p className="text-gray-400 text-xs mt-0.5 truncate">{t.lastMessage.senderName}: {t.lastMessage.content}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-gray-900 text-sm">{c.tenant?.name}</p>
+                          <span className="text-gray-300 text-xs">·</span>
+                          <span className="text-xs text-gray-500">{COMPLAINT_TYPE_LABELS[c.type] || c.type}</span>
+                        </div>
+                        {c.landlord && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            About: <span className="text-gray-600">{c.landlord.name}</span>
+                            <span className="ml-2 text-gray-400">{c.landlord.phone}</span>
+                          </p>
+                        )}
+                        {c.property && (
+                          <p className="text-xs text-gray-400 truncate">Listing: {c.property.title}</p>
+                        )}
+                        {c.details && (
+                          <p className="text-xs text-gray-400 mt-0.5 truncate">{c.details}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${COMPLAINT_STATUS_COLORS[c.status]}`}>
+                          {c.status.replace('_', ' ')}
+                        </span>
+                        <p className="text-xs text-gray-400">{timeAgo(c.createdAt)}</p>
+                      </div>
                     </div>
-                    <span className="flex-shrink-0 bg-gray-100 text-gray-500 text-xs font-medium px-2 py-0.5 rounded-full">
-                      {t.messageCount}
-                    </span>
+
+                    {/* Expanded detail */}
+                    {expanded === c.id && (
+                      <div className="px-5 pb-5 pt-1 bg-gray-50/60 border-t border-gray-100 space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Tenant</p>
+                            <p className="font-medium text-gray-900">{c.tenant?.name}</p>
+                            <p className="text-gray-500">{c.tenant?.email}</p>
+                            <p className="text-gray-500">{c.tenant?.phone}</p>
+                          </div>
+                          {c.landlord && (
+                            <div>
+                              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Landlord</p>
+                              <p className="font-medium text-gray-900">{c.landlord.name}</p>
+                              <p className="text-gray-500">{c.landlord.email}</p>
+                              <p className="text-gray-500">{c.landlord.phone}</p>
+                            </div>
+                          )}
+                        </div>
+                        {c.details && (
+                          <div>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Details</p>
+                            <p className="text-gray-700 text-sm leading-relaxed">{c.details}</p>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <div>
+                            <p className="text-xs text-gray-400 mb-1">Update status</p>
+                            <div className="flex gap-1.5">
+                              {['new','under_review','resolved'].map(s => (
+                                <button
+                                  key={s}
+                                  onClick={() => updateStatus(c.id, s)}
+                                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors capitalize border ${c.status === s ? COMPLAINT_STATUS_COLORS[s] + ' border-transparent' : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                                >
+                                  {s.replace('_', ' ')}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          {c.landlord && (
+                            <button
+                              onClick={() => onMessageLandlord?.({ userId: c.landlord.id, userName: c.landlord.name })}
+                              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-colors"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                              </svg>
+                              Message Landlord
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

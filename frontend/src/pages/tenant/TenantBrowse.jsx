@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import BrowseNavbar from '../../components/shared/BrowseNavbar';
 import PropertyCard from '../../components/tenant/PropertyCard';
+import FeedbackBubble from '../../components/shared/FeedbackBubble';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
@@ -478,6 +479,8 @@ export default function TenantBrowse() {
           </div>
         </div>
       )}
+
+      <FeedbackBubble mode="platform" />
     </div>
   );
 }
