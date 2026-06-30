@@ -68,6 +68,54 @@ async function createWelcomeNotifications(userId, role) {
   });
 }
 
+const WELCOME_MESSAGE_CONTENT = {
+  tenant: `Welcome to HausFindrr — PNG's property marketplace! 🏠
+
+You can now browse hundreds of rental and sale listings across the country. To see the full details of any listing — including the exact address and the landlord's direct contact — simply unlock it for a one-time fee of K25.
+
+A few tips to get started:
+• Browse listings from the homepage
+• Tap "Unlock Now" on any listing that interests you
+• Save favourites with the heart icon
+• Message the landlord directly once you've unlocked a listing
+
+Happy house hunting! If you ever need help, reply to this message or email us at support@hausfindrr.com.
+
+— The HausFindrr Team`,
+
+  landlord: `Welcome to HausFindrr — PNG's fastest-growing property platform! 🏠
+
+Your account has been created and is currently under review. Our admin team will verify your identity and uploaded documents within 1–2 business days.
+
+What happens next:
+• We'll review your ID document and account details
+• Once approved, you'll be able to post property listings
+• Tenants can then browse and unlock your listings to get in touch
+
+To speed up verification, make sure your ID document is uploaded clearly in your account. Listings you submit will be reviewed by our team before going live — this keeps the platform safe and trustworthy for everyone.
+
+Questions? Reply to this message or email support@hausfindrr.com.
+
+— The HausFindrr Team`,
+};
+
+async function sendWelcomeMessages(userId, role) {
+  try {
+    const adminEmail = process.env.ADMIN_EMAIL;
+    if (!adminEmail) return;
+    const admin = await prisma.user.findFirst({ where: { email: adminEmail.toLowerCase(), role: 'admin' } });
+    if (!admin) return;
+    const content = WELCOME_MESSAGE_CONTENT[role];
+    if (!content) return;
+    await prisma.message.create({
+      data: { propertyId: null, senderId: admin.id, receiverId: userId, content },
+    });
+  } catch (err) {
+    // Non-fatal — log but don't block registration
+    console.error('[sendWelcomeMessages] failed:', err.message);
+  }
+}
+
 // Enforce safe length limits on text fields
 function clamp(val, max = 255) {
   return typeof val === 'string' ? val.slice(0, max) : val;
@@ -131,6 +179,7 @@ async function registerLandlord(req, res, next) {
     }
 
     await createWelcomeNotifications(user.id, 'landlord');
+    await sendWelcomeMessages(user.id, 'landlord');
 
     const token = signToken(user);
     res.status(201).json({ token, user: safeUser(user) });
@@ -164,6 +213,7 @@ async function registerTenant(req, res, next) {
     });
 
     await createWelcomeNotifications(user.id, 'tenant');
+    await sendWelcomeMessages(user.id, 'tenant');
 
     const token = signToken(user);
     res.status(201).json({ token, user: safeUser(user) });

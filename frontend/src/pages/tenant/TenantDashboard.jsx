@@ -25,18 +25,19 @@ export default function TenantDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
+    // Use allSettled so one failing endpoint doesn't wipe all other data
+    Promise.allSettled([
       api.get('/tenant/unlocked'),
       api.get('/tenant/favorites'),
       api.get('/messages/inbox'),
       api.get('/announcements'),
       api.get('/notifications'),
     ]).then(([u, f, m, a, n]) => {
-      setUnlocked(u.data.unlocks);
-      setFavorites(f.data.favorites);
-      setThreads(m.data.threads);
-      setAnnouncements(a.data.announcements || []);
-      setNotifications(n.data.notifications || []);
+      if (u.status === 'fulfilled') setUnlocked(u.value.data.unlocks || []);
+      if (f.status === 'fulfilled') setFavorites(f.value.data.favorites || []);
+      if (m.status === 'fulfilled') setThreads(m.value.data.threads || []);
+      if (a.status === 'fulfilled') setAnnouncements(a.value.data.announcements || []);
+      if (n.status === 'fulfilled') setNotifications(n.value.data.notifications || []);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -179,24 +180,42 @@ function AnnouncementRow({ announcement }) {
 }
 
 function DirectMessageRow({ thread }) {
+  const [expanded, setExpanded] = useState(false);
+  const isHausFindrr = thread.otherUser?.role === 'admin';
+  const senderName = isHausFindrr ? 'HausFindrr Support' : (thread.otherUser?.name || 'Admin');
+
   return (
-    <div className="card p-4 flex items-center gap-4 border-l-4 border-secondary/40 bg-secondary/5">
-      <div className="w-12 h-12 bg-secondary/20 rounded-full flex items-center justify-center text-xl flex-shrink-0">
-        <svg className="w-6 h-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
-          <p className="font-semibold text-secondary text-sm">{thread.otherUser?.name || 'HausFindrr Admin'}</p>
-          <span className="text-xs text-secondary/60 bg-secondary/10 px-1.5 py-0.5 rounded-full">Direct Message</span>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center gap-3.5 p-4 text-left hover:bg-gray-50 transition-colors"
+      >
+        <div className="w-11 h-11 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+          </svg>
         </div>
-        <p className="text-gray-400 text-xs truncate">{thread.latestMessage?.content}</p>
-      </div>
-      {thread.unreadCount > 0 && (
-        <span className="flex-shrink-0 bg-secondary text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
-          {thread.unreadCount}
-        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <p className="font-semibold text-gray-900 text-sm">{senderName}</p>
+            {isHausFindrr && <span className="text-xs text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded-full font-medium">Official</span>}
+            {thread.unreadCount > 0 && (
+              <span className="bg-primary text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{thread.unreadCount} new</span>
+            )}
+          </div>
+          <p className="text-gray-400 text-xs truncate">{thread.latestMessage?.content}</p>
+        </div>
+        <svg className={`w-4 h-4 text-gray-300 flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {expanded && (
+        <div className="border-t border-gray-100 px-4 py-4">
+          <div className="bg-gray-50 rounded-xl px-4 py-4">
+            <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">{thread.latestMessage?.content}</p>
+          </div>
+          <p className="text-gray-400 text-xs mt-2">{timeAgo(thread.latestMessage?.sentAt)}</p>
+        </div>
       )}
     </div>
   );

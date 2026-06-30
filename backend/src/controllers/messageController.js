@@ -46,12 +46,51 @@ async function getThread(req, res, next) {
   }
 }
 
+async function getDirectThread(req, res, next) {
+  try {
+    const { otherUserId } = req.params;
+
+    const messages = await prisma.message.findMany({
+      where: {
+        propertyId: null,
+        OR: [
+          { senderId: req.user.id, receiverId: otherUserId },
+          { senderId: otherUserId, receiverId: req.user.id },
+        ],
+      },
+      include: { sender: { select: { id: true, name: true, role: true } } },
+      orderBy: { sentAt: 'asc' },
+    });
+    res.json({ messages });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function markRead(req, res, next) {
   try {
     const { propertyId, otherUserId } = req.params;
     await prisma.message.updateMany({
       where: {
         propertyId,
+        senderId: otherUserId,
+        receiverId: req.user.id,
+        readAt: null,
+      },
+      data: { readAt: new Date() },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function markDirectRead(req, res, next) {
+  try {
+    const { otherUserId } = req.params;
+    await prisma.message.updateMany({
+      where: {
+        propertyId: null,
         senderId: otherUserId,
         receiverId: req.user.id,
         readAt: null,
@@ -84,11 +123,12 @@ async function getInbox(req, res, next) {
 
     for (const msg of messages) {
       const otherId = msg.senderId === req.user.id ? msg.receiverId : msg.senderId;
-      const key = `${msg.propertyId}:${otherId}`;
+      const key = `${msg.propertyId ?? 'direct'}:${otherId}`;
 
       if (!threadMap.has(key)) {
         threadMap.set(key, {
           propertyId: msg.propertyId,
+          isDirect: msg.propertyId === null,
           property: msg.property,
           otherUser: msg.senderId === req.user.id ? msg.receiver : msg.sender,
           latestMessage: msg,
@@ -96,13 +136,11 @@ async function getInbox(req, res, next) {
         });
       }
 
-      // Count messages sent to us that haven't been read yet
       if (msg.receiverId === req.user.id && !msg.readAt) {
         unreadMap.set(key, (unreadMap.get(key) || 0) + 1);
       }
     }
 
-    // Attach unread counts
     for (const [key, thread] of threadMap) {
       thread.unreadCount = unreadMap.get(key) || 0;
     }
@@ -113,4 +151,4 @@ async function getInbox(req, res, next) {
   }
 }
 
-module.exports = { sendMessage, getThread, markRead, getInbox };
+module.exports = { sendMessage, getThread, getDirectThread, markRead, markDirectRead, getInbox };

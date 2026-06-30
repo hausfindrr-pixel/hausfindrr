@@ -103,8 +103,12 @@ export default function LandlordDashboard() {
     loadThreads();
   }
 
-  // Group threads by property
-  const threadsByProperty = threads.reduce((acc, t) => {
+  // Separate direct (admin/system) threads from property-linked threads
+  const directThreads = threads.filter(t => t.isDirect);
+  const propertyThreads = threads.filter(t => !t.isDirect);
+
+  // Group property threads by property
+  const threadsByProperty = propertyThreads.reduce((acc, t) => {
     const pid = t.propertyId;
     if (!acc[pid]) acc[pid] = { property: t.property, threads: [] };
     acc[pid].threads.push(t);
@@ -346,7 +350,16 @@ export default function LandlordDashboard() {
             )}
           </div>
 
-          {threads.length === 0 ? (
+          {/* HausFindrr Support / direct threads */}
+          {directThreads.length > 0 && (
+            <div className="space-y-3 mb-4">
+              {directThreads.map((t, i) => (
+                <LandlordDirectMessageRow key={i} thread={t} />
+              ))}
+            </div>
+          )}
+
+          {propertyThreads.length === 0 && directThreads.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
               <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <svg className="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -356,7 +369,7 @@ export default function LandlordDashboard() {
               <p className="text-gray-400 font-medium text-sm">No messages yet</p>
               <p className="text-gray-300 text-xs mt-1">Tenant inquiries will appear here once they unlock your listings</p>
             </div>
-          ) : (
+          ) : propertyThreads.length > 0 ? (
             <div className="space-y-4">
               {Object.entries(threadsByProperty).map(([propertyId, group]) => {
                 const propertyUnread = group.threads.reduce((sum, t) => sum + (t.unreadCount || 0), 0);
@@ -453,9 +466,54 @@ export default function LandlordDashboard() {
                 );
               })}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
+    </div>
+  );
+}
+
+function LandlordDirectMessageRow({ thread }) {
+  const [expanded, setExpanded] = useState(false);
+  const isHausFindrr = thread.otherUser?.role === 'admin';
+  const senderName = isHausFindrr ? 'HausFindrr Support' : (thread.otherUser?.name || 'Admin');
+  const diff = Date.now() - new Date(thread.latestMessage?.sentAt).getTime();
+  const m = Math.floor(diff / 60000);
+  const timeAgo = m < 1 ? 'just now' : m < 60 ? `${m}m ago` : m < 1440 ? `${Math.floor(m/60)}h ago` : `${Math.floor(m/1440)}d ago`;
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center gap-3.5 p-4 text-left hover:bg-gray-50 transition-colors"
+      >
+        <div className="w-11 h-11 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <p className="font-semibold text-gray-900 text-sm">{senderName}</p>
+            {isHausFindrr && <span className="text-xs text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded-full font-medium">Official</span>}
+            {thread.unreadCount > 0 && (
+              <span className="bg-primary text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{thread.unreadCount} new</span>
+            )}
+          </div>
+          <p className="text-gray-400 text-xs truncate">{thread.latestMessage?.content}</p>
+        </div>
+        <svg className={`w-4 h-4 text-gray-300 flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {expanded && (
+        <div className="border-t border-gray-100 px-4 py-4">
+          <div className="bg-gray-50 rounded-xl px-4 py-4">
+            <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">{thread.latestMessage?.content}</p>
+          </div>
+          <p className="text-gray-400 text-xs mt-2">{timeAgo}</p>
+        </div>
+      )}
     </div>
   );
 }
