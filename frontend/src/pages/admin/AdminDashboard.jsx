@@ -63,32 +63,46 @@ function Empty({ text }) {
 
 function DocLightbox({ url, onClose }) {
   if (!url) return null;
-  const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(url) || url.includes('/image/upload/');
+  const isPdf = /\.pdf$/i.test(url);
+  const isImage = !isPdf && (/\.(jpg|jpeg|png|webp|gif)$/i.test(url) || url.includes('/image/upload/'));
   return (
     <div className="fixed inset-0 bg-black/85 z-[60] flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl"
+        className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+          {!isImage && (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-black/60 hover:bg-black/80 text-white text-xs px-3 py-1.5 rounded-full transition-colors"
+              onClick={e => e.stopPropagation()}
+            >
+              Open in new tab ↗
+            </a>
+          )}
+          <button
+            onClick={onClose}
+            className="bg-black/60 hover:bg-black/80 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
         {isImage ? (
           <img
             src={url}
             alt="Document"
-            style={{ display: 'block', width: '100%', maxHeight: '88vh', objectFit: 'contain', borderRadius: '1rem' }}
+            style={{ display: 'block', width: '100%', maxHeight: '88vh', objectFit: 'contain' }}
           />
         ) : (
           <iframe
             src={url}
             title="Document"
-            style={{ display: 'block', width: '100%', height: '80vh', border: 'none', borderRadius: '1rem' }}
+            style={{ display: 'block', width: '100%', height: '82vh', border: 'none' }}
           />
         )}
       </div>

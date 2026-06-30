@@ -264,7 +264,9 @@ export default function LandlordDashboard() {
                       </p>
                       <div className="flex items-center justify-between">
                         <p className="text-base font-bold text-gray-900">{priceLabel(p.price, p.listingType, p.rentFrequency)}</p>
-                        <p className="text-xs text-gray-400">{p.bedrooms}bd · {p.bathrooms}ba</p>
+                        {['house', 'apartment'].includes(p.propertyType) && p.bedrooms != null && (
+                          <p className="text-xs text-gray-400">{p.bedrooms}bd · {p.bathrooms}ba</p>
+                        )}
                       </div>
                       {p.rejectionReason && (
                         <div className="mt-2 p-2 bg-red-50 rounded-lg">
@@ -458,24 +460,27 @@ export default function LandlordDashboard() {
   );
 }
 
-const NOTIFICATION_ICONS = { welcome: '👋', privacy_policy: '🔒', terms: '📋' };
-
 function LandlordNotificationRow({ notification }) {
   const diff = Date.now() - new Date(notification.createdAt).getTime();
   const m = Math.floor(diff / 60000);
   const timeAgo = m < 1 ? 'just now' : m < 60 ? `${m}m ago` : m < 1440 ? `${Math.floor(m/60)}h ago` : `${Math.floor(m/1440)}d ago`;
   return (
-    <div className="bg-white rounded-2xl border-l-4 border-blue-300 border border-blue-100 shadow-sm p-4 flex items-start gap-4">
-      <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0 text-lg">
-        {NOTIFICATION_ICONS[notification.type] || '📩'}
+    <div className="flex items-start gap-3.5 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
+      <div className="w-11 h-11 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+        </svg>
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
-          <p className="font-semibold text-blue-800 text-sm">{notification.title}</p>
-          <span className="text-xs text-blue-500 bg-blue-100 px-1.5 py-0.5 rounded-full">HausFindrr</span>
+        <div className="flex items-center gap-2 mb-1.5">
+          <p className="font-semibold text-gray-900 text-sm">HausFindrr Support</p>
+          <span className="text-xs text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded-full font-medium">Official</span>
         </div>
-        <p className="text-gray-600 text-sm leading-relaxed">{notification.content}</p>
-        <p className="text-gray-400 text-xs mt-1">{timeAgo}</p>
+        <div className="bg-gray-50 rounded-xl px-3.5 py-3">
+          <p className="text-xs font-semibold text-gray-700 mb-1">{notification.title}</p>
+          <p className="text-gray-600 text-sm leading-relaxed">{notification.content}</p>
+        </div>
+        <p className="text-gray-400 text-xs mt-1.5">{timeAgo}</p>
       </div>
     </div>
   );

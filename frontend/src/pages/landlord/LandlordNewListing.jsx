@@ -4,7 +4,6 @@ import toast from 'react-hot-toast';
 import Navbar from '../../components/shared/Navbar';
 import api from '../../services/api';
 
-// Port Moresby coordinates
 const DEFAULT_LAT = -9.4438;
 const DEFAULT_LNG = 147.1803;
 
@@ -21,6 +20,15 @@ const PROPERTY_TYPES = [
   { value: 'other', label: 'Other' },
 ];
 
+const LAND_TYPES = ['Flat', 'Hilly', 'Mixed', 'Coastal', 'Riverine'];
+const TITLE_TYPES = ['Freehold', 'Customary', 'State Lease', 'Missionary'];
+const COMMERCIAL_TYPES = ['Office', 'Retail', 'Warehouse', 'Restaurant', 'Showroom', 'Other'];
+
+const SAT_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+const SAT_ATTRIBUTION = 'Tiles &copy; Esri';
+const OSM_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
 export default function LandlordNewListing() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -32,9 +40,13 @@ export default function LandlordNewListing() {
   const [pinLat, setPinLat] = useState(DEFAULT_LAT);
   const [pinLng, setPinLng] = useState(DEFAULT_LNG);
   const [mapReady, setMapReady] = useState(false);
+  const [isSatellite, setIsSatellite] = useState(false);
+
   const mapRef = useRef(null);
   const leafletMapRef = useRef(null);
   const markerRef = useRef(null);
+  const osmLayerRef = useRef(null);
+  const satLayerRef = useRef(null);
 
   const [form, setForm] = useState({
     listingType: 'rent',
@@ -49,7 +61,32 @@ export default function LandlordNewListing() {
     propertyType: 'house',
   });
 
+  const [metadata, setMetadata] = useState({
+    landSize: '',
+    landType: 'Flat',
+    fenced: false,
+    roadAccess: false,
+    titleType: 'Freehold',
+    water: false,
+    electricity: false,
+    floorArea: '',
+    commercialType: 'Office',
+    rooms: '',
+    cubicles: '',
+    toilets: '',
+    parking: '',
+    floorLevel: '',
+    otherDescription: '',
+  });
+
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
+  const setMeta = k => e => setMetadata(p => ({ ...p, [k]: e.target.value }));
+  const toggleMeta = k => () => setMetadata(p => ({ ...p, [k]: !p[k] }));
+
+  const isHouseApt = ['house', 'apartment'].includes(form.propertyType);
+  const isLand = form.propertyType === 'land';
+  const isCommercial = form.propertyType === 'commercial';
+  const isOther = form.propertyType === 'other';
 
   function toggleAmenity(a) {
     setSelectedAmenities(prev =>
@@ -65,10 +102,8 @@ export default function LandlordNewListing() {
     setCustomAmenity('');
   }
 
-  // Initialize Leaflet map
   useEffect(() => {
     let map;
-    let marker;
 
     async function initMap() {
       if (!mapRef.current || leafletMapRef.current) return;
@@ -76,7 +111,6 @@ export default function LandlordNewListing() {
       const L = (await import('leaflet')).default;
       await import('leaflet/dist/leaflet.css');
 
-      // Fix default icon paths (known Vite/Leaflet issue)
       delete L.Icon.Default.prototype._getIconUrl;
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -86,11 +120,10 @@ export default function LandlordNewListing() {
 
       map = L.map(mapRef.current).setView([DEFAULT_LAT, DEFAULT_LNG], 13);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      }).addTo(map);
+      osmLayerRef.current = L.tileLayer(OSM_TILE_URL, { attribution: OSM_ATTRIBUTION }).addTo(map);
+      satLayerRef.current = L.tileLayer(SAT_TILE_URL, { attribution: SAT_ATTRIBUTION });
 
-      marker = L.marker([DEFAULT_LAT, DEFAULT_LNG], { draggable: true }).addTo(map);
+      const marker = L.marker([DEFAULT_LAT, DEFAULT_LNG], { draggable: true }).addTo(map);
 
       marker.on('dragend', () => {
         const pos = marker.getLatLng();
@@ -120,6 +153,42 @@ export default function LandlordNewListing() {
     };
   }, []);
 
+  function toggleSatellite() {
+    const map = leafletMapRef.current;
+    if (!map) return;
+    if (isSatellite) {
+      if (satLayerRef.current) map.removeLayer(satLayerRef.current);
+      if (osmLayerRef.current) osmLayerRef.current.addTo(map);
+    } else {
+      if (osmLayerRef.current) map.removeLayer(osmLayerRef.current);
+      if (satLayerRef.current) satLayerRef.current.addTo(map);
+    }
+    setIsSatellite(s => !s);
+  }
+
+  function buildMetadataPayload() {
+    if (isHouseApt) return {};
+    if (isLand) return {
+      landSize: metadata.landSize,
+      landType: metadata.landType,
+      fenced: metadata.fenced,
+      roadAccess: metadata.roadAccess,
+      titleType: metadata.titleType,
+      water: metadata.water,
+      electricity: metadata.electricity,
+    };
+    if (isCommercial) return {
+      floorArea: metadata.floorArea,
+      commercialType: metadata.commercialType,
+      rooms: metadata.rooms,
+      cubicles: metadata.cubicles,
+      toilets: metadata.toilets,
+      parking: metadata.parking,
+      floorLevel: metadata.floorLevel,
+    };
+    return { otherDescription: metadata.otherDescription };
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (photos.length === 0) return toast.error('Please add at least one property photo');
@@ -130,6 +199,7 @@ export default function LandlordNewListing() {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
       fd.append('amenities', JSON.stringify(selectedAmenities));
+      fd.append('metadata', JSON.stringify(buildMetadataPayload()));
       fd.append('location_lat', pinLat.toString());
       fd.append('location_lng', pinLng.toString());
       photos.forEach(f => fd.append('photos', f));
@@ -168,7 +238,6 @@ export default function LandlordNewListing() {
 
           {/* Section 1: Listing basics */}
           <Section title="Listing Basics" number="1">
-            {/* Listing type pill toggle */}
             <div>
               <label className="label">Listing Type</label>
               <div className="flex gap-2 p-1 bg-gray-100 rounded-xl w-fit">
@@ -232,16 +301,91 @@ export default function LandlordNewListing() {
                 ))}
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Bedrooms</label>
-                <input className="input" type="number" min="0" required value={form.bedrooms} onChange={set('bedrooms')} />
+
+            {/* House / Apartment: bedrooms + bathrooms */}
+            {isHouseApt && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Bedrooms</label>
+                  <input className="input" type="number" min="0" required value={form.bedrooms} onChange={set('bedrooms')} />
+                </div>
+                <div>
+                  <label className="label">Bathrooms</label>
+                  <input className="input" type="number" min="0" required value={form.bathrooms} onChange={set('bathrooms')} />
+                </div>
               </div>
-              <div>
-                <label className="label">Bathrooms</label>
-                <input className="input" type="number" min="0" required value={form.bathrooms} onChange={set('bathrooms')} />
+            )}
+
+            {/* Land-specific fields */}
+            {isLand && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Land Size</label>
+                    <input className="input" value={metadata.landSize} onChange={setMeta('landSize')} placeholder="e.g. 500 sqm" />
+                  </div>
+                  <div>
+                    <label className="label">Land Type</label>
+                    <select className="input" value={metadata.landType} onChange={setMeta('landType')}>
+                      {LAND_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="label">Title Type</label>
+                  <select className="input" value={metadata.titleType} onChange={setMeta('titleType')}>
+                    {TITLE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <ToggleField label="Fenced" checked={metadata.fenced} onChange={toggleMeta('fenced')} />
+                  <ToggleField label="Road Access" checked={metadata.roadAccess} onChange={toggleMeta('roadAccess')} />
+                  <ToggleField label="Water Available" checked={metadata.water} onChange={toggleMeta('water')} />
+                  <ToggleField label="Electricity Available" checked={metadata.electricity} onChange={toggleMeta('electricity')} />
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Commercial-specific fields */}
+            {isCommercial && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Floor Area</label>
+                    <input className="input" value={metadata.floorArea} onChange={setMeta('floorArea')} placeholder="e.g. 200 sqm" />
+                  </div>
+                  <div>
+                    <label className="label">Commercial Type</label>
+                    <select className="input" value={metadata.commercialType} onChange={setMeta('commercialType')}>
+                      {COMMERCIAL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="label">Floor Level</label>
+                  <input className="input" value={metadata.floorLevel} onChange={setMeta('floorLevel')} placeholder="e.g. Ground Floor, Level 3" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <NumberMetaField label="Rooms" value={metadata.rooms} onChange={setMeta('rooms')} />
+                  <NumberMetaField label="Cubicles" value={metadata.cubicles} onChange={setMeta('cubicles')} />
+                  <NumberMetaField label="Toilets" value={metadata.toilets} onChange={setMeta('toilets')} />
+                  <NumberMetaField label="Parking Spaces" value={metadata.parking} onChange={setMeta('parking')} />
+                </div>
+              </div>
+            )}
+
+            {/* Other: free text */}
+            {isOther && (
+              <div>
+                <label className="label">Property Description</label>
+                <textarea
+                  className="input h-24 resize-none"
+                  value={metadata.otherDescription}
+                  onChange={setMeta('otherDescription')}
+                  placeholder="Describe this property type and its key features…"
+                />
+              </div>
+            )}
           </Section>
 
           {/* Section 3: Location */}
@@ -257,15 +401,28 @@ export default function LandlordNewListing() {
                 placeholder="Full street address" />
             </div>
 
-            {/* Leaflet map */}
             <div>
               <label className="label">Pin Location on Map</label>
-              <p className="text-xs text-gray-400 mb-2">Click on the map or drag the pin to set the property location.</p>
-              <div
-                ref={mapRef}
-                className="w-full rounded-xl overflow-hidden border border-gray-200"
-                style={{ height: 280 }}
-              />
+              <p className="text-xs text-gray-400 mb-2">Click on the map or drag the pin to mark the property's exact location.</p>
+              <div className="relative">
+                <div
+                  ref={mapRef}
+                  className="w-full rounded-xl overflow-hidden border border-gray-200"
+                  style={{ height: 280 }}
+                />
+                {mapReady && (
+                  <button
+                    type="button"
+                    onClick={toggleSatellite}
+                    className="absolute top-2 right-2 z-[1000] bg-white/90 hover:bg-white rounded-lg shadow border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors flex items-center gap-1.5"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {isSatellite ? 'Map View' : 'Satellite'}
+                  </button>
+                )}
+              </div>
               {mapReady && (
                 <p className="text-xs text-gray-500 mt-2">
                   Coordinates: <span className="font-mono">{pinLat.toFixed(5)}, {pinLng.toFixed(5)}</span>
@@ -417,6 +574,34 @@ function Section({ title, number, children }) {
       <div className="p-6 space-y-4">
         {children}
       </div>
+    </div>
+  );
+}
+
+function ToggleField({ label, checked, onChange }) {
+  return (
+    <button
+      type="button"
+      onClick={onChange}
+      className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 text-sm font-medium transition-colors text-left ${
+        checked
+          ? 'border-secondary bg-secondary/10 text-secondary'
+          : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300'
+      }`}
+    >
+      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${checked ? 'border-secondary bg-secondary' : 'border-gray-300'}`}>
+        {checked && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+      </div>
+      {label}
+    </button>
+  );
+}
+
+function NumberMetaField({ label, value, onChange }) {
+  return (
+    <div>
+      <label className="label">{label}</label>
+      <input className="input" type="number" min="0" value={value} onChange={onChange} placeholder="0" />
     </div>
   );
 }
