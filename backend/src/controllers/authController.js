@@ -11,6 +11,63 @@ function normaliseEmail(raw) {
   return validator.isEmail(trimmed) ? trimmed : null;
 }
 
+// Generate a unique landlord account code: HL-XXXXX
+async function generateAccountCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  for (let attempt = 0; attempt < 20; attempt++) {
+    let code = 'HL-';
+    for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    const exists = await prisma.user.findFirst({ where: { accountCode: code } });
+    if (!exists) return code;
+  }
+  throw new Error('Could not generate unique account code');
+}
+
+const WELCOME_NOTIFICATIONS = {
+  landlord: [
+    {
+      type: 'welcome',
+      title: 'Welcome to HausFindrr!',
+      content: 'Welcome to HausFindrr, the fastest-growing property platform in PNG! Your account is under review — our team will verify your identity within 1–2 business days. Once approved, you can start listing your properties and connecting with tenants.',
+    },
+    {
+      type: 'privacy_policy',
+      title: 'Our Privacy Policy',
+      content: 'By using HausFindrr, you agree to our Privacy Policy. We collect your name, contact details, and identity documents solely to verify your account and facilitate property listings. Your personal data is never sold to third parties. You can request deletion of your account at any time by contacting support@hausfindrr.com.',
+    },
+    {
+      type: 'terms',
+      title: 'Terms of Service',
+      content: 'By registering as a landlord on HausFindrr, you agree to our Terms of Service. You are responsible for ensuring all listing information is accurate, that you have legal authority to list the property, and that you respond to tenant enquiries in good faith. HausFindrr reserves the right to suspend accounts that violate these terms.',
+    },
+  ],
+  tenant: [
+    {
+      type: 'welcome',
+      title: 'Welcome to HausFindrr!',
+      content: 'Welcome to HausFindrr! You can now browse thousands of rental and sale listings across PNG. Unlock a property to see full details, contact the landlord, and save your favourites. Happy house hunting!',
+    },
+    {
+      type: 'privacy_policy',
+      title: 'Our Privacy Policy',
+      content: 'By using HausFindrr, you agree to our Privacy Policy. We collect your name and contact details to facilitate connections between tenants and landlords. Your personal data is never sold to third parties. You can request deletion of your account at any time by contacting support@hausfindrr.com.',
+    },
+    {
+      type: 'terms',
+      title: 'Terms of Service',
+      content: 'By registering as a tenant on HausFindrr, you agree to our Terms of Service. You agree to use the platform honestly, not to misrepresent yourself to landlords, and to use contact details obtained through unlocking for legitimate housing enquiries only. HausFindrr reserves the right to suspend accounts that violate these terms.',
+    },
+  ],
+};
+
+async function createWelcomeNotifications(userId, role) {
+  const templates = WELCOME_NOTIFICATIONS[role] || [];
+  if (templates.length === 0) return;
+  await prisma.userNotification.createMany({
+    data: templates.map(t => ({ userId, ...t })),
+  });
+}
+
 // Enforce safe length limits on text fields
 function clamp(val, max = 255) {
   return typeof val === 'string' ? val.slice(0, max) : val;
@@ -53,8 +110,9 @@ async function registerLandlord(req, res, next) {
     if (existing) return res.status(409).json({ error: 'Email already registered' });
 
     const passwordHash = await bcrypt.hash(password, 12);
+    const accountCode = await generateAccountCode();
     const user = await prisma.user.create({
-      data: { name: safeName, phone: safePhone, email, passwordHash, role: 'landlord', status: 'pending_verification' },
+      data: { name: safeName, phone: safePhone, email, passwordHash, role: 'landlord', status: 'pending_verification', accountCode },
     });
 
     // Save single ID document
@@ -71,6 +129,8 @@ async function registerLandlord(req, res, next) {
         })),
       });
     }
+
+    await createWelcomeNotifications(user.id, 'landlord');
 
     const token = signToken(user);
     res.status(201).json({ token, user: safeUser(user) });
@@ -102,6 +162,8 @@ async function registerTenant(req, res, next) {
     const user = await prisma.user.create({
       data: { name: safeName, phone: safePhone, email, passwordHash, role: 'tenant', status: 'active' },
     });
+
+    await createWelcomeNotifications(user.id, 'tenant');
 
     const token = signToken(user);
     res.status(201).json({ token, user: safeUser(user) });

@@ -24,6 +24,7 @@ export default function LandlordDashboard() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [threads, setThreads] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [deleting, setDeleting] = useState(null);
   const [togglingOccupied, setTogglingOccupied] = useState(null);
   const [markingSold, setMarkingSold] = useState(null);
@@ -34,6 +35,7 @@ export default function LandlordDashboard() {
     api.get('/properties/my')
       .then(r => setProperties(r.data.properties))
       .finally(() => setLoading(false));
+    api.get('/notifications').then(r => setNotifications(r.data.notifications || [])).catch(() => {});
   }, []);
 
   const loadThreads = useCallback(() => {
@@ -125,6 +127,9 @@ export default function LandlordDashboard() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Welcome back, {user?.name?.split(' ')[0]}</h1>
             <p className="text-gray-500 text-sm mt-0.5">Manage your property listings</p>
+            {user?.accountCode && (
+              <p className="text-xs text-primary/60 font-mono font-semibold mt-1">Account ID: {user.accountCode}</p>
+            )}
           </div>
           <div>
             {isVerified ? (
@@ -316,6 +321,18 @@ export default function LandlordDashboard() {
           )}
         </div>
 
+        {/* Notifications section */}
+        {notifications.length > 0 && (
+          <div className="mb-10">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Notifications</h2>
+            <div className="space-y-3">
+              {notifications.map(n => (
+                <LandlordNotificationRow key={n.id} notification={n} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Messages section */}
         <div>
           <div className="flex items-center gap-3 mb-4">
@@ -436,6 +453,29 @@ export default function LandlordDashboard() {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+const NOTIFICATION_ICONS = { welcome: '👋', privacy_policy: '🔒', terms: '📋' };
+
+function LandlordNotificationRow({ notification }) {
+  const diff = Date.now() - new Date(notification.createdAt).getTime();
+  const m = Math.floor(diff / 60000);
+  const timeAgo = m < 1 ? 'just now' : m < 60 ? `${m}m ago` : m < 1440 ? `${Math.floor(m/60)}h ago` : `${Math.floor(m/1440)}d ago`;
+  return (
+    <div className="bg-white rounded-2xl border-l-4 border-blue-300 border border-blue-100 shadow-sm p-4 flex items-start gap-4">
+      <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0 text-lg">
+        {NOTIFICATION_ICONS[notification.type] || '📩'}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <p className="font-semibold text-blue-800 text-sm">{notification.title}</p>
+          <span className="text-xs text-blue-500 bg-blue-100 px-1.5 py-0.5 rounded-full">HausFindrr</span>
+        </div>
+        <p className="text-gray-600 text-sm leading-relaxed">{notification.content}</p>
+        <p className="text-gray-400 text-xs mt-1">{timeAgo}</p>
       </div>
     </div>
   );

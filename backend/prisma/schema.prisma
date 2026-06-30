@@ -70,15 +70,20 @@ model User {
   twoFactorSecret     String?  @map("two_factor_secret")
   twoFactorEnabled    Boolean  @default(false) @map("two_factor_enabled")
   twoFactorBackupHash String?  @map("two_factor_backup_hash")
+  accountCode   String?    @unique @map("account_code")
   createdAt     DateTime   @default(now()) @map("created_at")
 
-  landlordIdDocuments LandlordIdDocument[]
-  properties          Property[]
-  transactions        Transaction[]
-  unlocks             Unlock[]
-  favorites           Favorite[]
-  sentMessages        Message[]            @relation("SentMessages")
-  receivedMessages    Message[]            @relation("ReceivedMessages")
+  landlordIdDocuments  LandlordIdDocument[]
+  properties           Property[]
+  transactions         Transaction[]
+  unlocks              Unlock[]
+  favorites            Favorite[]
+  sentMessages         Message[]      @relation("SentMessages")
+  receivedMessages     Message[]      @relation("ReceivedMessages")
+  sentAnnouncements    Announcement[] @relation("SentAnnouncements")
+  tenantComplaints     Complaint[]    @relation("TenantComplaints")
+  landlordComplaints   Complaint[]    @relation("LandlordComplaints")
+  notifications        UserNotification[]
 
   @@index([role, status])
   @@index([createdAt])
@@ -120,10 +125,11 @@ model Property {
   locationExact   String         @map("location_exact")
   locationLat     Float?         @map("location_lat")
   locationLng     Float?         @map("location_lng")
-  bedrooms        Int
-  bathrooms       Int
+  bedrooms        Int?
+  bathrooms       Int?
   propertyType    PropertyType   @map("property_type")
   rentFrequency   String?        @map("rent_frequency")
+  metadata        Json?
   occupied        Boolean        @default(false)
   sold            Boolean        @default(false)
   status          PropertyStatus @default(pending)
@@ -138,6 +144,7 @@ model Property {
   unlocks        Unlock[]
   favorites      Favorite[]
   messages       Message[]
+  complaints     Complaint[]
 
   @@index([status])
   @@index([landlordId])
@@ -213,21 +220,72 @@ model Favorite {
 }
 
 model Message {
-  id         String   @id @default(uuid())
-  propertyId String   @map("property_id")
-  senderId   String   @map("sender_id")
-  receiverId String   @map("receiver_id")
+  id         String    @id @default(uuid())
+  propertyId String?   @map("property_id")
+  senderId   String    @map("sender_id")
+  receiverId String    @map("receiver_id")
   content    String
   sentAt     DateTime  @default(now()) @map("sent_at")
   readAt     DateTime? @map("read_at")
 
-  property Property @relation(fields: [propertyId], references: [id])
-  sender   User     @relation("SentMessages", fields: [senderId], references: [id])
-  receiver User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  property Property? @relation(fields: [propertyId], references: [id])
+  sender   User      @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User      @relation("ReceivedMessages", fields: [receiverId], references: [id])
 
   @@index([propertyId])
   @@index([senderId])
   @@index([receiverId])
   @@index([sentAt])
   @@map("messages")
+}
+
+model Announcement {
+  id         String   @id @default(uuid())
+  senderId   String   @map("sender_id")
+  targetRole String   @map("target_role")
+  content    String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  sender User @relation("SentAnnouncements", fields: [senderId], references: [id])
+
+  @@index([targetRole])
+  @@index([createdAt])
+  @@map("announcements")
+}
+
+model Complaint {
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  landlordId String?  @map("landlord_id")
+  propertyId String?  @map("property_id")
+  type       String
+  details    String?
+  context    String   @default("landlord") @map("context")
+  status     String   @default("new")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant   User      @relation("TenantComplaints", fields: [tenantId], references: [id])
+  landlord User?     @relation("LandlordComplaints", fields: [landlordId], references: [id])
+  property Property? @relation(fields: [propertyId], references: [id])
+
+  @@index([status])
+  @@index([tenantId])
+  @@index([createdAt])
+  @@map("complaints")
+}
+
+model UserNotification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  type      String
+  title     String
+  content   String
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("user_notifications")
 }

@@ -563,6 +563,9 @@ function PendingLandlordsSection({ onCountChange }) {
                         <p className="font-semibold text-gray-900">{l.name}</p>
                         <p className="text-gray-500 text-sm">{l.email}</p>
                         {l.phone && <p className="text-gray-500 text-sm">{l.phone}</p>}
+                        {l.accountCode && (
+                          <p className="text-xs text-primary/70 font-mono font-semibold mt-0.5">{l.accountCode}</p>
+                        )}
                         <p className="text-gray-400 text-xs mt-1">
                           Registered {new Date(l.createdAt).toLocaleDateString('en-PG', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </p>
@@ -722,6 +725,36 @@ function PendingListingsSection({ onCountChange }) {
                     </div>
                   )}
 
+                  {/* Description */}
+                  {p.description && (
+                    <div className="mb-3">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Description</p>
+                      <p className="text-sm text-gray-600 leading-relaxed">{p.description}</p>
+                    </div>
+                  )}
+
+                  {/* Exact address */}
+                  {p.locationExact && (
+                    <div className="mb-3">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Exact Address</p>
+                      <p className="text-sm text-gray-600">📍 {p.locationExact}</p>
+                    </div>
+                  )}
+
+                  {/* Property-type metadata */}
+                  {p.metadata && Object.keys(p.metadata).length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Property Details</p>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(p.metadata).map(([k, v]) => v != null && v !== '' && (
+                          <span key={k} className="text-xs bg-primary/5 text-primary px-2.5 py-1 rounded-full">
+                            {k.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}: {String(v)}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {p.amenities?.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {p.amenities.map(a => (
@@ -745,6 +778,8 @@ function AllLandlordsSection() {
   const [search, setSearch] = useState('');
   const [acting, setActing] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
+  const [lightbox, setLightbox] = useState(null);
 
   useEffect(() => {
     api.get('/admin/landlords')
@@ -780,6 +815,7 @@ function AllLandlordsSection() {
 
   return (
     <div className="space-y-5">
+      {lightbox && <DocLightbox url={lightbox} onClose={() => setLightbox(null)} />}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
@@ -816,41 +852,77 @@ function AllLandlordsSection() {
           ? <Empty text={search ? 'No landlords match your search' : 'No landlords yet'} />
           : (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="divide-y divide-gray-50">
+              <div>
                 {filtered.map(l => (
-                  <div key={l.id} className="flex items-center justify-between gap-3 px-5 py-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                      {(() => { const [bg, text] = avatarColor(l.name); return (
-                        <div className={`w-9 h-9 ${bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                          <span className={`${text} font-bold text-sm`}>{l.name?.[0]?.toUpperCase()}</span>
+                  <div key={l.id} className="border-b border-gray-50 last:border-0">
+                    <div className="flex items-center justify-between gap-3 px-5 py-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {(() => { const [bg, text] = avatarColor(l.name); return (
+                          <div className={`w-9 h-9 ${bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                            <span className={`${text} font-bold text-sm`}>{l.name?.[0]?.toUpperCase()}</span>
+                          </div>
+                        ); })()}
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900 text-sm truncate">{l.name}</p>
+                          <p className="text-gray-400 text-xs truncate">{l.email}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-gray-400 text-xs">{l.properties?.length || 0} listing{l.properties?.length !== 1 ? 's' : ''}</p>
+                            {l.accountCode && <span className="text-xs text-primary/60 font-mono font-semibold">{l.accountCode}</span>}
+                          </div>
                         </div>
-                      ); })()}
-                      <div className="min-w-0">
-                        <p className="font-medium text-gray-900 text-sm truncate">{l.name}</p>
-                        <p className="text-gray-400 text-xs truncate">{l.email}</p>
-                        <p className="text-gray-400 text-xs">{l.properties?.length || 0} listing{l.properties?.length !== 1 ? 's' : ''}</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <StatusBadge status={l.status} />
+                        {l.landlordIdDocuments?.length > 0 && (
+                          <button
+                            onClick={() => setExpandedId(expandedId === l.id ? null : l.id)}
+                            className="text-xs px-3 py-1.5 rounded-lg border border-secondary/30 text-secondary hover:bg-secondary/5 transition-colors font-medium"
+                          >
+                            ID {expandedId === l.id ? '▲' : '▼'}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => suspend(l.id)}
+                          disabled={acting === l.id + '_s'}
+                          className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${
+                            l.status === 'suspended'
+                              ? 'border-green-200 text-green-600 hover:bg-green-50'
+                              : 'border-amber-200 text-amber-600 hover:bg-amber-50'
+                          }`}
+                        >
+                          {acting === l.id + '_s' ? '…' : l.status === 'suspended' ? 'Reactivate' : 'Suspend'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(l.id)}
+                          className="text-xs px-3 py-1.5 rounded-lg border border-red-100 text-red-500 hover:bg-red-50 transition-colors"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <StatusBadge status={l.status} />
-                      <button
-                        onClick={() => suspend(l.id)}
-                        disabled={acting === l.id + '_s'}
-                        className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${
-                          l.status === 'suspended'
-                            ? 'border-green-200 text-green-600 hover:bg-green-50'
-                            : 'border-amber-200 text-amber-600 hover:bg-amber-50'
-                        }`}
-                      >
-                        {acting === l.id + '_s' ? '…' : l.status === 'suspended' ? 'Reactivate' : 'Suspend'}
-                      </button>
-                      <button
-                        onClick={() => setConfirmDelete(l.id)}
-                        className="text-xs px-3 py-1.5 rounded-lg border border-red-100 text-red-500 hover:bg-red-50 transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    {expandedId === l.id && l.landlordIdDocuments?.length > 0 && (
+                      <div className="px-5 pb-4 pt-0">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">ID Documents</p>
+                        <div className="flex flex-wrap gap-2">
+                          {l.landlordIdDocuments.map(d => {
+                            const isImg = /\.(jpg|jpeg|png|webp)$/i.test(d.filePath) || d.filePath.includes('/image/upload/');
+                            return (
+                              <button
+                                key={d.id}
+                                onClick={() => setLightbox(d.filePath)}
+                                className="flex items-center gap-1.5 text-xs bg-secondary/10 text-secondary hover:bg-secondary/20 px-3 py-2 rounded-xl transition-colors font-medium"
+                              >
+                                {isImg
+                                  ? <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                  : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                }
+                                {d.docType.replace(/_/g, ' ')}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
