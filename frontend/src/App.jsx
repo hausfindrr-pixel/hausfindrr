@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import BottomNav from './components/shared/BottomNav';
 
-import LandingPage from './pages/LandingPage';
 import LandlordLogin from './pages/landlord/LandlordLogin';
 import LandlordRegister from './pages/landlord/LandlordRegister';
 import LandlordAgreement from './pages/landlord/LandlordAgreement';
@@ -31,7 +30,8 @@ function ProtectedRoute({ children, role, requireTerms = true }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
+      <Route path="/" element={<TenantBrowse />} />
+      <Route path="/browse" element={<Navigate to="/" replace />} />
 
       {/* Landlord */}
       <Route path="/landlord/login" element={<LandlordLogin />} />
@@ -49,7 +49,6 @@ function AppRoutes() {
       {/* Tenant */}
       <Route path="/tenant/login" element={<TenantLogin />} />
       <Route path="/tenant/register" element={<TenantRegister />} />
-      <Route path="/browse" element={<TenantBrowse />} />
       <Route path="/tenant/dashboard" element={
         <ProtectedRoute role="tenant"><TenantDashboard /></ProtectedRoute>
       } />

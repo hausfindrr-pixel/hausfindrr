@@ -50,7 +50,7 @@ export default function Navbar() {
             <div className="hidden md:flex items-center gap-4">
               {!user && (
                 <>
-                  <Link to="/browse" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
+                  <Link to="/" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
                     Browse
                   </Link>
                   <button
@@ -103,7 +103,7 @@ export default function Navbar() {
               {!user ? (
                 <>
                   <Link
-                    to="/browse"
+                    to="/"
                     onClick={closeMenu}
                     className="flex items-center px-3 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 hover:text-primary transition-colors"
                   >

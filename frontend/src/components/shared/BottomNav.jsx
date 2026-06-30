@@ -2,20 +2,22 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const ALLOWED_PATHS = [
-  '/browse',
+  '/',
   '/tenant/dashboard',
   '/landlord/dashboard',
 ];
+
 
 export default function BottomNav() {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const visible = ALLOWED_PATHS.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+  const matchPath = (p) => location.pathname === p || (p !== '/' && location.pathname.startsWith(p + '/'));
+  const visible = ALLOWED_PATHS.some(matchPath);
   if (!visible) return null;
 
-  const at = (...paths) => paths.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+  const at = (...paths) => paths.some(matchPath);
 
   function requireTenant(path) {
     if (!user) { navigate('/tenant/login'); return; }
@@ -32,8 +34,8 @@ export default function BottomNav() {
   const tabs = [
     {
       label: 'Browse',
-      active: at('/', '/browse'),
-      onClick: () => navigate('/browse'),
+      active: at('/'),
+      onClick: () => navigate('/'),
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

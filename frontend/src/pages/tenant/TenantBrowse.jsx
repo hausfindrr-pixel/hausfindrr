@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/shared/Navbar';
 import PropertyCard from '../../components/tenant/PropertyCard';
 import { useAuth } from '../../context/AuthContext';
@@ -104,6 +105,12 @@ const TOGGLE_OPTIONS = [['', 'All'], ['rent', 'For Rent'], ['sale', 'For Sale']]
 
 export default function TenantBrowse() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user?.role === 'landlord') navigate('/landlord/dashboard', { replace: true });
+    else if (user?.role === 'admin') navigate('/admin', { replace: true });
+  }, [user]);
   const [properties, setProperties] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);

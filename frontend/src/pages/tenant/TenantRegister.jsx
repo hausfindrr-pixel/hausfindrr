@@ -17,7 +17,7 @@ export default function TenantRegister() {
     try {
       const { data } = await api.post('/auth/register/tenant', form);
       saveAuth(data.token, data.user);
-      navigate('/browse');
+      navigate('/');
     } catch (err) {
       if (!err.response) {
         toast.error('Cannot reach the server. Please try again shortly.');

@@ -28,7 +28,7 @@ export default function PropertyDetail() {
   useEffect(() => {
     api.get(`/properties/${id}`)
       .then(r => { setProperty(r.data.property); setUnlocked(r.data.unlocked); })
-      .catch(() => navigate('/browse'))
+      .catch(() => navigate('/'))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -122,7 +122,7 @@ export default function PropertyDetail() {
       <Navbar />
 
       <div className={`max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 ${!unlocked ? 'pb-36 md:pb-8' : 'pb-24 md:pb-8'}`}>
-        <Link to="/browse" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary transition-colors mb-5">
+        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary transition-colors mb-5">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
