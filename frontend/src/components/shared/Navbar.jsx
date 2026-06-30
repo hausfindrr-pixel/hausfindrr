@@ -9,11 +9,111 @@ const ROLE_COLORS = {
   admin: 'bg-gray-100 text-gray-600',
 };
 
+function RoleModal({ title, subtitle, options, onSelect, onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 pt-6 pb-2">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+            <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="px-6 pb-6 pt-4 space-y-3">
+          {options.map(opt => (
+            <button
+              key={opt.path}
+              onClick={() => onSelect(opt.path)}
+              className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 border-gray-100 hover:border-${opt.accent} hover:bg-${opt.accent}/5 transition-all group text-left`}
+            >
+              <div className={`w-11 h-11 rounded-xl bg-${opt.accent}/10 flex items-center justify-center flex-shrink-0 group-hover:bg-${opt.accent}/20 transition-colors`}>
+                {opt.icon}
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">{opt.label}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{opt.description}</p>
+              </div>
+              <svg className={`w-4 h-4 text-gray-300 ml-auto flex-shrink-0 group-hover:text-${opt.accent} transition-colors`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const SIGN_IN_OPTIONS = [
+  {
+    path: '/tenant/login',
+    accent: 'secondary',
+    label: "I'm a Tenant",
+    description: 'Browse and unlock property listings',
+    icon: (
+      <svg className="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      </svg>
+    ),
+  },
+  {
+    path: '/landlord/login',
+    accent: 'primary',
+    label: "I'm a Landlord",
+    description: 'Manage and list your properties',
+    icon: (
+      <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+      </svg>
+    ),
+  },
+];
+
+const REGISTER_OPTIONS = [
+  {
+    path: '/tenant/register',
+    accent: 'secondary',
+    label: 'Register as Tenant',
+    description: 'Find and unlock properties to rent or buy',
+    icon: (
+      <svg className="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      </svg>
+    ),
+  },
+  {
+    path: '/landlord/register',
+    accent: 'primary',
+    label: 'Register as Landlord',
+    description: 'List your properties and reach tenants across PNG',
+    icon: (
+      <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+      </svg>
+    ),
+  },
+];
+
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showSignInModal, setShowSignInModal] = useState(false);
+  const [modal, setModal] = useState(null); // 'signin' | 'register' | null
 
   function handleLogout() {
     logout();
@@ -22,13 +122,8 @@ export default function Navbar() {
 
   const closeMenu = () => setMenuOpen(false);
 
-  function openSignIn() {
-    closeMenu();
-    setShowSignInModal(true);
-  }
-
   function handleRoleSelect(path) {
-    setShowSignInModal(false);
+    setModal(null);
     navigate(path);
   }
 
@@ -46,22 +141,25 @@ export default function Navbar() {
               <span className="text-xl sm:text-2xl font-bold text-primary tracking-tight">HausFindrr</span>
             </Link>
 
-            {/* Desktop nav — md and above */}
-            <div className="hidden md:flex items-center gap-4">
+            {/* Desktop nav */}
+            <div className="hidden md:flex items-center gap-5">
               {!user && (
                 <>
                   <Link to="/" className="text-sm font-medium text-gray-600 hover:text-primary transition-colors">
                     Browse
                   </Link>
                   <button
-                    onClick={openSignIn}
+                    onClick={() => setModal('signin')}
                     className="text-sm font-medium text-gray-600 hover:text-primary transition-colors"
                   >
                     Sign In
                   </button>
-                  <Link to="/landlord/register" className="btn-primary text-sm py-2 px-4">
-                    List a Property
-                  </Link>
+                  <button
+                    onClick={() => setModal('register')}
+                    className="text-sm font-semibold bg-primary text-white px-4 py-2 rounded-xl hover:bg-primary/90 transition-colors"
+                  >
+                    Register
+                  </button>
                 </>
               )}
               {user && (
@@ -110,18 +208,25 @@ export default function Navbar() {
                     Browse Listings
                   </Link>
                   <button
-                    onClick={openSignIn}
+                    onClick={() => { closeMenu(); setModal('signin'); }}
                     className="flex w-full items-center px-3 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 hover:text-primary transition-colors"
                   >
                     Sign In
                   </button>
-                  <div className="px-1 pt-2 pb-1">
+                  <div className="px-1 pt-2 pb-1 space-y-2">
+                    <Link
+                      to="/tenant/register"
+                      onClick={closeMenu}
+                      className="block w-full text-center bg-secondary/10 text-secondary font-semibold text-sm py-3 rounded-xl hover:bg-secondary/20 transition-colors"
+                    >
+                      Register as Tenant
+                    </Link>
                     <Link
                       to="/landlord/register"
                       onClick={closeMenu}
                       className="block w-full text-center btn-primary text-sm py-3"
                     >
-                      List a Property
+                      Register as Landlord
                     </Link>
                   </div>
                 </>
@@ -158,76 +263,26 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Role selection modal */}
-      {showSignInModal && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
-          onClick={() => setShowSignInModal(false)}
-        >
-          <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Modal header */}
-            <div className="flex items-center justify-between px-6 pt-6 pb-2">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Sign In</h2>
-                <p className="text-sm text-gray-500 mt-0.5">How are you using HausFindrr?</p>
-              </div>
-              <button
-                onClick={() => setShowSignInModal(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-                aria-label="Close"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+      {/* Sign In modal */}
+      {modal === 'signin' && (
+        <RoleModal
+          title="Sign In"
+          subtitle="How are you using HausFindrr?"
+          options={SIGN_IN_OPTIONS}
+          onSelect={handleRoleSelect}
+          onClose={() => setModal(null)}
+        />
+      )}
 
-            {/* Role options */}
-            <div className="px-6 pb-6 pt-4 space-y-3">
-              {/* Tenant */}
-              <button
-                onClick={() => handleRoleSelect('/tenant/login')}
-                className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-gray-100 hover:border-secondary hover:bg-secondary/5 transition-all group text-left"
-              >
-                <div className="w-11 h-11 rounded-xl bg-secondary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-secondary/20 transition-colors">
-                  <svg className="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">I'm a Tenant</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Browse and unlock property listings</p>
-                </div>
-                <svg className="w-4 h-4 text-gray-300 ml-auto flex-shrink-0 group-hover:text-secondary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-
-              {/* Landlord */}
-              <button
-                onClick={() => handleRoleSelect('/landlord/login')}
-                className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-gray-100 hover:border-primary hover:bg-primary/5 transition-all group text-left"
-              >
-                <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
-                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">I'm a Landlord</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Manage and list your properties</p>
-                </div>
-                <svg className="w-4 h-4 text-gray-300 ml-auto flex-shrink-0 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Register modal */}
+      {modal === 'register' && (
+        <RoleModal
+          title="Create an Account"
+          subtitle="What brings you to HausFindrr?"
+          options={REGISTER_OPTIONS}
+          onSelect={handleRoleSelect}
+          onClose={() => setModal(null)}
+        />
       )}
     </>
   );

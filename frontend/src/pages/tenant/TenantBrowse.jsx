@@ -82,18 +82,46 @@ function SkeletonGrid() {
 
 function EmptyState({ hasFilters, onClear }) {
   return (
-    <div className="text-center py-20">
-      <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-        <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-        </svg>
+    <div className="text-center py-20 px-4">
+      {/* Warm house illustration */}
+      <div className="relative w-24 h-24 mx-auto mb-6">
+        <div className="w-24 h-24 rounded-3xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #41271b15 0%, #97553620 100%)' }}>
+          <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#975536' }}>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.4} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+        </div>
+        {/* Decorative dot */}
+        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full" style={{ background: '#975536', opacity: 0.3 }} />
       </div>
-      <h3 className="text-base font-semibold text-gray-700 mb-1">No properties found</h3>
-      <p className="text-sm text-gray-500 mb-5">Try adjusting your filters or searching a different area.</p>
-      {hasFilters && (
-        <button onClick={onClear} className="text-sm font-semibold text-primary hover:underline">
-          Clear all filters
-        </button>
+      {hasFilters ? (
+        <>
+          <h3 className="text-lg font-bold mb-2" style={{ color: '#41271b' }}>No properties match your search</h3>
+          <p className="text-sm text-gray-500 mb-6 max-w-xs mx-auto">Try adjusting your filters or searching a different area.</p>
+          <button
+            onClick={onClear}
+            className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl border-2 transition-all hover:shadow-sm"
+            style={{ borderColor: '#975536', color: '#975536' }}
+          >
+            Clear all filters
+          </button>
+        </>
+      ) : (
+        <>
+          <h3 className="text-lg font-bold mb-2" style={{ color: '#41271b' }}>New listings coming soon</h3>
+          <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto leading-relaxed">
+            Check back soon — or be the first to list your haus and reach tenants across Papua New Guinea.
+          </p>
+          <a
+            href="/landlord/register"
+            className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl text-white transition-all hover:opacity-90 hover:shadow-md"
+            style={{ background: '#41271b' }}
+          >
+            List your property
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </>
       )}
     </div>
   );
@@ -193,6 +221,24 @@ export default function TenantBrowse() {
     <div className="min-h-screen bg-white">
       <Navbar />
 
+      {/* Hero */}
+      <section className="bg-white px-4 sm:px-6 lg:px-8 pt-10 pb-8">
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full mb-4" style={{ background: '#97553615', color: '#975536' }}>
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+            </svg>
+            Papua New Guinea
+          </div>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight mb-3" style={{ color: '#41271b' }}>
+            Find Your Next Haus
+          </h1>
+          <p className="text-base sm:text-lg text-gray-500 leading-relaxed max-w-xl mx-auto">
+            Browse verified listings from real landlords across PNG — rent or buy with confidence.
+          </p>
+        </div>
+      </section>
+
       {/* Sticky filter header — sits below the sticky navbar (top-16 = navbar h-16) */}
       <div className="sticky top-16 z-30 bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 space-y-2.5">
@@ -200,11 +246,11 @@ export default function TenantBrowse() {
           {/* Row 1: Search input + desktop Filters button */}
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
-                className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full pl-11 pr-4 py-3.5 text-sm border border-gray-200 rounded-2xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary shadow-sm transition-all"
                 placeholder="Search by location, suburb or area..."
                 value={pending.location}
                 onChange={e => setPending(p => ({ ...p, location: e.target.value }))}
@@ -286,19 +332,21 @@ export default function TenantBrowse() {
             </div>
             <div className="hidden sm:block w-px h-5 bg-gray-200 flex-shrink-0" />
 
-            {/* Category pills — icon on top, label below */}
+            {/* Category pills — Airbnb-style: icon + label + underline active */}
             {CATEGORIES.map(cat => (
               <button
                 key={cat.value}
                 onClick={() => setCategory(cat.value)}
-                style={{ minHeight: 52, minWidth: 60 }}
-                className={`flex-shrink-0 flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl border text-xs font-semibold transition-all ${
+                style={{ minHeight: 56, minWidth: 68 }}
+                className={`flex-shrink-0 flex flex-col items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold transition-all duration-150 border-b-2 hover:scale-105 active:scale-95 ${
                   category === cat.value
-                    ? 'bg-primary text-white border-primary'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-800'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
                 }`}
               >
-                <CategoryIcon type={cat.value} />
+                <span className={`transition-colors ${category === cat.value ? 'text-primary' : 'text-gray-400'}`}>
+                  <CategoryIcon type={cat.value} />
+                </span>
                 {cat.label}
               </button>
             ))}
