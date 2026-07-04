@@ -260,16 +260,25 @@ async function login(req, res, next) {
 
 async function me(req, res, next) {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      include: { landlordIdDocuments: { select: { id: true } } },
-    });
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    const profileComplete =
-      !!user.phone && (user.role !== 'landlord' || user.landlordIdDocuments.length > 0);
-    const { passwordHash, landlordIdDocuments, ...safeFields } = user;
-    res.json({ user: { ...safeFields, profileComplete } });
+
+    // Compute profileComplete without using include — a separate count is more
+    // resilient to stale Prisma clients and avoids a JOIN on the hot path.
+    let profileComplete = !!user.phone;
+    if (user.role === 'landlord') {
+      try {
+        const docCount = await prisma.landlordIdDocument.count({ where: { userId: user.id } });
+        profileComplete = profileComplete && docCount > 0;
+      } catch {
+        // If the count fails, leave profileComplete as false for landlords
+        profileComplete = false;
+      }
+    }
+
+    res.json({ user: { ...safeUser(user), profileComplete } });
   } catch (err) {
+    console.error('[me] error for user', req.user?.id, ':', err.message);
     next(err);
   }
 }

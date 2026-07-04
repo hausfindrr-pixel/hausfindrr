@@ -107,6 +107,7 @@ async function googleCallback(req, res) {
         return res.redirect(`${FRONTEND_URL}/oauth/callback?error=suspended`);
       }
       const token = signFullToken(user);
+      console.log(`[googleCallback] existing user login: ${user.email} (${user.role}), redirecting to ${FRONTEND_URL}/oauth/callback`);
       return res.redirect(
         `${FRONTEND_URL}/oauth/callback?token=${encodeURIComponent(token)}&status=login&role=${user.role}`,
       );
@@ -114,11 +115,12 @@ async function googleCallback(req, res) {
 
     // New user — temp token with Google profile
     const tempToken = signOAuthTempToken({ googleId, email: normalEmail, name });
+    console.log(`[googleCallback] new user signup: ${normalEmail}, redirecting to ${FRONTEND_URL}/oauth/callback`);
     return res.redirect(
       `${FRONTEND_URL}/oauth/callback?token=${encodeURIComponent(tempToken)}&status=signup&name=${encodeURIComponent(name || '')}`,
     );
   } catch (err) {
-    console.error('[googleCallback]', err.message);
+    console.error('[googleCallback] error:', err.message, err.stack);
     return res.redirect(`${FRONTEND_URL}/oauth/callback?error=auth_failed`);
   }
 }

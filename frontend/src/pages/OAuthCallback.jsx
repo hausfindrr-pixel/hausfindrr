@@ -38,6 +38,8 @@ export default function OAuthCallback() {
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) setScrolledToBottom(true);
   }, [scrolledToBottom]);
 
+  const [authError, setAuthError] = useState(null);
+
   // Handle login redirect — runs once on mount
   useEffect(() => {
     if (status !== 'login' || !token) return;
@@ -52,9 +54,11 @@ export default function OAuthCallback() {
         saveAuth(token, data.user, false);
         navigate(data.user.role === 'landlord' ? '/landlord/dashboard' : '/', { replace: true });
       } catch (err) {
-        console.error('[OAuthCallback] /auth/me failed:', err.response?.status, err.message);
+        const status_code = err.response?.status;
+        const msg = err.response?.data?.error || err.message || 'Unknown error';
+        console.error('[OAuthCallback] /auth/me failed:', status_code, msg);
         sessionStorage.removeItem('hf_token');
-        navigate('/', { replace: true });
+        setAuthError(`Sign-in failed (${status_code || 'network error'}): ${msg}`);
       }
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -102,6 +106,24 @@ export default function OAuthCallback() {
 
   // ── Login redirect: waiting for useEffect ─────────────────────────────────
   if (status === 'login') {
+    if (authError) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full shadow-sm border border-gray-100 text-center">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h2 className="font-bold text-gray-900 mb-2">Sign-in Failed</h2>
+            <p className="text-xs text-gray-500 mb-4 font-mono break-all">{authError}</p>
+            <button onClick={() => navigate('/', { replace: true })} className="btn-secondary w-full">
+              Back to Home
+            </button>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <p className="text-gray-400 text-sm">Signing you in…</p>
