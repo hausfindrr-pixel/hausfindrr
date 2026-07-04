@@ -3,7 +3,7 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const { documentUpload } = require('../middleware/upload');
 const { authenticate } = require('../middleware/auth');
-const { registerLandlord, registerTenant, login, me, acceptTerms } = require('../controllers/authController');
+const { registerLandlord, registerTenant, login, me, acceptTerms, completeProfile } = require('../controllers/authController');
 const { verifyTwoFactor } = require('../controllers/twoFactorController');
 
 const loginLimiter = rateLimit({
@@ -25,5 +25,11 @@ router.post('/login', loginLimiter, login);
 router.post('/2fa/verify', verifyTwoFactor);
 router.get('/me', authenticate, me);
 router.patch('/accept-terms', authenticate, acceptTerms);
+router.post(
+  '/complete-profile',
+  authenticate,
+  documentUpload.fields([{ name: 'id_document', maxCount: 1 }]),
+  completeProfile,
+);
 
 module.exports = router;

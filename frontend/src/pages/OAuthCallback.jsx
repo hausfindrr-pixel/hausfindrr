@@ -41,14 +41,18 @@ export default function OAuthCallback() {
   // Handle login redirect — runs once on mount
   useEffect(() => {
     if (status !== 'login' || !token) return;
+    console.log('[OAuthCallback] token received, length:', token.length, 'status:', status);
     (async () => {
       try {
         // Store token first so the api interceptor can attach it to /auth/me
         sessionStorage.setItem('hf_token', token);
+        console.log('[OAuthCallback] calling /auth/me…');
         const { data } = await api.get('/auth/me');
+        console.log('[OAuthCallback] /auth/me succeeded, user:', data.user?.email, 'role:', data.user?.role);
         saveAuth(token, data.user, false);
         navigate(data.user.role === 'landlord' ? '/landlord/dashboard' : '/', { replace: true });
-      } catch {
+      } catch (err) {
+        console.error('[OAuthCallback] /auth/me failed:', err.response?.status, err.message);
         sessionStorage.removeItem('hf_token');
         navigate('/', { replace: true });
       }

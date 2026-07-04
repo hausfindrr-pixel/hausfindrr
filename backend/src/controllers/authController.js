@@ -260,9 +260,52 @@ async function login(req, res, next) {
 
 async function me(req, res, next) {
   try {
-    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: { landlordIdDocuments: { select: { id: true } } },
+    });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ user: safeUser(user) });
+    const profileComplete =
+      !!user.phone && (user.role !== 'landlord' || user.landlordIdDocuments.length > 0);
+    const { passwordHash, landlordIdDocuments, ...safeFields } = user;
+    res.json({ user: { ...safeFields, profileComplete } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function completeProfile(req, res, next) {
+  try {
+    const { phone, id_type } = req.body;
+    const files = req.files || {};
+    const idFiles = files['id_document'] || [];
+
+    if (phone && phone.trim()) {
+      await prisma.user.update({
+        where: { id: req.user.id },
+        data: { phone: clamp(phone.trim(), 30) },
+      });
+    }
+
+    if (req.user.role === 'landlord' && idFiles.length > 0) {
+      const docType = normaliseIdDocType(id_type);
+      await prisma.landlordIdDocument.createMany({
+        data: idFiles.map(f => ({
+          userId: req.user.id,
+          docType,
+          filePath: f.path,
+        })),
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: { landlordIdDocuments: { select: { id: true } } },
+    });
+    const profileComplete =
+      !!user.phone && (user.role !== 'landlord' || user.landlordIdDocuments.length > 0);
+    const { passwordHash, landlordIdDocuments, ...safeFields } = user;
+    res.json({ user: { ...safeFields, profileComplete } });
   } catch (err) {
     next(err);
   }
@@ -303,7 +346,7 @@ function normaliseIdDocType(idType) {
 }
 
 module.exports = {
-  registerLandlord, registerTenant, login, me, acceptTerms,
+  registerLandlord, registerTenant, login, me, acceptTerms, completeProfile,
   // Exported for use by oauthController
   createWelcomeNotifications, sendWelcomeMessages, generateAccountCode,
 };
