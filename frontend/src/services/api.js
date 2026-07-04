@@ -11,7 +11,9 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   r => r,
   err => {
-    if (err.response?.status === 401) {
+    // Don't force-redirect on the OAuth callback page — it handles its own 401s
+    // so its catch block can run instead of being preempted by a full page reload.
+    if (err.response?.status === 401 && !window.location.pathname.startsWith('/oauth/callback')) {
       localStorage.removeItem('hf_token');
       localStorage.removeItem('hf_user');
       sessionStorage.removeItem('hf_token');

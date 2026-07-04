@@ -16,8 +16,9 @@ import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import TermsPage from './pages/TermsPage';
 import OAuthCallback from './pages/OAuthCallback';
+import CompleteProfile from './pages/CompleteProfile';
 
-function ProtectedRoute({ children, role, requireTerms = true }) {
+function ProtectedRoute({ children, role, requireTerms = true, requireProfile = true }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="flex items-center justify-center h-screen text-primary">Loading…</div>;
   if (!user) return <Navigate to="/" replace />;
@@ -25,6 +26,10 @@ function ProtectedRoute({ children, role, requireTerms = true }) {
   // Landlords must accept terms before accessing any protected landlord page
   if (requireTerms && user.role === 'landlord' && !user.termsAccepted) {
     return <Navigate to="/landlord/agreement" replace />;
+  }
+  // All users must complete their profile (phone; landlords also need a govt ID on file)
+  if (requireProfile && user.profileComplete === false) {
+    return <Navigate to="/complete-profile" replace />;
   }
   return children;
 }
@@ -40,7 +45,7 @@ function AppRoutes() {
       <Route path="/landlord/login" element={<LandlordLogin />} />
       <Route path="/landlord/register" element={<LandlordRegister />} />
       <Route path="/landlord/agreement" element={
-        <ProtectedRoute role="landlord" requireTerms={false}><LandlordAgreement /></ProtectedRoute>
+        <ProtectedRoute role="landlord" requireTerms={false} requireProfile={false}><LandlordAgreement /></ProtectedRoute>
       } />
       <Route path="/landlord/dashboard" element={
         <ProtectedRoute role="landlord"><LandlordDashboard /></ProtectedRoute>
@@ -66,6 +71,9 @@ function AppRoutes() {
       {/* Public pages */}
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/oauth/callback" element={<OAuthCallback />} />
+      <Route path="/complete-profile" element={
+        <ProtectedRoute requireTerms={false} requireProfile={false}><CompleteProfile /></ProtectedRoute>
+      } />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
