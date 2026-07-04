@@ -41,14 +41,18 @@ export default function OAuthCallback() {
   // Handle login redirect — runs once on mount
   useEffect(() => {
     if (status !== 'login' || !token) return;
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      saveAuth(token, { id: payload.id, role: payload.role, status: payload.status }, false);
-      if (payload.role === 'landlord') navigate('/landlord/dashboard', { replace: true });
-      else navigate('/', { replace: true });
-    } catch {
-      navigate('/', { replace: true });
-    }
+    (async () => {
+      try {
+        // Store token first so the api interceptor can attach it to /auth/me
+        sessionStorage.setItem('hf_token', token);
+        const { data } = await api.get('/auth/me');
+        saveAuth(token, data.user, false);
+        navigate(data.user.role === 'landlord' ? '/landlord/dashboard' : '/', { replace: true });
+      } catch {
+        sessionStorage.removeItem('hf_token');
+        navigate('/', { replace: true });
+      }
+    })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleComplete(e) {
