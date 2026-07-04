@@ -8,6 +8,9 @@ import MessageThread from '../components/tenant/MessageThread';
 import FeedbackBubble from '../components/shared/FeedbackBubble';
 import { priceLabel } from '../utils/format';
 
+const SAT_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+const OSM_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
 export default function PropertyDetail() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -24,12 +27,17 @@ export default function PropertyDetail() {
 
   const fuzzyMapRef = useRef(null);
   const fuzzyLeafletRef = useRef(null);
+  const exactMapRef = useRef(null);
+  const exactLeafletRef = useRef(null);
+  const exactOsmLayerRef = useRef(null);
+  const exactSatLayerRef = useRef(null);
+  const [isSatelliteExact, setIsSatelliteExact] = useState(false);
   const touchStartX = useRef(null);
 
   useEffect(() => {
     api.get(`/properties/${id}`)
       .then(r => { setProperty(r.data.property); setUnlocked(r.data.unlocked); })
-      .catch(() => navigate('/browse'))
+      .catch(() => navigate('/'))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -57,6 +65,56 @@ export default function PropertyDetail() {
       if (fuzzyLeafletRef.current) { fuzzyLeafletRef.current.remove(); fuzzyLeafletRef.current = null; }
     };
   }, [property, unlocked]);
+
+  useEffect(() => {
+    if (!property || !unlocked || !exactMapRef.current) return;
+    if (exactLeafletRef.current) return;
+    const lat = property.locationLat;
+    const lng = property.locationLng;
+    if (!lat || !lng) return;
+
+    async function initExactMap() {
+      const L = (await import('leaflet')).default;
+      await import('leaflet/dist/leaflet.css');
+
+      delete L.Icon.Default.prototype._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      });
+
+      const map = L.map(exactMapRef.current, { scrollWheelZoom: false }).setView([lat, lng], 16);
+
+      exactOsmLayerRef.current = L.tileLayer(OSM_TILE_URL, {
+        attribution: '&copy; OpenStreetMap contributors',
+      }).addTo(map);
+      exactSatLayerRef.current = L.tileLayer(SAT_TILE_URL, {
+        attribution: 'Tiles &copy; Esri',
+      });
+
+      L.marker([lat, lng]).addTo(map);
+      exactLeafletRef.current = map;
+    }
+
+    initExactMap().catch(console.error);
+    return () => {
+      if (exactLeafletRef.current) { exactLeafletRef.current.remove(); exactLeafletRef.current = null; }
+    };
+  }, [property, unlocked]);
+
+  function toggleExactSatellite() {
+    const map = exactLeafletRef.current;
+    if (!map) return;
+    if (isSatelliteExact) {
+      if (exactSatLayerRef.current) map.removeLayer(exactSatLayerRef.current);
+      if (exactOsmLayerRef.current) exactOsmLayerRef.current.addTo(map);
+    } else {
+      if (exactOsmLayerRef.current) map.removeLayer(exactOsmLayerRef.current);
+      if (exactSatLayerRef.current) exactSatLayerRef.current.addTo(map);
+    }
+    setIsSatelliteExact(s => !s);
+  }
 
   async function handleUnlock() {
     if (!user) return navigate('/tenant/login');
@@ -123,7 +181,7 @@ export default function PropertyDetail() {
       <Navbar />
 
       <div className={`max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 ${!unlocked ? 'pb-36 md:pb-8' : 'pb-24 md:pb-8'}`}>
-        <Link to="/browse" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary transition-colors mb-5">
+        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary transition-colors mb-5">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
@@ -246,18 +304,43 @@ export default function PropertyDetail() {
                 {priceLabel(property.price, property.listingType, property.rentFrequency)}
               </p>
               <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                <span className="flex items-center gap-1.5">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
-                  {property.bedrooms} Bedrooms
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                  </svg>
-                  {property.bathrooms} Bathrooms
-                </span>
+                {/* House / Apartment: beds + baths */}
+                {['house', 'apartment'].includes(property.propertyType) && (
+                  <>
+                    {property.bedrooms != null && (
+                      <span className="flex items-center gap-1.5">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                        {property.bedrooms} Bedroom{property.bedrooms !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                    {property.bathrooms != null && (
+                      <span className="flex items-center gap-1.5">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                        </svg>
+                        {property.bathrooms} Bathroom{property.bathrooms !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </>
+                )}
+                {/* Land metadata */}
+                {property.propertyType === 'land' && property.metadata && (
+                  <>
+                    {property.metadata.landSize && <span className="flex items-center gap-1.5"><svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>{property.metadata.landSize}</span>}
+                    {property.metadata.landType && <span className="capitalize">{property.metadata.landType} land</span>}
+                    {property.metadata.titleType && <span>{property.metadata.titleType} title</span>}
+                  </>
+                )}
+                {/* Commercial metadata */}
+                {property.propertyType === 'commercial' && property.metadata && (
+                  <>
+                    {property.metadata.floorArea && <span>{property.metadata.floorArea} floor area</span>}
+                    {property.metadata.commercialType && <span className="capitalize">{property.metadata.commercialType}</span>}
+                    {property.metadata.floorLevel && <span>{property.metadata.floorLevel}</span>}
+                  </>
+                )}
                 <span className="capitalize flex items-center gap-1.5">
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
@@ -306,21 +389,58 @@ export default function PropertyDetail() {
               </div>
             )}
 
-            {/* Unlocked: Google Maps embed */}
+            {/* Unlocked: type-specific metadata details */}
+            {unlocked && property.propertyType === 'land' && property.metadata && (
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <h2 className="font-semibold text-gray-900 mb-4">Land Details</h2>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {property.metadata.landSize && <MetaItem label="Land Size" value={property.metadata.landSize} />}
+                  {property.metadata.landType && <MetaItem label="Terrain" value={property.metadata.landType} />}
+                  {property.metadata.titleType && <MetaItem label="Title Type" value={property.metadata.titleType} />}
+                  <MetaItem label="Fenced" value={property.metadata.fenced ? 'Yes' : 'No'} />
+                  <MetaItem label="Road Access" value={property.metadata.roadAccess ? 'Yes' : 'No'} />
+                  <MetaItem label="Water Available" value={property.metadata.water ? 'Yes' : 'No'} />
+                  <MetaItem label="Electricity" value={property.metadata.electricity ? 'Yes' : 'No'} />
+                </div>
+              </div>
+            )}
+            {unlocked && property.propertyType === 'commercial' && property.metadata && (
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <h2 className="font-semibold text-gray-900 mb-4">Commercial Details</h2>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {property.metadata.floorArea && <MetaItem label="Floor Area" value={property.metadata.floorArea} />}
+                  {property.metadata.commercialType && <MetaItem label="Type" value={property.metadata.commercialType} />}
+                  {property.metadata.floorLevel && <MetaItem label="Floor Level" value={property.metadata.floorLevel} />}
+                  {property.metadata.rooms && <MetaItem label="Rooms" value={property.metadata.rooms} />}
+                  {property.metadata.cubicles && <MetaItem label="Cubicles" value={property.metadata.cubicles} />}
+                  {property.metadata.toilets && <MetaItem label="Toilets" value={property.metadata.toilets} />}
+                  {property.metadata.parking && <MetaItem label="Parking Spaces" value={property.metadata.parking} />}
+                </div>
+              </div>
+            )}
+            {unlocked && property.propertyType === 'other' && property.metadata?.otherDescription && (
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <h2 className="font-semibold text-gray-900 mb-3">Property Details</h2>
+                <p className="text-gray-600 text-sm leading-relaxed">{property.metadata.otherDescription}</p>
+              </div>
+            )}
+
+            {/* Unlocked: Leaflet exact map with satellite toggle */}
             {unlocked && hasCoords && (
               <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
-                <div className="px-5 py-4 border-b border-gray-50">
+                <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
                   <h2 className="font-semibold text-gray-900">Property Location</h2>
+                  <button
+                    onClick={toggleExactSatellite}
+                    className="text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {isSatelliteExact ? 'Map View' : 'Satellite'}
+                  </button>
                 </div>
-                <iframe
-                  src={`https://maps.google.com/maps?q=${property.locationLat},${property.locationLng}&output=embed`}
-                  width="100%"
-                  height="280"
-                  style={{ border: 0 }}
-                  allowFullScreen=""
-                  loading="lazy"
-                  title="Property location map"
-                />
+                <div ref={exactMapRef} style={{ height: 300 }} />
               </div>
             )}
 
@@ -527,6 +647,15 @@ export default function PropertyDetail() {
           propertyId={id}
         />
       )}
+    </div>
+  );
+}
+
+function MetaItem({ label, value }) {
+  return (
+    <div className="bg-gray-50 rounded-xl px-3 py-2.5">
+      <p className="text-xs text-gray-400 mb-0.5">{label}</p>
+      <p className="font-medium text-gray-800">{value}</p>
     </div>
   );
 }

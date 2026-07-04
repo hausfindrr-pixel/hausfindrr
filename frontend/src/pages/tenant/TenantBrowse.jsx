@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import BrowseNavbar from '../../components/shared/BrowseNavbar';
 import PropertyCard from '../../components/tenant/PropertyCard';
 import FeedbackBubble from '../../components/shared/FeedbackBubble';
@@ -81,18 +82,44 @@ function SkeletonGrid() {
 
 function EmptyState({ hasFilters, onClear }) {
   return (
-    <div className="text-center py-20">
-      <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-        <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-        </svg>
+    <div className="text-center py-20 px-4">
+      <div className="relative w-24 h-24 mx-auto mb-6">
+        <div className="w-24 h-24 rounded-3xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #41271b15 0%, #97553620 100%)' }}>
+          <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#975536' }}>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.4} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+        </div>
+        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full" style={{ background: '#975536', opacity: 0.3 }} />
       </div>
-      <h3 className="text-base font-semibold text-gray-700 mb-1">No properties found</h3>
-      <p className="text-sm text-gray-500 mb-5">Try adjusting your filters or searching a different area.</p>
-      {hasFilters && (
-        <button onClick={onClear} className="text-sm font-semibold text-primary hover:underline">
-          Clear all filters
-        </button>
+      {hasFilters ? (
+        <>
+          <h3 className="text-lg font-bold mb-2" style={{ color: '#41271b' }}>No properties match your search</h3>
+          <p className="text-sm text-gray-500 mb-6 max-w-xs mx-auto">Try adjusting your filters or searching a different area.</p>
+          <button
+            onClick={onClear}
+            className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl border-2 transition-all hover:shadow-sm"
+            style={{ borderColor: '#975536', color: '#975536' }}
+          >
+            Clear all filters
+          </button>
+        </>
+      ) : (
+        <>
+          <h3 className="text-lg font-bold mb-2" style={{ color: '#41271b' }}>New listings coming soon</h3>
+          <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto leading-relaxed">
+            Check back soon — or be the first to list your haus and reach tenants across Papua New Guinea.
+          </p>
+          <a
+            href="/landlord/register"
+            className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl text-white transition-all hover:opacity-90 hover:shadow-md"
+            style={{ background: '#41271b' }}
+          >
+            List your property
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </>
       )}
     </div>
   );
@@ -123,6 +150,12 @@ function useHideOnScroll() {
 
 export default function TenantBrowse() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user?.role === 'landlord') navigate('/landlord/dashboard', { replace: true });
+    else if (user?.role === 'admin') navigate('/admin', { replace: true });
+  }, [user]);
   const [properties, setProperties] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);

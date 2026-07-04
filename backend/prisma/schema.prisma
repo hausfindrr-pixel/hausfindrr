@@ -62,14 +62,17 @@ model User {
   name          String
   email         String     @unique
   phone         String
-  passwordHash  String     @map("password_hash")
+  passwordHash  String?    @map("password_hash")
+  googleId      String?    @unique @map("google_id")
   status        UserStatus @default(pending_verification)
   termsAccepted   Boolean   @default(false) @map("terms_accepted")
   termsAcceptedAt DateTime? @map("terms_accepted_at")
   termsAcceptedIp String?   @map("terms_accepted_ip")
+  termsVersion    String?   @map("terms_version")
   twoFactorSecret     String?  @map("two_factor_secret")
   twoFactorEnabled    Boolean  @default(false) @map("two_factor_enabled")
   twoFactorBackupHash String?  @map("two_factor_backup_hash")
+  accountCode   String?    @unique @map("account_code")
   createdAt     DateTime   @default(now()) @map("created_at")
 
   landlordIdDocuments  LandlordIdDocument[]
@@ -82,6 +85,7 @@ model User {
   sentAnnouncements    Announcement[] @relation("SentAnnouncements")
   tenantComplaints     Complaint[]    @relation("TenantComplaints")
   landlordComplaints   Complaint[]    @relation("LandlordComplaints")
+  notifications        UserNotification[]
 
   @@index([role, status])
   @@index([createdAt])
@@ -270,4 +274,20 @@ model Complaint {
   @@index([tenantId])
   @@index([createdAt])
   @@map("complaints")
+}
+
+model UserNotification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  type      String
+  title     String
+  content   String
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("user_notifications")
 }

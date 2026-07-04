@@ -12,8 +12,12 @@ router.use(authenticate);
 
 router.post('/', sendMessage);
 router.get('/inbox', getInbox);
+
+// Direct (no-property) message threads — must come before /:propertyId routes
 router.get('/direct/:otherUserId', getDirectThread);
 router.patch('/direct/:otherUserId/read', markDirectRead);
+
+// Property-specific threads
 router.get('/:propertyId/:otherUserId', getThread);
 router.patch('/:propertyId/:otherUserId/read', markRead);
 

@@ -20,6 +20,11 @@ const PROPERTY_TYPES = [
   { value: 'other',      label: 'Other' },
 ];
 
+const SAT_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+const SAT_ATTRIBUTION = 'Tiles &copy; Esri';
+const OSM_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
 const EMPTY_FORM = {
   listingType: 'rent',
   title: '',
@@ -67,9 +72,13 @@ export default function LandlordNewListing() {
   const [pinLat, setPinLat] = useState(DEFAULT_LAT);
   const [pinLng, setPinLng] = useState(DEFAULT_LNG);
   const [mapReady, setMapReady] = useState(false);
+  const [isSatellite, setIsSatellite] = useState(false);
+
   const mapRef = useRef(null);
   const leafletMapRef = useRef(null);
   const markerRef = useRef(null);
+  const osmLayerRef = useRef(null);
+  const satLayerRef = useRef(null);
 
   const [form, setForm] = useState(EMPTY_FORM);
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
@@ -107,9 +116,10 @@ export default function LandlordNewListing() {
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       });
       map = L.map(mapRef.current).setView([DEFAULT_LAT, DEFAULT_LNG], 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
+
+      osmLayerRef.current = L.tileLayer(OSM_TILE_URL, { attribution: OSM_ATTRIBUTION }).addTo(map);
+      satLayerRef.current = L.tileLayer(SAT_TILE_URL, { attribution: SAT_ATTRIBUTION });
+
       const marker = L.marker([DEFAULT_LAT, DEFAULT_LNG], { draggable: true }).addTo(map);
       marker.on('dragend', () => {
         const pos = marker.getLatLng();
@@ -131,6 +141,19 @@ export default function LandlordNewListing() {
       if (leafletMapRef.current) { leafletMapRef.current.remove(); leafletMapRef.current = null; }
     };
   }, []);
+
+  function toggleSatellite() {
+    const map = leafletMapRef.current;
+    if (!map) return;
+    if (isSatellite) {
+      if (satLayerRef.current) map.removeLayer(satLayerRef.current);
+      if (osmLayerRef.current) osmLayerRef.current.addTo(map);
+    } else {
+      if (osmLayerRef.current) map.removeLayer(osmLayerRef.current);
+      if (satLayerRef.current) satLayerRef.current.addTo(map);
+    }
+    setIsSatellite(s => !s);
+  }
 
   function buildMetadata() {
     if (isResidential) {
@@ -192,9 +215,9 @@ export default function LandlordNewListing() {
         fd.append('bathrooms', form.bathrooms);
       }
       fd.append('amenities', JSON.stringify(selectedAmenities));
+      fd.append('metadata', JSON.stringify(buildMetadata()));
       fd.append('location_lat', pinLat.toString());
       fd.append('location_lng', pinLng.toString());
-      fd.append('metadata', JSON.stringify(buildMetadata()));
       photos.forEach(f => fd.append('photos', f));
       titleDocs.forEach(f => fd.append('title_documents', f));
       supportingDocs.forEach(f => fd.append('title_documents', f));
@@ -281,7 +304,6 @@ export default function LandlordNewListing() {
 
           {/* Section 2: Property details — dynamic by type */}
           <Section title="Property Details" number="2">
-            {/* Property type selector */}
             <div>
               <label className="label">Property Type</label>
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
@@ -475,10 +497,29 @@ export default function LandlordNewListing() {
               <input className="input" required value={form.locationExact} onChange={set('locationExact')}
                 placeholder="Full street address" />
             </div>
+
             <div>
               <label className="label">Pin Location on Map</label>
-              <p className="text-xs text-gray-400 mb-2">Click on the map or drag the pin to set the property location.</p>
-              <div ref={mapRef} className="w-full rounded-xl overflow-hidden border border-gray-200" style={{ height: 280 }} />
+              <p className="text-xs text-gray-400 mb-2">Click on the map or drag the pin to mark the property's exact location.</p>
+              <div className="relative">
+                <div
+                  ref={mapRef}
+                  className="w-full rounded-xl overflow-hidden border border-gray-200"
+                  style={{ height: 280 }}
+                />
+                {mapReady && (
+                  <button
+                    type="button"
+                    onClick={toggleSatellite}
+                    className="absolute top-2 right-2 z-[1000] bg-white/90 hover:bg-white rounded-lg shadow border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors flex items-center gap-1.5"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {isSatellite ? 'Map View' : 'Satellite'}
+                  </button>
+                )}
+              </div>
               {mapReady && (
                 <p className="text-xs text-gray-500 mt-2">
                   Coordinates: <span className="font-mono">{pinLat.toFixed(5)}, {pinLng.toFixed(5)}</span>

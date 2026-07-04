@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const path = require('path');
 
 const authRoutes = require('./routes/auth');
+const oauthRoutes = require('./routes/oauth');
 const landlordRoutes = require('./routes/landlord');
 const tenantRoutes = require('./routes/tenant');
 const adminRoutes = require('./routes/admin');
@@ -12,6 +13,7 @@ const propertyRoutes = require('./routes/property');
 const messageRoutes = require('./routes/message');
 const complaintRoutes = require('./routes/complaint');
 const announcementRoutes = require('./routes/announcement');
+const notificationRoutes = require('./routes/notification');
 
 const { sanitizeBody } = require('./middleware/sanitize');
 
@@ -32,6 +34,7 @@ app.use(helmet({
       connectSrc:     ["'self'"],
       fontSrc:        ["'self'"],
       objectSrc:      ["'none'"],
+      frameSrc:       ["'self'", 'https://res.cloudinary.com'],
       frameAncestors: ["'none'"],
     },
   },
@@ -55,6 +58,7 @@ app.use(express.json());
 app.use(sanitizeBody);
 
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', oauthRoutes);
 app.use('/api/landlord', landlordRoutes);
 app.use('/api/tenant', tenantRoutes);
 app.use('/api/admin', adminRoutes);
@@ -62,6 +66,7 @@ app.use('/api/properties', propertyRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/announcements', announcementRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

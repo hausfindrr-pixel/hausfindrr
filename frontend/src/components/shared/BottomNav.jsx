@@ -7,17 +7,17 @@ const ALLOWED_PATHS = [
   '/landlord/dashboard',
 ];
 
+
 export default function BottomNav() {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const visible = ALLOWED_PATHS.some(p =>
-    p === '/' ? location.pathname === '/' : location.pathname === p || location.pathname.startsWith(p + '/')
-  );
+  const matchPath = (p) => location.pathname === p || (p !== '/' && location.pathname.startsWith(p + '/'));
+  const visible = ALLOWED_PATHS.some(matchPath);
   if (!visible) return null;
 
-  const at = (...paths) => paths.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
+  const at = (...paths) => paths.some(matchPath);
 
   function requireTenant(path) {
     if (!user) { navigate('/tenant/login'); return; }
