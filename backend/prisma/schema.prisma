@@ -67,6 +67,7 @@ model User {
   termsAccepted   Boolean   @default(false) @map("terms_accepted")
   termsAcceptedAt DateTime? @map("terms_accepted_at")
   termsAcceptedIp String?   @map("terms_accepted_ip")
+  termsVersion    String?   @map("terms_version")
   twoFactorSecret     String?  @map("two_factor_secret")
   twoFactorEnabled    Boolean  @default(false) @map("two_factor_enabled")
   twoFactorBackupHash String?  @map("two_factor_backup_hash")

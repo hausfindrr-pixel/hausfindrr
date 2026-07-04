@@ -208,8 +208,16 @@ async function registerTenant(req, res, next) {
     if (existing) return res.status(409).json({ error: 'Email already registered' });
 
     const passwordHash = await bcrypt.hash(password, 12);
+    const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || 'unknown';
     const user = await prisma.user.create({
-      data: { name: safeName, phone: safePhone, email, passwordHash, role: 'tenant', status: 'active' },
+      data: {
+        name: safeName, phone: safePhone, email, passwordHash,
+        role: 'tenant', status: 'active',
+        termsAccepted: true,
+        termsAcceptedAt: new Date(),
+        termsAcceptedIp: ip,
+        termsVersion: 'v1.0-july2026',
+      },
     });
 
     await createWelcomeNotifications(user.id, 'tenant');
