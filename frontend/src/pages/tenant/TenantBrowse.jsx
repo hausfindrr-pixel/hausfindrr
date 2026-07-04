@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BrowseNavbar from '../../components/shared/BrowseNavbar';
+import Navbar from '../../components/shared/Navbar';
 import PropertyCard from '../../components/tenant/PropertyCard';
-import FeedbackBubble from '../../components/shared/FeedbackBubble';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
@@ -65,14 +64,15 @@ function CategoryIcon({ type }) {
 
 function SkeletonGrid() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-x-5 md:gap-y-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-x-5 md:gap-y-8">
       {Array.from({ length: 8 }, (_, i) => (
         <div key={i} className="animate-pulse">
-          <div className="bg-gray-200 rounded-xl sm:rounded-2xl" style={{ paddingBottom: '75%' }} />
-          <div className="mt-2 sm:mt-3 space-y-1.5 sm:space-y-2">
-            <div className="h-3 bg-gray-200 rounded w-2/3" />
-            <div className="h-3.5 bg-gray-200 rounded w-5/6" />
-            <div className="h-3 bg-gray-200 rounded w-1/2" />
+          <div className="bg-gray-200 rounded-2xl" style={{ paddingBottom: '66%' }} />
+          <div className="mt-3 space-y-2">
+            <div className="h-3.5 bg-gray-200 rounded w-2/3" />
+            <div className="h-4 bg-gray-200 rounded w-5/6" />
+            <div className="h-3 bg-gray-100 rounded w-1/3" />
+            <div className="h-4 bg-gray-200 rounded w-1/2" />
           </div>
         </div>
       ))}
@@ -129,25 +129,6 @@ const EMPTY_PANEL = { location: '', minPrice: '', maxPrice: '', bedrooms: '', ba
 
 const TOGGLE_OPTIONS = [['', 'All'], ['rent', 'For Rent'], ['sale', 'For Sale']];
 
-function useHideOnScroll() {
-  const [hidden, setHidden] = useState(false);
-  const lastY = useRef(0);
-  useEffect(() => {
-    function onScroll() {
-      const y = window.scrollY;
-      const delta = y - lastY.current;
-      if (Math.abs(delta) < 8) return;
-      if (y < 80) { setHidden(false); }
-      else if (delta > 0) { setHidden(true); }
-      else { setHidden(false); }
-      lastY.current = y;
-    }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-  return hidden;
-}
-
 export default function TenantBrowse() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -156,6 +137,7 @@ export default function TenantBrowse() {
     if (user?.role === 'landlord') navigate('/landlord/dashboard', { replace: true });
     else if (user?.role === 'admin') navigate('/admin', { replace: true });
   }, [user]);
+
   const [properties, setProperties] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -234,31 +216,112 @@ export default function TenantBrowse() {
     }));
   }
 
-  const headerHidden = useHideOnScroll();
-
   return (
     <div className="min-h-screen bg-white">
-      {/* Unified sticky header — slides as one unit on scroll */}
-      <div className={`sticky top-0 z-50 transition-transform duration-300 ease-in-out ${headerHidden ? '-translate-y-full' : 'translate-y-0'}`}>
+      <Navbar />
 
-        {/* BrowseNavbar: logo + search + auth */}
-        <BrowseNavbar
-          searchValue={pending.location}
-          onSearchChange={e => setPending(p => ({ ...p, location: e.target.value }))}
-          onSearchSubmit={applyFilter}
-        />
+      {/* Hero */}
+      <section className="bg-white px-4 sm:px-6 lg:px-8 pt-10 pb-8">
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full mb-4" style={{ background: '#97553615', color: '#975536' }}>
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+            </svg>
+            Papua New Guinea
+          </div>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight mb-3" style={{ color: '#41271b' }}>
+            Find Your Next Haus
+          </h1>
+          <p className="text-base sm:text-lg text-gray-500 leading-relaxed max-w-xl mx-auto">
+            Browse verified listings from real landlords across PNG — rent or buy with confidence.
+          </p>
+        </div>
+      </section>
 
-        {/* Filter tabs */}
-        <div className="bg-white border-b border-gray-100 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 space-y-2">
+      {/* Sticky filter header — sits below the sticky navbar (top-16 = navbar h-16) */}
+      <div className="sticky top-16 z-30 bg-white border-b border-gray-100 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 space-y-2.5">
 
-            {/* Mobile: Rent/Sale toggle */}
-            <div className="flex sm:hidden bg-gray-100 rounded-xl p-1">
+          {/* Row 1: Search input + desktop Filters button */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                className="w-full pl-11 pr-4 py-3.5 text-sm border border-gray-200 rounded-2xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary shadow-sm transition-all"
+                placeholder="Search by location, suburb or area..."
+                value={pending.location}
+                onChange={e => setPending(p => ({ ...p, location: e.target.value }))}
+                onKeyDown={e => { if (e.key === 'Enter') applyFilter(); }}
+              />
+            </div>
+            {/* Filters button — desktop only */}
+            <button
+              onClick={openFilter}
+              className={`hidden sm:flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-semibold transition-all flex-shrink-0 ${
+                activeFilterCount > 0
+                  ? 'bg-primary text-white border-primary'
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="bg-white text-primary rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold leading-none">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Mobile Row 2: full-width Rent/Sale toggle */}
+          <div className="sm:hidden flex bg-gray-100 rounded-xl p-1">
+            {TOGGLE_OPTIONS.map(([val, label]) => (
+              <button
+                key={val}
+                onClick={() => setListingType(val)}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                  listingType === val ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile Row 3: full-width Filters button */}
+          <button
+            onClick={openFilter}
+            className={`sm:hidden w-full flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-semibold transition-all ${
+              activeFilterCount > 0
+                ? 'bg-primary text-white border-primary'
+                : 'bg-white text-gray-700 border-gray-200'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="bg-white text-primary rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold leading-none">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+
+          {/* Category pills row — desktop: toggle inline left; mobile: pills only */}
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-0.5">
+
+            {/* Desktop-only inline toggle */}
+            <div className="hidden sm:flex bg-gray-100 rounded-xl p-1 flex-shrink-0">
               {TOGGLE_OPTIONS.map(([val, label]) => (
                 <button
                   key={val}
                   onClick={() => setListingType(val)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
                     listingType === val ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
                   }`}
                 >
@@ -266,78 +329,38 @@ export default function TenantBrowse() {
                 </button>
               ))}
             </div>
+            <div className="hidden sm:block w-px h-5 bg-gray-200 flex-shrink-0" />
 
-            {/* Category pills row + Filters button */}
-            <div className="flex items-center gap-2">
-              {/* Scrollable pills */}
-              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide flex-1 min-w-0 pb-0.5">
-
-                {/* Desktop inline Rent/Sale toggle */}
-                <div className="hidden sm:flex bg-gray-100 rounded-xl p-1 flex-shrink-0">
-                  {TOGGLE_OPTIONS.map(([val, label]) => (
-                    <button
-                      key={val}
-                      onClick={() => setListingType(val)}
-                      className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
-                        listingType === val ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <div className="hidden sm:block w-px h-5 bg-gray-200 flex-shrink-0" />
-
-                {/* Category pills */}
-                {CATEGORIES.map(cat => (
-                  <button
-                    key={cat.value}
-                    onClick={() => setCategory(cat.value)}
-                    style={{ minHeight: 48, minWidth: 56 }}
-                    className={`flex-shrink-0 flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-2xl border text-xs font-semibold transition-all ${
-                      category === cat.value
-                        ? 'bg-primary text-white border-primary'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-800'
-                    }`}
-                  >
-                    <CategoryIcon type={cat.value} />
-                    {cat.label}
-                  </button>
-                ))}
-
-                {hasAnyFilter && (
-                  <button
-                    onClick={clearAll}
-                    className="flex-shrink-0 ml-1 text-sm text-gray-400 hover:text-gray-600 whitespace-nowrap underline px-2"
-                  >
-                    Clear all
-                  </button>
-                )}
-              </div>
-
-              {/* Filters button — always visible at far right */}
+            {/* Category pills — Airbnb-style: icon + label + underline active */}
+            {CATEGORIES.map(cat => (
               <button
-                onClick={openFilter}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-semibold transition-all ${
-                  activeFilterCount > 0
-                    ? 'bg-primary text-white border-primary'
-                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400'
+                key={cat.value}
+                onClick={() => setCategory(cat.value)}
+                style={{ minHeight: 56, minWidth: 68 }}
+                className={`flex-shrink-0 flex flex-col items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold transition-all duration-150 border-b-2 hover:scale-105 active:scale-95 ${
+                  category === cat.value
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
                 }`}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
-                <span className="hidden sm:inline">Filters</span>
-                {activeFilterCount > 0 && (
-                  <span className="bg-white text-primary rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold leading-none">
-                    {activeFilterCount}
-                  </span>
-                )}
+                <span className={`transition-colors ${category === cat.value ? 'text-primary' : 'text-gray-400'}`}>
+                  <CategoryIcon type={cat.value} />
+                </span>
+                {cat.label}
               </button>
-            </div>
+            ))}
+
+            {hasAnyFilter && (
+              <button
+                onClick={clearAll}
+                className="flex-shrink-0 ml-1 text-sm text-gray-400 hover:text-gray-600 whitespace-nowrap underline px-2"
+              >
+                Clear all
+              </button>
+            )}
           </div>
         </div>
-      </div>{/* end unified sticky header */}
+      </div>
 
       {/* Listings grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 pb-24 md:pb-8">
@@ -350,7 +373,7 @@ export default function TenantBrowse() {
             <p className="text-sm text-gray-400 mb-4">
               {total} propert{total !== 1 ? 'ies' : 'y'} found
             </p>
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-x-5 md:gap-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-x-5 md:gap-y-8">
               {properties.map(p => (
                 <PropertyCard
                   key={p.id}
@@ -512,8 +535,6 @@ export default function TenantBrowse() {
           </div>
         </div>
       )}
-
-      <FeedbackBubble mode="platform" />
     </div>
   );
 }
