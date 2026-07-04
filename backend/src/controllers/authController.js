@@ -240,7 +240,7 @@ async function login(req, res, next) {
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || !(await bcrypt.compare(password, user.passwordHash)))
+    if (!user || !user.passwordHash || !(await bcrypt.compare(password, user.passwordHash)))
       return res.status(401).json({ error: 'Invalid credentials' });
 
     if (role && user.role !== role)
@@ -302,4 +302,8 @@ function normaliseIdDocType(idType) {
   return 'passport';
 }
 
-module.exports = { registerLandlord, registerTenant, login, me, acceptTerms };
+module.exports = {
+  registerLandlord, registerTenant, login, me, acceptTerms,
+  // Exported for use by oauthController
+  createWelcomeNotifications, sendWelcomeMessages, generateAccountCode,
+};

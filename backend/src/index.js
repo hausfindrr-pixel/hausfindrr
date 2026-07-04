@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const path = require('path');
 
 const authRoutes = require('./routes/auth');
+const oauthRoutes = require('./routes/oauth');
 const landlordRoutes = require('./routes/landlord');
 const tenantRoutes = require('./routes/tenant');
 const adminRoutes = require('./routes/admin');
@@ -57,6 +58,7 @@ app.use(express.json());
 app.use(sanitizeBody);
 
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', oauthRoutes);
 app.use('/api/landlord', landlordRoutes);
 app.use('/api/tenant', tenantRoutes);
 app.use('/api/admin', adminRoutes);

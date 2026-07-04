@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AuthLayout from '../../components/shared/AuthLayout';
+import GoogleButton, { OAuthDivider } from '../../components/shared/GoogleButton';
 import { useAuth } from '../../context/AuthContext';
 import { useLoginAttempts, LoginAttemptsWarning } from '../../components/shared/LoginAttemptsWarning';
 import api from '../../services/api';
@@ -56,6 +57,9 @@ export default function LandlordLogin() {
 
   return (
     <AuthLayout title="Landlord Sign In" subtitle="Access your property dashboard">
+      <GoogleButton />
+      <OAuthDivider />
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="label">Email</label>

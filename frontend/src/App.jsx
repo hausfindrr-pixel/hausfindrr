@@ -15,6 +15,7 @@ import PropertyDetail from './pages/PropertyDetail';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import TermsPage from './pages/TermsPage';
+import OAuthCallback from './pages/OAuthCallback';
 
 function ProtectedRoute({ children, role, requireTerms = true }) {
   const { user, loading } = useAuth();
@@ -63,6 +64,7 @@ function AppRoutes() {
 
       {/* Public pages */}
       <Route path="/terms" element={<TermsPage />} />
+      <Route path="/oauth/callback" element={<OAuthCallback />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
