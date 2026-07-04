@@ -642,6 +642,7 @@ function PendingListingsSection({ onCountChange }) {
   const [lightbox, setLightbox] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
   const [acting, setActing] = useState(null);
+  const [openMapId, setOpenMapId] = useState(null);
 
   useEffect(() => {
     api.get('/admin/properties/pending')
@@ -747,11 +748,78 @@ function PendingListingsSection({ onCountChange }) {
                     </div>
                   )}
 
-                  {/* Exact address */}
-                  {p.locationExact && (
+                  {/* Exact address + collapsible map */}
+                  {(p.locationExact || p.locationLat) && (
                     <div className="mb-3">
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Exact Address</p>
-                      <p className="text-sm text-gray-600">📍 {p.locationExact}</p>
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm text-gray-600">📍 {p.locationExact || `${p.locationLat}, ${p.locationLng}`}</p>
+                        <button
+                          onClick={() => setOpenMapId(openMapId === p.id ? null : p.id)}
+                          className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-xl transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          {openMapId === p.id ? 'Hide Map' : 'View on Map'}
+                        </button>
+                      </div>
+                      {/* Collapsible map */}
+                      <div
+                        style={{
+                          maxHeight: openMapId === p.id ? '300px' : '0px',
+                          overflow: 'hidden',
+                          transition: 'max-height 0.35s ease',
+                        }}
+                      >
+                        {openMapId === p.id && (() => {
+                          const hasCoords = p.locationLat != null && p.locationLng != null;
+                          const mapSrc = hasCoords
+                            ? `https://maps.google.com/maps?q=${p.locationLat},${p.locationLng}&t=k&output=embed`
+                            : p.locationExact
+                              ? `https://maps.google.com/maps?q=${encodeURIComponent(p.locationExact)}&t=k&output=embed`
+                              : null;
+                          const mapsHref = hasCoords
+                            ? `https://www.google.com/maps/search/?api=1&query=${p.locationLat},${p.locationLng}`
+                            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.locationExact || '')}`;
+                          return (
+                            <div className="mt-2.5 rounded-xl overflow-hidden border border-gray-200">
+                              {mapSrc ? (
+                                <>
+                                  <iframe
+                                    title="Property location"
+                                    src={mapSrc}
+                                    width="100%"
+                                    height="280"
+                                    style={{ display: 'block', border: 'none' }}
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer-when-downgrade"
+                                    allowFullScreen
+                                  />
+                                  <div className="flex justify-end px-3 py-2 bg-gray-50 border-t border-gray-200">
+                                    <a
+                                      href={mapsHref}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1 text-xs text-primary font-medium hover:underline"
+                                    >
+                                      Open in Google Maps
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                      </svg>
+                                    </a>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="flex items-center justify-center h-16 text-gray-400 text-sm bg-gray-50">
+                                  Location not available
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
                   )}
 
