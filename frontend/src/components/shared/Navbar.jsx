@@ -109,7 +109,7 @@ const REGISTER_OPTIONS = [
   },
 ];
 
-export default function Navbar() {
+export default function Navbar({ nonSticky = false }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -129,7 +129,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+      <nav className={`${nonSticky ? 'relative' : 'sticky top-0 z-50'} bg-white border-b border-gray-100 shadow-sm`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Main bar */}

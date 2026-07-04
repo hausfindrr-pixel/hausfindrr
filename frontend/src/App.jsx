@@ -32,6 +32,7 @@ function ProtectedRoute({ children, role, requireTerms = true }) {
 function AppRoutes() {
   return (
     <Routes>
+      {/* Homepage IS the listings page */}
       <Route path="/" element={<TenantBrowse />} />
       <Route path="/browse" element={<Navigate to="/" replace />} />
 

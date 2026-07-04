@@ -7,7 +7,6 @@ async function sendMessage(req, res, next) {
     if (!propertyId || !receiverId || !content?.trim())
       return res.status(400).json({ error: 'propertyId, receiverId, and content required' });
 
-    // Verify the sender has unlocked this property (if sender is tenant)
     if (req.user.role === 'tenant') {
       const unlock = await prisma.unlock.findUnique({
         where: { tenantId_propertyId: { tenantId: req.user.id, propertyId } },
@@ -25,10 +24,29 @@ async function sendMessage(req, res, next) {
   }
 }
 
+// Admin direct message to a landlord (no property context)
+async function sendDirectMessage(req, res, next) {
+  try {
+    const { receiverId, content } = req.body;
+    if (!receiverId || !content?.trim())
+      return res.status(400).json({ error: 'receiverId and content required' });
+
+    const receiver = await prisma.user.findUnique({ where: { id: receiverId } });
+    if (!receiver) return res.status(404).json({ error: 'Recipient not found' });
+
+    const message = await prisma.message.create({
+      data: { propertyId: null, senderId: req.user.id, receiverId, content: content.trim() },
+      include: { sender: { select: { id: true, name: true, role: true } } },
+    });
+    res.status(201).json({ message });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getThread(req, res, next) {
   try {
     const { propertyId, otherUserId } = req.params;
-
     const messages = await prisma.message.findMany({
       where: {
         propertyId,
@@ -46,10 +64,10 @@ async function getThread(req, res, next) {
   }
 }
 
+// Thread for null-propertyId admin direct messages
 async function getDirectThread(req, res, next) {
   try {
     const { otherUserId } = req.params;
-
     const messages = await prisma.message.findMany({
       where: {
         propertyId: null,
@@ -110,29 +128,29 @@ async function getInbox(req, res, next) {
         OR: [{ senderId: req.user.id }, { receiverId: req.user.id }],
       },
       include: {
-        sender: { select: { id: true, name: true, role: true } },
+        sender:   { select: { id: true, name: true, role: true } },
         receiver: { select: { id: true, name: true, role: true } },
         property: { select: { id: true, title: true, photos: { take: 1 } } },
       },
       orderBy: { sentAt: 'desc' },
     });
 
-    // Deduplicate into threads and count unread
     const threadMap = new Map();
     const unreadMap = new Map();
 
     for (const msg of messages) {
       const otherId = msg.senderId === req.user.id ? msg.receiverId : msg.senderId;
-      const key = `${msg.propertyId ?? 'direct'}:${otherId}`;
+      // null propertyId groups under "direct:otherId"
+      const key = msg.propertyId ? `${msg.propertyId}:${otherId}` : `direct:${otherId}`;
 
       if (!threadMap.has(key)) {
         threadMap.set(key, {
-          propertyId: msg.propertyId,
-          isDirect: msg.propertyId === null,
-          property: msg.property,
-          otherUser: msg.senderId === req.user.id ? msg.receiver : msg.sender,
+          propertyId:  msg.propertyId,
+          property:    msg.property,
+          otherUser:   msg.senderId === req.user.id ? msg.receiver : msg.sender,
           latestMessage: msg,
           unreadCount: 0,
+          isDirect:    !msg.propertyId,
         });
       }
 
@@ -151,4 +169,9 @@ async function getInbox(req, res, next) {
   }
 }
 
-module.exports = { sendMessage, getThread, getDirectThread, markRead, markDirectRead, getInbox };
+module.exports = {
+  sendMessage, sendDirectMessage,
+  getThread, getDirectThread,
+  markRead, markDirectRead,
+  getInbox,
+};

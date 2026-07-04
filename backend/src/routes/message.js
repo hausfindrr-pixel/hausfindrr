@@ -2,11 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
 const {
-  sendMessage,
-  getThread,
-  getDirectThread,
-  markRead,
-  markDirectRead,
+  sendMessage, sendDirectMessage,
+  getThread, getDirectThread,
+  markRead, markDirectRead,
   getInbox,
 } = require('../controllers/messageController');
 

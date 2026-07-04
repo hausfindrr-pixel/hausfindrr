@@ -12,6 +12,9 @@ const {
   deleteLandlord,
 } = require('../controllers/adminController');
 const { setupTwoFactor, confirmTwoFactor, disableTwoFactor } = require('../controllers/twoFactorController');
+const { createAnnouncement, getAdminAnnouncements } = require('../controllers/announcementController');
+const { getComplaints, updateComplaintStatus } = require('../controllers/complaintController');
+const { sendDirectMessage } = require('../controllers/messageController');
 
 router.use(authenticate, requireRole('admin'));
 
@@ -28,6 +31,14 @@ router.get('/properties', getAllListings);
 router.get('/analytics', getAnalytics);
 router.get('/transactions', getAllTransactions);
 router.get('/messages', getAllMessages);
+
+router.post('/announcements', createAnnouncement);
+router.get('/announcements', getAdminAnnouncements);
+
+router.post('/direct-message', sendDirectMessage);
+
+router.get('/complaints', getComplaints);
+router.patch('/complaints/:id/status', updateComplaintStatus);
 
 router.get('/2fa/setup', setupTwoFactor);
 router.post('/2fa/confirm', confirmTwoFactor);
