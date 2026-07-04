@@ -45,7 +45,11 @@ export default function LandlordLogin() {
       navigate('/landlord/dashboard');
     } catch (err) {
       const status = err.response?.status;
-      if (status === 401 || status === 403 || status === 429) {
+      setForm(p => ({ ...p, password: '' }));
+      if (status === 401 || status === 403) {
+        toast.error('Incorrect email or password. Please try again.');
+        onLoginError(err);
+      } else if (status === 429) {
         onLoginError(err);
       } else {
         toast.error(err.response?.data?.error || 'Login failed. Please try again.');

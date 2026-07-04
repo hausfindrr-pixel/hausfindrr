@@ -11,12 +11,18 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   r => r,
   err => {
+    // Only redirect on 401 when a token exists (expired session).
+    // Login-page failures also return 401 (wrong credentials) but there
+    // is no token yet — redirecting there would boot the user off the form.
     if (err.response?.status === 401) {
-      localStorage.removeItem('hf_token');
-      localStorage.removeItem('hf_user');
-      sessionStorage.removeItem('hf_token');
-      sessionStorage.removeItem('hf_user');
-      window.location.href = '/';
+      const hasToken = localStorage.getItem('hf_token') || sessionStorage.getItem('hf_token');
+      if (hasToken) {
+        localStorage.removeItem('hf_token');
+        localStorage.removeItem('hf_user');
+        sessionStorage.removeItem('hf_token');
+        sessionStorage.removeItem('hf_user');
+        window.location.href = '/';
+      }
     }
     return Promise.reject(err);
   }
