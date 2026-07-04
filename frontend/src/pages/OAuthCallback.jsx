@@ -40,25 +40,28 @@ export default function OAuthCallback() {
 
   const [authError, setAuthError] = useState(null);
 
+  // Confirm the component mounted — visible in DevTools console
+  console.log('[OAuthCallback] mounted — status:', status, 'hasToken:', !!token, 'error:', error);
+
   // Handle login redirect — runs once on mount
   useEffect(() => {
     if (status !== 'login' || !token) return;
-    console.log('[OAuthCallback] token received, length:', token.length, 'status:', status);
+    console.log('[OAuthCallback] starting login, token length:', token.length);
     (async () => {
       try {
         // Store token first so the api interceptor can attach it to /auth/me
         sessionStorage.setItem('hf_token', token);
-        console.log('[OAuthCallback] calling /auth/me…');
         const { data } = await api.get('/auth/me');
         console.log('[OAuthCallback] /auth/me succeeded, user:', data.user?.email, 'role:', data.user?.role);
         saveAuth(token, data.user, false);
+        toast.success(`Welcome back${data.user?.name ? `, ${data.user.name.split(' ')[0]}` : ''}!`);
         navigate(data.user.role === 'landlord' ? '/landlord/dashboard' : '/', { replace: true });
       } catch (err) {
-        const status_code = err.response?.status;
+        const code = err.response?.status;
         const msg = err.response?.data?.error || err.message || 'Unknown error';
-        console.error('[OAuthCallback] /auth/me failed:', status_code, msg);
+        console.error('[OAuthCallback] /auth/me failed:', code, msg);
         sessionStorage.removeItem('hf_token');
-        setAuthError(`Sign-in failed (${status_code || 'network error'}): ${msg}`);
+        setAuthError(`Sign-in failed (${code || 'network error'}): ${msg}`);
       }
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

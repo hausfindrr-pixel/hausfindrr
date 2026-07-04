@@ -1,10 +1,26 @@
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function GoogleButton() {
+  function handleClick() {
+    if (!API_BASE) {
+      // VITE_API_URL is not set — navigating to /api/auth/google on the
+      // Vercel domain would silently redirect to homepage because Vercel
+      // serves index.html for every path. Alert so the misconfiguration is obvious.
+      alert(
+        'Google sign-in is misconfigured.\n\n' +
+        'Set VITE_API_URL to your Railway backend URL in Vercel → Settings → ' +
+        'Environment Variables, e.g.:\n  https://your-app.up.railway.app/api\n\n' +
+        'Then redeploy the frontend.',
+      );
+      return;
+    }
+    window.location.href = `${API_BASE}/auth/google`;
+  }
+
   return (
     <button
       type="button"
-      onClick={() => { window.location.href = `${API_BASE}/auth/google`; }}
+      onClick={handleClick}
       className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors shadow-sm"
     >
       {/* Official Google "G" logo */}
