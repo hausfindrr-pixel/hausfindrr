@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Navbar from '../../components/shared/Navbar';
 import api from '../../services/api';
+import { PNG_CITIES } from '../../constants/pngCities';
 
 const DEFAULT_LAT = -9.4438;
 const DEFAULT_LNG = 147.1803;
@@ -73,6 +74,7 @@ export default function LandlordNewListing() {
   const [pinLng, setPinLng] = useState(DEFAULT_LNG);
   const [mapReady, setMapReady] = useState(false);
   const [isSatellite, setIsSatellite] = useState(false);
+  const [cityChoice, setCityChoice] = useState(''); // '' | city string | '__other__'
 
   const mapRef = useRef(null);
   const leafletMapRef = useRef(null);
@@ -194,6 +196,8 @@ export default function LandlordNewListing() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!cityChoice) return toast.error('Please select a city for your listing');
+    if (cityChoice === '__other__' && !form.locationGeneral.trim()) return toast.error('Please enter your city or town name');
     if (photos.length === 0) return toast.error('Please add at least one property photo');
     if (titleDocs.length === 0) return toast.error('Please upload your property title document');
     if (isLand && !form.landSize) return toast.error('Please enter the land size');
@@ -488,9 +492,35 @@ export default function LandlordNewListing() {
           {/* Section 3: Location */}
           <Section title="Location" number="3">
             <div>
-              <label className="label">General Area <span className="text-gray-400 font-normal">(shown publicly)</span></label>
-              <input className="input" required value={form.locationGeneral} onChange={set('locationGeneral')}
-                placeholder="e.g. Boroko, NCD" />
+              <label className="label">City <span className="text-gray-400 font-normal">(shown publicly)</span></label>
+              <select
+                className="input"
+                value={cityChoice}
+                onChange={e => {
+                  const val = e.target.value;
+                  setCityChoice(val);
+                  if (val !== '__other__') {
+                    setForm(p => ({ ...p, locationGeneral: val }));
+                  } else {
+                    setForm(p => ({ ...p, locationGeneral: '' }));
+                  }
+                }}
+              >
+                <option value="">Select city…</option>
+                {PNG_CITIES.map(city => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+                <option value="__other__">Other city / town</option>
+              </select>
+              {cityChoice === '__other__' && (
+                <input
+                  className="input mt-2"
+                  required
+                  placeholder="e.g. Bulolo, Morobe Province"
+                  value={form.locationGeneral}
+                  onChange={set('locationGeneral')}
+                />
+              )}
             </div>
             <div>
               <label className="label">Exact Address <span className="text-gray-400 font-normal">(hidden until tenant unlocks)</span></label>

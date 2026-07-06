@@ -4,6 +4,7 @@ import Navbar from '../../components/shared/Navbar';
 import PropertyCard from '../../components/tenant/PropertyCard';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { PNG_CITIES } from '../../constants/pngCities';
 
 const CATEGORIES = [
   { label: 'All', value: '' },
@@ -125,7 +126,7 @@ function EmptyState({ hasFilters, onClear }) {
   );
 }
 
-const EMPTY_PANEL = { location: '', minPrice: '', maxPrice: '', bedrooms: '', bathrooms: '', amenities: [] };
+const EMPTY_PANEL = { city: '', location: '', minPrice: '', maxPrice: '', bedrooms: '', bathrooms: '', amenities: [] };
 
 const TOGGLE_OPTIONS = [['', 'All'], ['rent', 'For Rent'], ['sale', 'For Sale']];
 
@@ -151,7 +152,7 @@ export default function TenantBrowse() {
   const [applied, setApplied] = useState(EMPTY_PANEL);
 
   const activeFilterCount =
-    [applied.location, applied.minPrice, applied.maxPrice, applied.bedrooms, applied.bathrooms].filter(Boolean).length +
+    [applied.city, applied.location, applied.minPrice, applied.maxPrice, applied.bedrooms, applied.bathrooms].filter(Boolean).length +
     applied.amenities.length;
 
   const hasAnyFilter = !!(listingType || category || activeFilterCount);
@@ -162,7 +163,9 @@ export default function TenantBrowse() {
       const params = {};
       if (listingType) params.type = listingType;
       if (category) params.propertyType = category;
-      if (applied.location) params.location = applied.location;
+      // City dropdown takes precedence over free-text location search
+      if (applied.city) params.location = applied.city;
+      else if (applied.location) params.location = applied.location;
       if (applied.minPrice) params.minPrice = applied.minPrice;
       if (applied.maxPrice) params.maxPrice = applied.maxPrice;
       if (applied.bedrooms) params.bedrooms = applied.bedrooms;
@@ -416,6 +419,29 @@ export default function TenantBrowse() {
 
             {/* Scrollable body */}
             <div className="overflow-y-auto flex-1 px-6 py-5 space-y-7">
+
+              {/* City */}
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 mb-3">City</h3>
+                <select
+                  value={pending.city}
+                  onChange={e => setPending(p => ({ ...p, city: e.target.value }))}
+                  className="w-full px-3.5 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+                >
+                  <option value="">All cities</option>
+                  {PNG_CITIES.map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+                {pending.city && (
+                  <button
+                    onClick={() => setPending(p => ({ ...p, city: '' }))}
+                    className="mt-1.5 text-xs text-gray-400 hover:text-gray-600 underline"
+                  >
+                    Clear city filter
+                  </button>
+                )}
+              </div>
 
               {/* Price range */}
               <div>
