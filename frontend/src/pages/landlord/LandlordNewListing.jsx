@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Navbar from '../../components/shared/Navbar';
 import api from '../../services/api';
+import { PNG_CITIES } from '../../constants/pngCities';
 
 const DEFAULT_LAT = -9.4438;
 const DEFAULT_LNG = 147.1803;
@@ -15,9 +16,6 @@ const AMENITY_OPTIONS = [
 const PROPERTY_TYPES = [
   { value: 'house',      label: 'House' },
   { value: 'apartment',  label: 'Apartment' },
-  { value: 'land',       label: 'Land' },
-  { value: 'commercial', label: 'Commercial' },
-  { value: 'other',      label: 'Other' },
 ];
 
 const SAT_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -34,31 +32,11 @@ const EMPTY_FORM = {
   locationGeneral: '',
   locationExact: '',
   propertyType: 'house',
-  // House / Apartment
   bedrooms: '1',
   bathrooms: '1',
   furnishing: '',
   floorLevel: '',
   parkingAvailable: '',
-  // Land
-  landSize: '',
-  landType: '',
-  fenced: '',
-  roadAccess: '',
-  titleType: '',
-  waterConnection: '',
-  electricityConnection: '',
-  // Commercial
-  floorArea: '',
-  commercialType: '',
-  numRooms: '',
-  numCubicles: '',
-  numToilets: '',
-  parkingSpaces: '',
-  commercialFloorLevel: '',
-  buildingType: '',
-  // Other
-  additionalDetails: '',
 };
 
 export default function LandlordNewListing() {
@@ -73,6 +51,7 @@ export default function LandlordNewListing() {
   const [pinLng, setPinLng] = useState(DEFAULT_LNG);
   const [mapReady, setMapReady] = useState(false);
   const [isSatellite, setIsSatellite] = useState(false);
+  const [cityChoice, setCityChoice] = useState(''); // '' | city string | '__other__'
 
   const mapRef = useRef(null);
   const leafletMapRef = useRef(null);
@@ -84,10 +63,6 @@ export default function LandlordNewListing() {
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
 
   const pt = form.propertyType;
-  const isResidential = pt === 'house' || pt === 'apartment';
-  const isLand = pt === 'land';
-  const isCommercial = pt === 'commercial';
-  const isOther = pt === 'other';
 
   function toggleAmenity(a) {
     setSelectedAmenities(prev =>
@@ -156,48 +131,19 @@ export default function LandlordNewListing() {
   }
 
   function buildMetadata() {
-    if (isResidential) {
-      return {
-        furnishing: form.furnishing || null,
-        floorLevel: form.floorLevel || null,
-        parkingAvailable: form.parkingAvailable || null,
-      };
-    }
-    if (isLand) {
-      return {
-        landSize: form.landSize || null,
-        landType: form.landType || null,
-        fenced: form.fenced || null,
-        roadAccess: form.roadAccess || null,
-        titleType: form.titleType || null,
-        waterConnection: form.waterConnection || null,
-        electricityConnection: form.electricityConnection || null,
-      };
-    }
-    if (isCommercial) {
-      return {
-        floorArea: form.floorArea || null,
-        commercialType: form.commercialType || null,
-        numRooms: form.numRooms || null,
-        numCubicles: form.numCubicles || null,
-        numToilets: form.numToilets || null,
-        parkingSpaces: form.parkingSpaces || null,
-        floorLevel: form.commercialFloorLevel || null,
-        buildingType: form.buildingType || null,
-      };
-    }
-    if (isOther) {
-      return { additionalDetails: form.additionalDetails || null };
-    }
-    return null;
+    return {
+      furnishing: form.furnishing || null,
+      floorLevel: form.floorLevel || null,
+      parkingAvailable: form.parkingAvailable || null,
+    };
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!cityChoice) return toast.error('Please select a city for your listing');
+    if (cityChoice === '__other__' && !form.locationGeneral.trim()) return toast.error('Please enter your city or town name');
     if (photos.length === 0) return toast.error('Please add at least one property photo');
     if (titleDocs.length === 0) return toast.error('Please upload your property title document');
-    if (isLand && !form.landSize) return toast.error('Please enter the land size');
-    if (isCommercial && !form.floorArea) return toast.error('Please enter the floor area');
 
     setLoading(true);
     try {
@@ -210,10 +156,8 @@ export default function LandlordNewListing() {
       fd.append('locationGeneral', form.locationGeneral);
       fd.append('locationExact', form.locationExact);
       fd.append('propertyType', form.propertyType);
-      if (isResidential) {
-        fd.append('bedrooms', form.bedrooms);
-        fd.append('bathrooms', form.bathrooms);
-      }
+      fd.append('bedrooms', form.bedrooms);
+      fd.append('bathrooms', form.bathrooms);
       fd.append('amenities', JSON.stringify(selectedAmenities));
       fd.append('metadata', JSON.stringify(buildMetadata()));
       fd.append('location_lat', pinLat.toString());
@@ -321,176 +265,84 @@ export default function LandlordNewListing() {
               </div>
             </div>
 
-            {/* ── HOUSE / APARTMENT ── */}
-            {isResidential && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">Bedrooms</label>
-                    <input className="input" type="number" min="0" required value={form.bedrooms} onChange={set('bedrooms')} />
-                  </div>
-                  <div>
-                    <label className="label">Bathrooms</label>
-                    <input className="input" type="number" min="0" required value={form.bathrooms} onChange={set('bathrooms')} />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="label">Furnishing Status</label>
-                  <select className="input" value={form.furnishing} onChange={set('furnishing')}>
-                    <option value="">Select…</option>
-                    <option value="furnished">Furnished</option>
-                    <option value="semi-furnished">Semi-furnished</option>
-                    <option value="unfurnished">Unfurnished</option>
-                  </select>
-                </div>
-
-                {pt === 'apartment' && (
-                  <div>
-                    <label className="label">Floor Level</label>
-                    <input className="input" type="number" min="0" value={form.floorLevel} onChange={set('floorLevel')}
-                      placeholder="e.g. 3" />
-                  </div>
-                )}
-
-                <div>
-                  <label className="label">Parking Available</label>
-                  <div className="flex gap-2">
-                    {['yes', 'no'].map(v => (
-                      <button key={v} type="button"
-                        onClick={() => setForm(p => ({ ...p, parkingAvailable: v }))}
-                        className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold capitalize transition-all ${
-                          form.parkingAvailable === v
-                            ? 'bg-primary text-white border-primary'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                        }`}
-                      >{v === 'yes' ? 'Yes' : 'No'}</button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* ── LAND ── */}
-            {isLand && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">Land Size (m²) <span className="text-red-400">*</span></label>
-                    <input className="input" type="number" min="1" required value={form.landSize} onChange={set('landSize')}
-                      placeholder="e.g. 1200" />
-                  </div>
-                  <div>
-                    <label className="label">Land Type</label>
-                    <select className="input" value={form.landType} onChange={set('landType')}>
-                      <option value="">Select…</option>
-                      <option value="residential">Residential</option>
-                      <option value="agricultural">Agricultural</option>
-                      <option value="industrial">Industrial</option>
-                      <option value="mixed-use">Mixed Use</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="label">Title Type</label>
-                  <select className="input" value={form.titleType} onChange={set('titleType')}>
-                    <option value="">Select…</option>
-                    <option value="state-lease">State Lease</option>
-                    <option value="customary">Customary Land</option>
-                    <option value="freehold">Freehold</option>
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <YesNoField label="Fenced?" value={form.fenced} onChange={v => setForm(p => ({ ...p, fenced: v }))} />
-                  <YesNoField label="Road Access?" value={form.roadAccess} onChange={v => setForm(p => ({ ...p, roadAccess: v }))} />
-                  <YesNoField label="Water Connection?" value={form.waterConnection} onChange={v => setForm(p => ({ ...p, waterConnection: v }))} />
-                  <YesNoField label="Electricity?" value={form.electricityConnection} onChange={v => setForm(p => ({ ...p, electricityConnection: v }))} />
-                </div>
-              </>
-            )}
-
-            {/* ── COMMERCIAL ── */}
-            {isCommercial && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">Floor Area (m²) <span className="text-red-400">*</span></label>
-                    <input className="input" type="number" min="1" required value={form.floorArea} onChange={set('floorArea')}
-                      placeholder="e.g. 250" />
-                  </div>
-                  <div>
-                    <label className="label">Floor Level</label>
-                    <input className="input" type="number" min="0" value={form.commercialFloorLevel} onChange={set('commercialFloorLevel')}
-                      placeholder="e.g. 2" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="label">Commercial Type</label>
-                  <select className="input" value={form.commercialType} onChange={set('commercialType')}>
-                    <option value="">Select…</option>
-                    <option value="office">Office Space</option>
-                    <option value="retail">Retail Shop</option>
-                    <option value="warehouse">Warehouse</option>
-                    <option value="restaurant">Restaurant Space</option>
-                    <option value="cubicles">Cubicles</option>
-                    <option value="mixed-use">Mixed Use</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="label">Whole Building or Partial Floor?</label>
-                  <select className="input" value={form.buildingType} onChange={set('buildingType')}>
-                    <option value="">Select…</option>
-                    <option value="whole-building">Whole Building</option>
-                    <option value="partial-floor">Partial Floor</option>
-                    <option value="single-unit">Single Unit / Shop</option>
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">Rooms / Offices</label>
-                    <input className="input" type="number" min="0" value={form.numRooms} onChange={set('numRooms')} placeholder="0" />
-                  </div>
-                  <div>
-                    <label className="label">Cubicles</label>
-                    <input className="input" type="number" min="0" value={form.numCubicles} onChange={set('numCubicles')} placeholder="0" />
-                  </div>
-                  <div>
-                    <label className="label">Toilets / Bathrooms</label>
-                    <input className="input" type="number" min="0" value={form.numToilets} onChange={set('numToilets')} placeholder="0" />
-                  </div>
-                  <div>
-                    <label className="label">Parking Spaces</label>
-                    <input className="input" type="number" min="0" value={form.parkingSpaces} onChange={set('parkingSpaces')} placeholder="0" />
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* ── OTHER ── */}
-            {isOther && (
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="label">Additional Details</label>
-                <textarea
-                  className="input h-28 resize-none"
-                  value={form.additionalDetails}
-                  onChange={set('additionalDetails')}
-                  placeholder="Describe what makes this property unique — size, use case, features…"
-                />
+                <label className="label">Bedrooms</label>
+                <input className="input" type="number" min="0" required value={form.bedrooms} onChange={set('bedrooms')} />
+              </div>
+              <div>
+                <label className="label">Bathrooms</label>
+                <input className="input" type="number" min="0" required value={form.bathrooms} onChange={set('bathrooms')} />
+              </div>
+            </div>
+
+            <div>
+              <label className="label">Furnishing Status</label>
+              <select className="input" value={form.furnishing} onChange={set('furnishing')}>
+                <option value="">Select…</option>
+                <option value="furnished">Furnished</option>
+                <option value="semi-furnished">Semi-furnished</option>
+                <option value="unfurnished">Unfurnished</option>
+              </select>
+            </div>
+
+            {pt === 'apartment' && (
+              <div>
+                <label className="label">Floor Level</label>
+                <input className="input" type="number" min="0" value={form.floorLevel} onChange={set('floorLevel')}
+                  placeholder="e.g. 3" />
               </div>
             )}
+
+            <div>
+              <label className="label">Parking Available</label>
+              <div className="flex gap-2">
+                {['yes', 'no'].map(v => (
+                  <button key={v} type="button"
+                    onClick={() => setForm(p => ({ ...p, parkingAvailable: v }))}
+                    className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold capitalize transition-all ${
+                      form.parkingAvailable === v
+                        ? 'bg-primary text-white border-primary'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                    }`}
+                  >{v === 'yes' ? 'Yes' : 'No'}</button>
+                ))}
+              </div>
+            </div>
           </Section>
 
           {/* Section 3: Location */}
           <Section title="Location" number="3">
             <div>
-              <label className="label">General Area <span className="text-gray-400 font-normal">(shown publicly)</span></label>
-              <input className="input" required value={form.locationGeneral} onChange={set('locationGeneral')}
-                placeholder="e.g. Boroko, NCD" />
+              <label className="label">City <span className="text-gray-400 font-normal">(shown publicly)</span></label>
+              <select
+                className="input"
+                value={cityChoice}
+                onChange={e => {
+                  const val = e.target.value;
+                  setCityChoice(val);
+                  if (val !== '__other__') {
+                    setForm(p => ({ ...p, locationGeneral: val }));
+                  } else {
+                    setForm(p => ({ ...p, locationGeneral: '' }));
+                  }
+                }}
+              >
+                <option value="">Select city…</option>
+                {PNG_CITIES.map(city => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+                <option value="__other__">Other city / town</option>
+              </select>
+              {cityChoice === '__other__' && (
+                <input
+                  className="input mt-2"
+                  required
+                  placeholder="e.g. Bulolo, Morobe Province"
+                  value={form.locationGeneral}
+                  onChange={set('locationGeneral')}
+                />
+              )}
             </div>
             <div>
               <label className="label">Exact Address <span className="text-gray-400 font-normal">(hidden until tenant unlocks)</span></label>
@@ -652,25 +504,6 @@ export default function LandlordNewListing() {
             {loading ? 'Submitting…' : 'Submit for Review'}
           </button>
         </form>
-      </div>
-    </div>
-  );
-}
-
-function YesNoField({ label, value, onChange }) {
-  return (
-    <div>
-      <label className="label text-xs">{label}</label>
-      <div className="flex gap-1.5">
-        {['yes', 'no'].map(v => (
-          <button key={v} type="button" onClick={() => onChange(v)}
-            className={`flex-1 py-2 rounded-xl border text-xs font-semibold transition-all ${
-              value === v
-                ? 'bg-primary text-white border-primary'
-                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-            }`}
-          >{v === 'yes' ? 'Yes' : 'No'}</button>
-        ))}
       </div>
     </div>
   );

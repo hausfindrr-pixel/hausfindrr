@@ -39,9 +39,6 @@ enum ListingType {
 enum PropertyType {
   house
   apartment
-  land
-  commercial
-  other
 }
 
 enum PropertyStatus {

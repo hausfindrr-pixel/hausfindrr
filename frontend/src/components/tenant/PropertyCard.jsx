@@ -8,9 +8,6 @@ import { priceLabel } from '../../utils/format';
 const PROPERTY_TYPE_LABELS = {
   apartment: 'Apartment',
   house: 'House',
-  land: 'Land',
-  commercial: 'Commercial',
-  other: 'Property',
 };
 
 export default function PropertyCard({ property, onFavoriteToggle, isFavorited }) {

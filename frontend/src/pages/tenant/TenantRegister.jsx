@@ -2,7 +2,6 @@ import { useState, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AuthLayout from '../../components/shared/AuthLayout';
-import GoogleButton, { OAuthDivider } from '../../components/shared/GoogleButton';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { TOS_SECTIONS, TOS_VERSION } from '../../constants/tos';
@@ -49,9 +48,6 @@ export default function TenantRegister() {
 
   return (
     <AuthLayout title="Tenant Registration" subtitle="Start browsing properties in PNG">
-      <GoogleButton />
-      <OAuthDivider />
-
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="label">Full Name</label>

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AuthLayout from '../../components/shared/AuthLayout';
-import GoogleButton, { OAuthDivider } from '../../components/shared/GoogleButton';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
@@ -48,9 +47,6 @@ export default function LandlordRegister() {
 
   return (
     <AuthLayout title="Become a Landlord" subtitle="Create your account to list properties on HausFindrr">
-      <GoogleButton />
-      <OAuthDivider />
-
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="label">Full Name</label>
