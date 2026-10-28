@@ -43,6 +43,7 @@ export default function OAuthCallback() {
   // Confirm the component mounted — visible in DevTools console
   console.log('[OAuthCallback] mounted — status:', status, 'hasToken:', !!token, 'error:', error);
 
+
   // Handle login redirect — runs once on mount
   useEffect(() => {
     if (status !== 'login' || !token) return;
