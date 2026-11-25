@@ -106,7 +106,7 @@ export default function LandlordMessagesPage() {
     <div className="min-h-dvh bg-[#F5F0EB]">
       {/* Sticky header */}
       <div className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 pt-4 pb-3">
+        <div className="max-w-4xl mx-auto px-4 pt-4 pb-3">
           <div className="flex items-center gap-2 mb-3">
             <h1 className="text-xl font-bold text-[#41271B]">Messages</h1>
             {totalUnread > 0 && (
@@ -135,7 +135,7 @@ export default function LandlordMessagesPage() {
 
       {/* Content — no inner scroll, page scrolls */}
       <div
-        className="max-w-2xl mx-auto px-4 py-4"
+        className="max-w-4xl mx-auto px-4 py-4"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
       >
         {threads.length === 0 ? (
@@ -145,7 +145,7 @@ export default function LandlordMessagesPage() {
             <p className="text-gray-500 text-sm">No unread messages</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 md:items-start">
             {filtered.map(group => (
               <ListingSection
                 key={group.property?.id}

@@ -71,15 +71,6 @@ function UserIcon({ size = 24, color = 'currentColor', sw = 1.7 }) {
   );
 }
 
-function MegaphoneIcon({ size = 24, color = 'currentColor', sw = 1.7 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M11 5.882V19.24a1.76 1.76 0 0 1-3.417.592l-2.147-6.15M18 13a3 3 0 1 0 0-6M5.436 13.683A4.001 4.001 0 0 1 7 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 0 1-1.564-.317z" />
-    </svg>
-  );
-}
-
 // ── Shared card shell ─────────────────────────────────────────────────────────
 const cardStyle = {
   backgroundColor: '#fff',
@@ -89,30 +80,9 @@ const cardStyle = {
 };
 
 // ── Empty state ───────────────────────────────────────────────────────────────
-const EMPTY_CONFIG = {
-  saved: {
-    Icon: HeartIcon,
-    heading: 'No saved properties',
-    body: 'Tap the heart icon on any listing to save it here for later.',
-    cta: 'Start browsing',
-    ctaLink: '/',
-    secondary: 'Learn about favourites',
-  },
-  messages: {
-    Icon: ChatIcon,
-    heading: 'No messages yet',
-    body: 'Find a listing you like and message the landlord directly.',
-    cta: 'Find a property',
-    ctaLink: '/',
-    secondary: 'How messaging works',
-  },
-};
-
-function EmptyState({ tabKey }) {
-  const { Icon, heading, body, cta, ctaLink, secondary } = EMPTY_CONFIG[tabKey];
+function EmptyState() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '52px 24px 40px', textAlign: 'center' }}>
-      {/* Icon badge */}
       <div style={{
         width: 100, height: 100, borderRadius: '50%',
         backgroundColor: CLAY_TINT,
@@ -120,41 +90,29 @@ function EmptyState({ tabKey }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         marginBottom: 28, flexShrink: 0,
       }}>
-        <Icon size={46} color={CLAY} sw={1.5} />
+        <HeartIcon size={46} color={CLAY} sw={1.5} />
       </div>
 
       <h2 style={{ color: BROWN, fontSize: 20, fontWeight: 800, margin: '0 0 10px', letterSpacing: '-0.3px' }}>
-        {heading}
+        No saved properties
       </h2>
       <p style={{ color: MUTED, fontSize: 14, lineHeight: 1.65, maxWidth: 270, margin: '0 0 32px' }}>
-        {body}
+        Tap the heart icon on any listing to save it here for later.
       </p>
 
-      {/* Primary CTA */}
       <Link
-        to={ctaLink}
+        to="/"
         style={{
           display: 'inline-block', textDecoration: 'none',
           backgroundColor: CLAY, color: '#fff',
           fontWeight: 700, fontSize: 15,
           padding: '14px 36px', borderRadius: 12,
           boxShadow: '0 4px 18px rgba(151,85,54,0.30)',
-          marginBottom: 20, fontFamily: 'inherit',
+          fontFamily: 'inherit',
         }}
       >
-        {cta}
+        Start browsing
       </Link>
-
-      {/* Secondary link */}
-      <button
-        style={{
-          background: 'none', border: 'none',
-          color: BROWN, fontWeight: 600, fontSize: 14,
-          textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit',
-        }}
-      >
-        {secondary}
-      </button>
     </div>
   );
 }
@@ -206,132 +164,26 @@ function PropertyRow({ property, onRemove }) {
   return <div style={rowStyle}>{inner}</div>;
 }
 
-// ── Message rows ──────────────────────────────────────────────────────────────
-function NotificationRow({ notification }) {
-  return (
-    <div style={{ ...cardStyle, padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-      <div style={{ width: 44, height: 44, borderRadius: '50%', backgroundColor: CLAY_TINT, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <MegaphoneIcon size={20} color={CLAY} sw={1.8} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <p style={{ fontWeight: 700, color: BROWN, fontSize: 14, margin: 0 }}>HausFindrr Support</p>
-          <span style={{ fontSize: 11, fontWeight: 700, backgroundColor: CLAY_TINT, color: CLAY, padding: '2px 8px', borderRadius: 20 }}>Official</span>
-        </div>
-        <div style={{ backgroundColor: '#F8F7F5', borderRadius: 12, padding: '10px 14px' }}>
-          <p style={{ fontWeight: 700, color: BROWN, fontSize: 13, margin: '0 0 4px' }}>{notification.title}</p>
-          <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.6, margin: 0 }}>{notification.content}</p>
-        </div>
-        <p style={{ color: '#B0B0B0', fontSize: 12, margin: '6px 0 0' }}>{timeAgo(notification.createdAt)}</p>
-      </div>
-    </div>
-  );
-}
-
-function AnnouncementRow({ announcement }) {
-  return (
-    <div style={{ ...cardStyle, backgroundColor: '#FFF9F6', borderColor: CLAY_TINT, padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-      <div style={{ width: 44, height: 44, borderRadius: '50%', backgroundColor: CLAY_TINT, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <MegaphoneIcon size={20} color={CLAY} sw={1.8} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-          <p style={{ fontWeight: 700, color: BROWN, fontSize: 14, margin: 0 }}>HausFindrr Team</p>
-          <span style={{ fontSize: 11, fontWeight: 700, backgroundColor: CLAY_TINT, color: CLAY, padding: '2px 8px', borderRadius: 20 }}>Announcement</span>
-        </div>
-        <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.6, margin: 0 }}>{announcement.content}</p>
-        <p style={{ color: '#B0B0B0', fontSize: 12, margin: '6px 0 0' }}>{timeAgo(announcement.createdAt)}</p>
-      </div>
-    </div>
-  );
-}
-
-function DirectMessageRow({ thread }) {
-  const [expanded, setExpanded] = useState(false);
-  const isHausFindrr = thread.otherUser?.role === 'admin';
-  const senderName = isHausFindrr ? 'HausFindrr Support' : (thread.otherUser?.name || 'Admin');
-
-  return (
-    <div style={{ ...cardStyle, overflow: 'hidden' }}>
-      <button
-        onClick={() => setExpanded(e => !e)}
-        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-      >
-        <div style={{ width: 44, height: 44, borderRadius: '50%', backgroundColor: CLAY_TINT, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <ChatIcon size={20} color={CLAY} sw={1.8} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <p style={{ fontWeight: 700, color: BROWN, fontSize: 14, margin: 0 }}>{senderName}</p>
-            {isHausFindrr && (
-              <span style={{ fontSize: 11, fontWeight: 700, backgroundColor: CLAY_TINT, color: CLAY, padding: '2px 8px', borderRadius: 20 }}>Official</span>
-            )}
-            {thread.unreadCount > 0 && (
-              <span style={{ backgroundColor: CLAY, color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>{thread.unreadCount} new</span>
-            )}
-          </div>
-          <p style={{ color: MUTED, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
-            {thread.latestMessage?.content}
-          </p>
-        </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth={2} strokeLinecap="round"
-          style={{ flexShrink: 0, transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-          <path d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {expanded && (
-        <div style={{ borderTop: `1px solid ${DIVIDER}`, padding: '14px 16px' }}>
-          <div style={{ backgroundColor: '#F8F7F5', borderRadius: 12, padding: '12px 16px' }}>
-            <p style={{ color: MUTED, fontSize: 13, lineHeight: 1.65, whiteSpace: 'pre-line', margin: 0 }}>
-              {thread.latestMessage?.content}
-            </p>
-          </div>
-          <p style={{ color: '#B0B0B0', fontSize: 12, margin: '8px 0 0' }}>{timeAgo(thread.latestMessage?.sentAt)}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── Main dashboard ────────────────────────────────────────────────────────────
 export default function TenantDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState('saved');
   const [favorites, setFavorites] = useState([]);
-  const [threads, setThreads] = useState([]);
-  const [announcements, setAnnouncements] = useState([]);
-  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    Promise.allSettled([
-      api.get('/tenant/favorites'),
-      api.get('/messages/inbox'),
-      api.get('/announcements'),
-      api.get('/notifications'),
-    ]).then(([f, m, a, n]) => {
-      if (f.status === 'fulfilled') setFavorites(f.value.data.favorites || []);
-      if (m.status === 'fulfilled') setThreads(m.value.data.threads || []);
-      if (a.status === 'fulfilled') setAnnouncements(a.value.data.announcements || []);
-      if (n.status === 'fulfilled') setNotifications(n.value.data.notifications || []);
-    }).finally(() => setLoading(false));
+    api.get('/tenant/favorites')
+      .then(res => setFavorites(res.data.favorites || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
-
-  const messageCount = threads.length + announcements.length + notifications.length;
-
-  const TABS = [
-    { key: 'saved',    label: 'Saved',    Icon: HeartIcon, count: favorites.length },
-    { key: 'messages', label: 'Messages', Icon: ChatIcon,  count: messageCount },
-  ];
 
   const NAV_ITEMS = [
     { key: 'browse',   label: 'Browse',   Icon: HomeIcon,  action: () => navigate('/') },
-    { key: 'saved',    label: 'Saved',    Icon: HeartIcon, action: () => setTab('saved') },
-    { key: 'messages', label: 'Messages', Icon: ChatIcon,  action: () => setTab('messages') },
-    { key: 'account',  label: 'Account',  Icon: UserIcon,  action: () => setTab('saved') },
+    { key: 'saved',    label: 'Saved',    Icon: HeartIcon, action: () => {} },
+    { key: 'messages', label: 'Messages', Icon: ChatIcon,  action: () => navigate('/tenant/messages') },
+    { key: 'account',  label: 'Account',  Icon: UserIcon,  action: () => {} },
   ];
 
   return (
@@ -344,13 +196,11 @@ export default function TenantDashboard() {
         height: 64, padding: '0 20px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        {/* Logo */}
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
           <img src="/logo.svg" alt="HausFindrr" style={{ width: 34, height: 34 }} />
           <span style={{ fontSize: 20, fontWeight: 800, color: BROWN, letterSpacing: '-0.5px' }}>HausFindrr</span>
         </Link>
 
-        {/* Pill button: hamburger + avatar */}
         <button
           onClick={() => setMenuOpen(o => !o)}
           style={{
@@ -378,12 +228,10 @@ export default function TenantDashboard() {
       {/* ── Dropdown menu ──────────────────────────────────────────────────── */}
       {menuOpen && (
         <>
-          {/* Click-away overlay */}
           <div
             style={{ position: 'fixed', inset: 0, zIndex: 90 }}
             onClick={() => setMenuOpen(false)}
           />
-          {/* Menu */}
           <div style={{
             position: 'fixed', top: 72, right: 16, zIndex: 100,
             backgroundColor: '#fff', borderRadius: 16,
@@ -412,109 +260,36 @@ export default function TenantDashboard() {
       {/* ── Page title ─────────────────────────────────────────────────────── */}
       <div style={{ padding: '24px 20px 0' }}>
         <h1 style={{ fontSize: 26, fontWeight: 800, color: BROWN, letterSpacing: '-0.5px', margin: '0 0 4px' }}>
-          Your account
+          Saved homes
         </h1>
         <p style={{ color: MUTED, fontSize: 14, margin: 0 }}>
           Hi, {user?.name?.split(' ')[0]}
         </p>
       </div>
 
-      {/* ── Tabs ───────────────────────────────────────────────────────────── */}
-      <div style={{ marginTop: 24, borderBottom: `1px solid ${DIVIDER}` }}>
-        <div style={{ display: 'flex', paddingLeft: 12 }}>
-          {TABS.map(({ key, label, Icon, count }) => {
-            const active = tab === key;
-            return (
-              <button
-                key={key}
-                onClick={() => setTab(key)}
-                style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  gap: 5, padding: '6px 16px 12px', background: 'none', border: 'none',
-                  borderBottom: active ? `2.5px solid ${BROWN}` : '2.5px solid transparent',
-                  marginBottom: -1, cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                <Icon size={20} color={active ? BROWN : '#C0C0C0'} sw={active ? 2.1 : 1.7} />
-                <span style={{ fontSize: 13, fontWeight: active ? 700 : 500, color: active ? BROWN : '#C0C0C0', whiteSpace: 'nowrap' }}>
-                  {label}{count > 0 ? ` (${count})` : ''}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* ── Tab content ────────────────────────────────────────────────────── */}
       <div style={{ padding: '20px 16px' }}>
         {loading ? (
           <div style={{ textAlign: 'center', paddingTop: 64, color: MUTED, fontSize: 14 }}>Loading…</div>
+        ) : favorites.length === 0 ? (
+          <EmptyState />
         ) : (
-          <>
-            {/* Saved */}
-            {tab === 'saved' && (
-              favorites.length === 0 ? <EmptyState tabKey="saved" /> : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {favorites.map(f => (
-                    <PropertyRow
-                      key={f.id}
-                      property={f.property}
-                      onRemove={async () => {
-                        try {
-                          await api.post(`/tenant/favorite/${f.property.id}`);
-                          setFavorites(prev => prev.filter(x => x.id !== f.id));
-                        } catch {
-                          // silent — user can retry
-                        }
-                      }}
-                    />
-                  ))}
-                </div>
-              )
-            )}
-
-            {/* Messages */}
-            {tab === 'messages' && (
-              messageCount === 0 ? <EmptyState tabKey="messages" /> : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {notifications.map(n => (
-                    <NotificationRow key={n.id} notification={n} />
-                  ))}
-                  {announcements.map(a => (
-                    <AnnouncementRow key={a.id} announcement={a} />
-                  ))}
-                  {threads.map((t, i) => (
-                    t.isDirect ? (
-                      <DirectMessageRow key={i} thread={t} />
-                    ) : (
-                      <Link key={i} to={`/property/${t.propertyId}`} style={{
-                        ...cardStyle, display: 'flex', alignItems: 'center', gap: 14,
-                        padding: '14px 16px', textDecoration: 'none',
-                      }}>
-                        <div style={{ width: 44, height: 44, borderRadius: '50%', backgroundColor: CLAY_TINT, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <ChatIcon size={20} color={CLAY} sw={1.8} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontWeight: 700, color: BROWN, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: '0 0 3px' }}>
-                            {t.property?.title}
-                          </p>
-                          <p style={{ color: MUTED, fontSize: 13, margin: '0 0 2px' }}>With {t.otherUser?.name}</p>
-                          <p style={{ color: '#B0B0B0', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
-                            {t.latestMessage?.content}
-                          </p>
-                        </div>
-                        {t.unreadCount > 0 && (
-                          <span style={{ backgroundColor: CLAY, color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, flexShrink: 0 }}>
-                            {t.unreadCount}
-                          </span>
-                        )}
-                      </Link>
-                    )
-                  ))}
-                </div>
-              )
-            )}
-          </>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {favorites.map(f => (
+              <PropertyRow
+                key={f.id}
+                property={f.property}
+                onRemove={async () => {
+                  try {
+                    await api.post(`/tenant/favorite/${f.property.id}`);
+                    setFavorites(prev => prev.filter(x => x.id !== f.id));
+                  } catch {
+                    // silent — user can retry
+                  }
+                }}
+              />
+            ))}
+          </div>
         )}
       </div>
 
@@ -525,8 +300,7 @@ export default function TenantDashboard() {
         display: 'flex', paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}>
         {NAV_ITEMS.map(({ key, label, Icon, action }) => {
-          // Account is always the active bottom-nav item since this IS the account page
-          const active = key === 'account';
+          const active = key === 'account' || key === 'saved';
           return (
             <button
               key={key}

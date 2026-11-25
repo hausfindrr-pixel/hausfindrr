@@ -45,7 +45,7 @@ export default function TenantMessagesPage() {
     <div className="min-h-dvh bg-[#F5F0EB]">
       {/* Sticky header */}
       <div className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-2">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-2">
           <h1 className="text-xl font-bold text-[#41271B]">Messages</h1>
           {totalUnread > 0 && (
             <span className="bg-[#975536] text-white text-xs font-bold px-2 py-0.5 rounded-full">
@@ -56,7 +56,7 @@ export default function TenantMessagesPage() {
       </div>
 
       <div
-        className="max-w-2xl mx-auto px-4 py-4"
+        className="max-w-4xl mx-auto px-4 py-4"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
       >
         {threads.length === 0 ? (
@@ -72,7 +72,7 @@ export default function TenantMessagesPage() {
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-50">
+          <div className="grid gap-2 md:grid-cols-2 md:gap-3">
             {threads.map(t => (
               <TenantConversationRow
                 key={`${t.propertyId}-${t.otherUser?.id}`}
@@ -91,11 +91,15 @@ function TenantConversationRow({ thread, onOpen }) {
   const hasUnread = thread.unreadCount > 0;
   const photo = thread.property?.photos?.[0]?.filePath;
   const landlordFirst = (thread.otherUser?.name || 'Landlord').split(' ')[0];
+  const price = thread.property?.price
+    ? `K${Number(thread.property.price).toLocaleString()}${thread.property.rentFrequency ? `/${thread.property.rentFrequency}` : ''}`
+    : null;
+  const area = thread.property?.locationGeneral;
 
   return (
     <button
       onClick={onOpen}
-      className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
+      className="w-full flex items-center gap-3 p-4 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left bg-white rounded-2xl shadow-sm"
       style={{ minHeight: 72 }}
     >
       {/* Listing thumbnail */}
@@ -115,10 +119,15 @@ function TenantConversationRow({ thread, onOpen }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5">
           <p className={`text-sm truncate ${hasUnread ? 'font-semibold text-[#41271B]' : 'font-medium text-gray-700'}`}>
-            {thread.property?.title || landlordFirst}
+            {landlordFirst}
           </p>
           {hasUnread && <span className="w-2 h-2 rounded-full bg-[#975536] flex-shrink-0" />}
         </div>
+        {(price || area) && (
+          <p className="text-xs text-gray-500 truncate mb-0.5">
+            {[price, area].filter(Boolean).join(' · ')}
+          </p>
+        )}
         <p className={`text-xs truncate ${hasUnread ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
           {thread.latestMessage?.content || 'No messages yet'}
         </p>
@@ -141,13 +150,14 @@ function Skeleton() {
   return (
     <div className="min-h-dvh bg-[#F5F0EB]">
       <div className="sticky top-0 z-30 bg-white border-b border-gray-100 h-16" />
-      <div className="max-w-2xl mx-auto px-4 py-4">
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm divide-y divide-gray-50">
+      <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="grid gap-2 md:grid-cols-2 md:gap-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="flex gap-3 px-4 py-4">
+            <div key={i} className="flex gap-3 p-4 bg-white rounded-2xl shadow-sm">
               <div className="w-14 h-14 rounded-xl bg-gray-200 animate-pulse flex-shrink-0" />
               <div className="flex-1 space-y-2 pt-1">
                 <div className="h-4 bg-gray-200 rounded animate-pulse w-2/3" />
+                <div className="h-3 bg-gray-100 rounded animate-pulse w-1/2" />
                 <div className="h-3 bg-gray-100 rounded animate-pulse w-3/4" />
               </div>
             </div>

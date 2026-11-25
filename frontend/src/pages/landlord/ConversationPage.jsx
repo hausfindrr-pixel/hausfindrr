@@ -1,14 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useMessages } from '../../context/MessagesContext';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-const QUICK_REPLIES = [
+const LANDLORD_QUICK_REPLIES = [
   "Yes, it's available",
   "When would you like to view?",
   "Sorry, it's taken",
+];
+
+const TENANT_QUICK_STARTERS = [
+  "Is this still available?",
+  "Can I view it this week?",
+  "What's included in the rent?",
 ];
 
 const SAFETY_KEY = (pid, uid) => `safety-dismissed-${pid}-${uid}`;
@@ -157,6 +163,11 @@ export default function ConversationPage() {
 
   const tenantFirstName = (otherUser?.name || 'Tenant').split(' ')[0];
   const listingTitle = property?.title || '';
+  const isLandlord = user?.role === 'landlord';
+  const isTenant = user?.role === 'tenant';
+  const quickReplies = isLandlord
+    ? LANDLORD_QUICK_REPLIES
+    : (isTenant && messages.length === 0 ? TENANT_QUICK_STARTERS : []);
 
   if (loading) {
     return (
@@ -211,6 +222,43 @@ export default function ConversationPage() {
           </div>
         )}
 
+        {/* Tenant: small listing card linking back to the listing */}
+        {isTenant && property && (
+          <div className="flex-shrink-0 px-4 py-2 border-b border-gray-100 bg-white">
+            <Link
+              to={`/property/${propertyId}`}
+              className="flex items-center gap-3 bg-gray-50 rounded-xl p-2.5 hover:bg-[#EDE0CE]/40 transition-colors"
+            >
+              {property.photos?.[0]?.filePath ? (
+                <img src={property.photos[0].filePath} alt={property.title} className="w-11 h-11 rounded-lg object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-11 h-11 rounded-lg bg-[#EDE0CE] flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-[#975536]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-semibold text-[#41271B] truncate">{property.title}</p>
+                  {property.landlordVerified && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 flex-shrink-0">✓ Verified</span>
+                  )}
+                </div>
+                <p className="text-[11px] text-gray-500 truncate">
+                  {[
+                    property.price ? `K${Number(property.price).toLocaleString()}` : null,
+                    property.locationGeneral,
+                  ].filter(Boolean).join(' · ')}
+                </p>
+              </div>
+              <svg className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+        )}
+
         {/* Messages — this area scrolls */}
         <div
           ref={scrollRef}
@@ -245,19 +293,21 @@ export default function ConversationPage() {
           className="flex-shrink-0 bg-white border-t border-gray-100"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
-          {/* Quick replies */}
-          <div className="flex gap-2 px-4 pt-2.5 pb-1 overflow-x-auto scrollbar-hide">
-            {QUICK_REPLIES.map(qr => (
-              <button
-                key={qr}
-                onClick={() => useQuickReply(qr)}
-                className="flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border border-[#975536]/30 text-[#975536] bg-[#EDE0CE]/40 hover:bg-[#EDE0CE] active:bg-[#EDE0CE] transition-colors whitespace-nowrap"
-                style={{ minHeight: 32 }}
-              >
-                {qr}
-              </button>
-            ))}
-          </div>
+          {/* Quick replies / quick starters */}
+          {quickReplies.length > 0 && (
+            <div className="flex gap-2 px-4 pt-2.5 pb-1 overflow-x-auto scrollbar-hide">
+              {quickReplies.map(qr => (
+                <button
+                  key={qr}
+                  onClick={() => useQuickReply(qr)}
+                  className="flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border border-[#975536]/30 text-[#975536] bg-[#EDE0CE]/40 hover:bg-[#EDE0CE] active:bg-[#EDE0CE] transition-colors whitespace-nowrap"
+                  style={{ minHeight: 32 }}
+                >
+                  {qr}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Input row */}
           <form onSubmit={send} className="flex gap-2 px-4 py-2 items-end">
