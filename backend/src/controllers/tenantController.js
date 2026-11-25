@@ -22,6 +22,16 @@ async function toggleFavorite(req, res, next) {
   }
 }
 
+async function isFavorited(req, res, next) {
+  try {
+    const { propertyId } = req.params;
+    const existing = await prisma.favorite.findUnique({
+      where: { tenantId_propertyId: { tenantId: req.user.id, propertyId } },
+    });
+    res.json({ favorited: !!existing });
+  } catch (err) { next(err); }
+}
+
 async function getFavorites(req, res, next) {
   try {
     const favorites = await prisma.favorite.findMany({
@@ -37,4 +47,4 @@ async function getFavorites(req, res, next) {
   }
 }
 
-module.exports = { toggleFavorite, getFavorites };
+module.exports = { toggleFavorite, isFavorited, getFavorites };
