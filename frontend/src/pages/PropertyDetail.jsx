@@ -6,6 +6,7 @@ import Navbar from '../components/shared/Navbar';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { priceLabel } from '../utils/format';
+import { LANDMARKS, haversineKm } from '../constants/landmarks';
 
 const SAT_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 const OSM_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
@@ -191,6 +192,13 @@ export default function PropertyDetail() {
   const isOwner = user?.role === 'landlord' && user.id === property.landlordId;
   const showBottomBar = !isOwner && user?.role !== 'admin';
 
+  const nearbyLandmarks = hasCoords
+    ? LANDMARKS
+        .map(lm => ({ ...lm, distKm: haversineKm(property.locationLat, property.locationLng, lm.lat, lm.lng) }))
+        .filter(lm => lm.distKm <= lm.radiusKm)
+        .sort((a, b) => a.distKm - b.distKm)
+    : [];
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -279,6 +287,21 @@ export default function PropertyDetail() {
             </svg>
             {property.locationGeneral}
           </p>
+          {nearbyLandmarks.length > 0 && (
+            <p className="text-xs text-gray-400 mt-1.5 flex items-start gap-1 flex-wrap">
+              <svg className="w-3.5 h-3.5 flex-shrink-0 mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+              <span>
+                {nearbyLandmarks.map((lm, i) => (
+                  <span key={lm.name}>
+                    {i > 0 && <span className="mx-1">·</span>}
+                    {lm.name} {lm.distKm.toFixed(1)} km
+                  </span>
+                ))}
+              </span>
+            </p>
+          )}
         </div>
 
         {/* ── Key facts ── */}

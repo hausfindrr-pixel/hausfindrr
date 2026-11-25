@@ -5,6 +5,7 @@ import Navbar from '../../components/shared/Navbar';
 import api from '../../services/api';
 import { PNG_CITIES } from '../../constants/pngCities';
 import { LISTING_TAGS } from '../../constants/listingTags';
+import { LANDMARKS, haversineKm } from '../../constants/landmarks';
 
 const DEFAULT_LAT = -9.4438;
 const DEFAULT_LNG = 147.1803;
@@ -18,6 +19,8 @@ const PROPERTY_TYPES = [
   { value: 'house',      label: 'House' },
   { value: 'apartment',  label: 'Apartment' },
 ];
+
+const PHOTO_SLOTS = ['Front', 'Back', 'Living', 'Kitchen', 'Bedroom', 'Bathroom'];
 
 const SAT_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 const SAT_ATTRIBUTION = 'Tiles &copy; Esri';
@@ -40,6 +43,32 @@ const EMPTY_FORM = {
   parkingAvailable: '',
 };
 
+async function compressPhoto(file, maxWidth = 1600) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const src = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(src);
+      const ratio = Math.min(1, maxWidth / img.width);
+      const w = Math.round(img.width * ratio);
+      const h = Math.round(img.height * ratio);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => {
+        const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+        resolve({ file: compressed, width: w, height: h, label: '', preview: URL.createObjectURL(blob) });
+      }, 'image/jpeg', 0.85);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(src);
+      resolve({ file, width: 0, height: 0, label: '', preview: URL.createObjectURL(file) });
+    };
+    img.src = src;
+  });
+}
+
 export default function LandlordNewListing() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -49,17 +78,20 @@ export default function LandlordNewListing() {
   const [customAmenity, setCustomAmenity] = useState('');
   const [selectedAmenities, setSelectedAmenities] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
+  const [suggestedTags, setSuggestedTags] = useState([]);
+  const [tipsOpen, setTipsOpen] = useState(false);
   const [pinLat, setPinLat] = useState(DEFAULT_LAT);
   const [pinLng, setPinLng] = useState(DEFAULT_LNG);
   const [mapReady, setMapReady] = useState(false);
   const [isSatellite, setIsSatellite] = useState(false);
-  const [cityChoice, setCityChoice] = useState(''); // '' | city string | '__other__'
+  const [cityChoice, setCityChoice] = useState('');
 
   const mapRef = useRef(null);
   const leafletMapRef = useRef(null);
   const markerRef = useRef(null);
   const osmLayerRef = useRef(null);
   const satLayerRef = useRef(null);
+  const dismissedRef = useRef([]);
 
   const [form, setForm] = useState(EMPTY_FORM);
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
@@ -73,9 +105,16 @@ export default function LandlordNewListing() {
   }
 
   function toggleTag(t) {
-    setSelectedTags(prev =>
-      prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]
-    );
+    const isSuggested = suggestedTags.some(s => s.tag === t);
+    if (selectedTags.includes(t)) {
+      setSelectedTags(prev => prev.filter(x => x !== t));
+      if (isSuggested && !dismissedRef.current.includes(t)) {
+        dismissedRef.current = [...dismissedRef.current, t];
+      }
+    } else {
+      setSelectedTags(prev => [...prev, t]);
+      dismissedRef.current = dismissedRef.current.filter(x => x !== t);
+    }
   }
 
   function addCustomAmenity() {
@@ -86,6 +125,7 @@ export default function LandlordNewListing() {
     setCustomAmenity('');
   }
 
+  // Map init
   useEffect(() => {
     let map;
     async function initMap() {
@@ -124,6 +164,24 @@ export default function LandlordNewListing() {
       if (leafletMapRef.current) { leafletMapRef.current.remove(); leafletMapRef.current = null; }
     };
   }, []);
+
+  // Landmark suggestions on pin change
+  useEffect(() => {
+    const inRange = LANDMARKS
+      .map(lm => ({ ...lm, distKm: haversineKm(pinLat, pinLng, lm.lat, lm.lng) }))
+      .filter(lm => lm.distKm <= lm.radiusKm)
+      .sort((a, b) => a.distKm - b.distKm);
+
+    setSuggestedTags(inRange);
+
+    setSelectedTags(prev => {
+      const dismissed = dismissedRef.current;
+      const toAdd = inRange
+        .filter(lm => !dismissed.includes(lm.tag) && !prev.includes(lm.tag))
+        .map(lm => lm.tag);
+      return toAdd.length ? [...prev, ...toAdd] : prev;
+    });
+  }, [pinLat, pinLng]);
 
   function toggleSatellite() {
     const map = leafletMapRef.current;
@@ -171,7 +229,7 @@ export default function LandlordNewListing() {
       fd.append('metadata', JSON.stringify(buildMetadata()));
       fd.append('location_lat', pinLat.toString());
       fd.append('location_lng', pinLng.toString());
-      photos.forEach(f => fd.append('photos', f));
+      photos.forEach(p => fd.append('photos', p.file));
       titleDocs.forEach(f => fd.append('title_documents', f));
       supportingDocs.forEach(f => fd.append('title_documents', f));
 
@@ -186,14 +244,22 @@ export default function LandlordNewListing() {
     }
   }
 
-  function handlePhotoChange(e) {
-    const newFiles = Array.from(e.target.files);
-    setPhotos(prev => [...prev, ...newFiles].slice(0, 20));
+  async function handlePhotoChange(e) {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    const compressed = await Promise.all(files.map(f => compressPhoto(f)));
+    setPhotos(prev => [...prev, ...compressed].slice(0, 20));
+    e.target.value = '';
   }
 
   function removePhoto(index) {
+    URL.revokeObjectURL(photos[index].preview);
     setPhotos(prev => prev.filter((_, i) => i !== index));
   }
+
+  const fewPhotos = photos.length > 0 && photos.length < 5;
+  const portraitCover = photos[0]?.height > photos[0]?.width;
+  const hasNarrow = photos.some(p => p.width > 0 && p.width < 800);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -256,7 +322,7 @@ export default function LandlordNewListing() {
             </div>
           </Section>
 
-          {/* Section 2: Property details — dynamic by type */}
+          {/* Section 2: Property details */}
           <Section title="Property Details" number="2">
             <div>
               <label className="label">Property Type</label>
@@ -483,6 +549,39 @@ export default function LandlordNewListing() {
             <p className="text-xs text-gray-500 -mt-1">
               Tags help tenants discover your listing. Select all that apply — tags only appear in search once enough listings use them.
             </p>
+
+            {/* Landmark suggestions */}
+            {suggestedTags.length > 0 && (
+              <div className="bg-[#EDE0CE]/40 border border-[#EDE0CE] rounded-xl p-3">
+                <p className="text-xs font-semibold text-[#41271B] mb-2 flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5 text-[#975536]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Suggested from your map pin
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {suggestedTags.map(s => (
+                    <button
+                      key={s.name}
+                      type="button"
+                      onClick={() => toggleTag(s.tag)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                        selectedTags.includes(s.tag)
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                      }`}
+                    >
+                      {s.tag}
+                      <span className={`text-xs ${selectedTags.includes(s.tag) ? 'opacity-70' : 'text-gray-400'}`}>
+                        {s.distKm.toFixed(1)} km
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-2">
               {LISTING_TAGS.map(tag => (
                 <button
@@ -503,34 +602,115 @@ export default function LandlordNewListing() {
 
           {/* Section 7: Photos */}
           <Section title="Property Photos" number="7">
+
+            {/* Photo reminder */}
+            <div className="bg-[#EDE0CE]/60 rounded-xl p-3 flex gap-2.5 items-start">
+              <svg className="w-5 h-5 text-[#975536] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-[#41271B] font-medium leading-relaxed">
+                  Photos sell your home. Use clear daylight shots, phone held sideways. Aim to include: front, back, living room, kitchen, bedroom, bathroom.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setTipsOpen(o => !o)}
+                  className="text-xs text-[#975536] font-semibold mt-1.5 hover:underline flex items-center gap-1"
+                >
+                  {tipsOpen ? 'Show less' : 'More tips'}
+                  <svg className={`w-3 h-3 transition-transform duration-150 ${tipsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {tipsOpen && (
+                  <ul className="mt-2 text-xs text-[#41271B]/80 space-y-1 leading-relaxed">
+                    <li>• Real property only — no faces, IDs or personal items in frame</li>
+                    <li>• Best photo first — it becomes the cover</li>
+                    <li>• 5 or more photos attract significantly more tenant enquiries</li>
+                    <li>• Landscape (horizontal) photos look better on all screen sizes</li>
+                  </ul>
+                )}
+              </div>
+            </div>
+
+            {/* Upload dropzone */}
             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-secondary/50 hover:bg-secondary/5 transition-colors bg-gray-50">
               <input type="file" className="hidden" accept="image/*" multiple onChange={handlePhotoChange} />
               <svg className="w-8 h-8 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <p className="text-sm text-gray-500">Drag or click to upload photos</p>
-              <p className="text-xs text-gray-400 mt-0.5">JPG, PNG, WebP — max 5MB each</p>
+              <p className="text-sm text-gray-500">Tap to add photos</p>
+              <p className="text-xs text-gray-400 mt-0.5">JPG, PNG, WebP — compressed automatically</p>
             </label>
 
+            {/* Checklist chips */}
+            <div className="flex flex-wrap gap-1.5">
+              {PHOTO_SLOTS.map(slot => {
+                const done = photos.some(p => p.label === slot);
+                return (
+                  <span
+                    key={slot}
+                    className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
+                      done
+                        ? 'bg-green-50 border-green-300 text-green-700'
+                        : 'bg-white border-gray-200 text-gray-400'
+                    }`}
+                  >
+                    {done ? '✓ ' : ''}{slot}
+                  </span>
+                );
+              })}
+            </div>
+
+            {/* Thumbnail grid with label selects */}
             {photos.length > 0 && (
-              <div className="grid grid-cols-4 gap-2 mt-3">
-                {photos.map((f, i) => (
-                  <div key={i} className="relative group">
-                    <img src={URL.createObjectURL(f)} className="w-full aspect-square object-cover rounded-xl" alt="" />
-                    <button
-                      type="button" onClick={() => removePhoto(i)}
-                      className="absolute top-1 right-1 w-5 h-5 bg-black/60 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >×</button>
-                    {i === 0 && (
-                      <span className="absolute bottom-1 left-1 text-xs bg-black/60 text-white px-1.5 py-0.5 rounded-md">Cover</span>
-                    )}
+              <div className="grid grid-cols-3 gap-2">
+                {photos.map((p, i) => (
+                  <div key={i} className="relative group flex flex-col">
+                    <div className="relative">
+                      <img src={p.preview} className="w-full aspect-video object-cover rounded-xl" alt="" />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(i)}
+                        className="absolute top-1 right-1 w-5 h-5 bg-black/60 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >×</button>
+                      {i === 0 && (
+                        <span className="absolute bottom-1 left-1 text-xs bg-black/60 text-white px-1.5 py-0.5 rounded-md">Cover</span>
+                      )}
+                    </div>
+                    <select
+                      value={p.label}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setPhotos(prev => prev.map((pp, ii) => ii === i ? { ...pp, label: val } : pp));
+                      }}
+                      className="mt-1 w-full text-xs rounded-lg border border-gray-200 px-1.5 py-1 bg-white text-gray-600 focus:outline-none focus:border-gray-400"
+                    >
+                      <option value="">Label…</option>
+                      {PHOTO_SLOTS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
                   </div>
                 ))}
               </div>
             )}
-            <p className="text-xs text-gray-400 mt-2">
-              Use clear, well-lit photos. Listings with quality photos get rented faster.
-            </p>
+
+            {/* Soft warnings */}
+            {fewPhotos && (
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                Listings with 5+ photos attract more tenant enquiries. Consider adding a few more.
+              </p>
+            )}
+            {portraitCover && (
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                Your cover photo is portrait (vertical). Landscape photos look better as a cover.
+              </p>
+            )}
+            {hasNarrow && (
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                Some photos look low-resolution. Use photos taken on a modern phone for best results.
+              </p>
+            )}
           </Section>
 
           <button className="btn-primary w-full py-3.5 text-base" disabled={loading}>
