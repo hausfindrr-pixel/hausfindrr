@@ -11,7 +11,7 @@ export const TOS_SECTIONS = [
   },
   {
     heading: '3. Free Service',
-    body: `HausFindrr is free to use for tenants. We do not charge any fees to browse listings, view landlord contact details, or use any feature of the Platform. You will never be asked for payment by HausFindrr to access a listing or contact a landlord. If you encounter any request for payment from someone claiming to represent HausFindrr, please contact us immediately at info@hausfindrr.com.`,
+    body: `HausFindrr is free to use for tenants. We do not charge any fees to browse listings, find those advertisements and message the landlord through HausFindrr, or use any feature of the Platform. You will never be asked for payment by HausFindrr to access a listing or message a landlord. If you encounter any request for payment from someone claiming to represent HausFindrr, please contact us immediately at info@hausfindrr.com.`,
   },
   {
     heading: '4. Eligibility',
@@ -22,8 +22,12 @@ export const TOS_SECTIONS = [
     body: `When you register, you must provide your full legal name, a valid email address, a current phone number, and a secure password. You are responsible for maintaining the confidentiality of your password and for all activity that occurs under your account. You must notify HausFindrr immediately at info@hausfindrr.com if you suspect unauthorised access to your account. HausFindrr will not be liable for any loss arising from your failure to keep your credentials secure.`,
   },
   {
+    heading: '5.5 Messaging',
+    body: `HausFindrr provides an in-app messaging feature that allows tenants and landlords to communicate about listings. Messages are between the users involved — HausFindrr is not a party to those conversations. HausFindrr staff do not read messages except where a conversation has been reported or is under active investigation, in accordance with our Privacy Policy.`,
+  },
+  {
     heading: '6. Viewing Landlord Contact Details',
-    body: `Once you are signed in, you can view the landlord's name and phone number directly on any active listing. You must use these contact details only for genuine property enquiries. You may not share, resell, or distribute landlord contact details to any third party. HausFindrr does not automatically share your phone number or personal details with landlords.`,
+    body: `Once you are signed in, you can message landlords directly through HausFindrr. Landlord phone numbers are not shown on listings. A landlord may choose to share their phone number with you during a conversation — that is their decision. You must use the Platform only for genuine property enquiries. You may not share any personal details obtained through the Platform with third parties.`,
   },
   {
     heading: '7. Landlord Obligations',
@@ -54,6 +58,7 @@ Verification is an identity check only. You remain responsible for conducting yo
 • Post or transmit any harassing, abusive, defamatory, or unlawful content
 • Attempt to circumvent any security measure or access controls
 • Use automated bots, scripts, or tools to interact with the Platform
+• Send spam or unwanted advertising through HausFindrr messages
 • Engage in any activity that interferes with the proper functioning of the Platform
 
 Violation of these rules may result in immediate account suspension and/or legal action.`,

@@ -26,7 +26,24 @@ You are required to mark your listing as "Rented" as soon as a tenant has agreed
 
 You must submit a valid government-issued identity document as part of your registration. HausFindrr will review this document as part of the verification process. You confirm that all documents submitted are genuine and belong to you. Submitting false or fraudulent documents is a criminal offence under Papua New Guinea law.
 
-5. RIGHT TO LIST
+5. CONTACT DETAILS & TENANT COMMUNICATION
+
+5.1 Your name and your listing pin are visible to registered users on HausFindrr. Your phone number is not shown on your listing or profile. If you choose to share your phone number with a tenant during a conversation, that is your decision — HausFindrr will not share it automatically.
+
+5.2 You agree to use the Platform only for genuine rental enquiries and to respond professionally and honestly to all tenant messages.
+
+5.3 You must never request any payment, deposit, or fee from a tenant before they have viewed the property in person and signed a written rental agreement.
+
+5.4 When using HausFindrr messaging you agree to:
+  • Communicate honestly and politely at all times
+  • Not send spam, repeated unsolicited messages, or advertising
+  • Not harass, threaten, or intimidate any user
+  • Not request any pre-viewing fee or payment through HausFindrr messages
+HausFindrr staff may read a conversation that has been reported or is under investigation for fraud or misconduct, and every such access is logged.
+
+5.5 HausFindrr shows you statistics about your listings, including how many times each listing has been viewed and how many conversations have been started about it. HausFindrr may use these totals in aggregate, non-identifiable form to run and improve the platform.
+
+6. RIGHT TO LIST
 
 By listing a property on HausFindrr, you confirm that:
   • You are the legal owner of the property, or
@@ -34,13 +51,6 @@ By listing a property on HausFindrr, you confirm that:
   • You have the right to enter into a rental agreement in respect of that property.
 
 Listing a property without the right to do so is fraud and may result in criminal prosecution.
-
-6. CONTACT DETAILS & TENANT COMMUNICATION
-
-Your name and phone number will be visible to signed-in tenants viewing your listings. You agree to:
-  • Use these details for genuine rental enquiries only
-  • Respond professionally and honestly to all tenant enquiries
-  • Never request payments or deposits before a tenant has viewed the property in person and signed a written agreement
 
 7. CODE OF CONDUCT
 

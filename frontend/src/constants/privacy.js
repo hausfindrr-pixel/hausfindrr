@@ -10,43 +10,44 @@ export const PRIVACY_SECTIONS = [
     heading: '2. Data We Collect',
     body: `We collect the following categories of personal data:
 
-Registration data: your full name, email address, phone number, and password (stored as a secure hash).
+Registration data. Your full name, email address, phone number, and password (stored as a secure hash).
 
-Identity documents (landlords only): government-issued ID documents and property ownership documents uploaded during the verification process.
+Listing details (landlords). The address, description, photographs, price, and other details you enter when creating a property listing, and the name you choose to show on the listing.
 
-Usage data: pages viewed, search terms, listings saved, messages sent, and timestamps of activity.
+Messages and reports. The messages you send and receive through HausFindrr, and reports you make about a listing, a conversation or a user.
 
-Technical data: IP address, browser type and version, device type, and operating system, collected when you use the platform.
+Identity documents (landlords only). Government-issued ID documents and property ownership documents uploaded during the verification process.
 
-Consent records: a log of when you accepted our Terms of Service, Privacy Policy, and Landlord Agreement, including the date, time, and IP address of acceptance.`,
+Technical information. IP address, browser type and version, device type, and operating system, collected when you use the platform. We also count how many times a listing is viewed and how many conversations are started about it, so landlords can see how their listing is doing. Landlords see only totals, never the names of the people who looked.
+
+Consent records. A log of when you accepted our Terms of Service, Privacy Policy, and Landlord Agreement, including the date, time, and IP address of acceptance.`,
   },
   {
     heading: '3. How We Use Your Data',
-    body: `We use your personal data to:
+    body: `We use your personal data:
 
-• Create and manage your account
-• Verify landlord identity and property ownership
-• Display landlord contact details (name and phone) to signed-in tenants
-• Enable messaging between tenants and landlords through the platform
-• Maintain an immutable audit log of your consent to our terms
-• Investigate and resolve complaints or reports
-• Improve and secure the platform
-• Comply with applicable law
+• to create and manage your account;
+• to verify landlord identity and property ownership;
+• to let registered tenants message landlords through HausFindrr, and landlords reply;
+• to send you email alerts about new messages and replies, and important notices about HausFindrr;
+• to maintain an immutable audit log of your consent to our terms;
+• to investigate and resolve complaints or reports;
+• to improve and secure the platform; and
+• to comply with applicable law.
 
 We do not use your data for advertising or marketing purposes, and we will never sell your personal data to third parties.`,
   },
   {
     heading: '4. What We Share',
-    body: `When you are a verified landlord, your name and phone number are shown to signed-in tenants viewing your listings. This is the core service you have agreed to provide by listing a property on HausFindrr.
+    body: `Other users. When you are a verified landlord, your name and listing pin are visible to registered users on HausFindrr. Your phone number is not shown on your listing or profile. If you choose to share your phone number during a conversation with a tenant, that is your decision — HausFindrr will not share it automatically.
 
-We do not automatically share your email address or any other personal details with other users.
+Tenants' personal details are not shown to landlords or other users.
 
-We may share your personal data with:
-• Our hosting and infrastructure providers (Vercel, Railway, Cloudinary) solely for the purpose of operating the platform
-• Law enforcement or regulatory authorities where we are required by law to do so
-• Professional advisors (legal, financial) under strict confidentiality obligations
+Messages. Messages are private between the two parties in a conversation. HausFindrr staff do not read messages except when a conversation has been reported or is under active investigation, and every such access is logged.
 
-We require all third-party processors to protect your data to at least the same standard as HausFindrr.`,
+Service providers. We work with Vercel (website hosting), Railway (servers and database), Cloudinary (storage of photos and verification documents), Google (maps) and Gmail (sending email alerts). We require all processors to protect your data to at least the same standard as HausFindrr.
+
+We may also share your personal data with law enforcement or regulatory authorities where required by law, or with professional advisors under strict confidentiality obligations.`,
   },
   {
     heading: '5. Identity Documents',
@@ -75,10 +76,15 @@ These records are immutable — they are never edited or deleted, even if you cl
     heading: '7. Data Retention',
     body: `We retain your personal data for as long as your account is active and for a reasonable period afterwards in case of disputes or legal requirements.
 
-If you close your account, your profile data will be deleted or anonymised within 30 days. However, the following records will be retained indefinitely:
-• Your consent log entries
-• Any messages that form part of an ongoing dispute or legal matter
-• Anonymised analytics data`,
+If you close your account, your profile data will be deleted or anonymised within 30 days. However, the following records will be retained:
+
+Account and listing data. Deleted or anonymised within 30 days of account closure.
+
+Messages. Kept while your account is open. Deleted within 90 days of account closure, except for any conversation that has been reported or is subject to a legal hold, which will be retained until the matter is resolved.
+
+Consent log entries. Retained indefinitely as required by law.
+
+Anonymised analytics. Retained indefinitely in aggregate, non-identifiable form.`,
   },
   {
     heading: '8. Your Rights',
