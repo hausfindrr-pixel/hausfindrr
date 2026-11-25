@@ -4,7 +4,7 @@ const { authenticate, requireRole } = require('../middleware/auth');
 const { photoUpload, propertyUpload } = require('../middleware/upload');
 const {
   createProperty, updateProperty, getListings, getProperty,
-  getLandlordProperties, deleteProperty, toggleOccupied, markSold, markRented,
+  getLandlordProperties, deleteProperty, toggleOccupied, markSold, markRented, relistProperty,
 } = require('../controllers/propertyController');
 const { recordView, getStats } = require('../controllers/viewController');
 
@@ -57,6 +57,9 @@ router.patch('/:id/sold', authenticate, requireRole('landlord'), markSold);
 
 // Mark as rented (rental listings only)
 router.patch('/:id/rented', authenticate, requireRole('landlord'), markRented);
+
+// Relist a rented property (sets status back to active)
+router.patch('/:id/relist', authenticate, requireRole('landlord'), relistProperty);
 
 // Record a view (auth optional — works for anon visitors too)
 router.post('/:id/view', optionalAuth, recordView);

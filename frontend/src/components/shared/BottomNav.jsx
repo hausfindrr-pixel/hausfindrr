@@ -2,13 +2,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useMessages } from '../../context/MessagesContext';
 
-const ALLOWED_PATHS = [
-  '/',
-  '/tenant/dashboard',
-  '/tenant/messages',
-  '/landlord/dashboard',
-  '/landlord/messages',
-];
+const LANDLORD_PATHS = ['/landlord/properties', '/landlord/messages', '/landlord/dashboard'];
+const TENANT_PATHS  = ['/', '/tenant/dashboard', '/tenant/messages'];
 
 export default function BottomNav() {
   const { user } = useAuth();
@@ -16,15 +11,14 @@ export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Exact match only for leaf paths; allow startsWith only for intended parents
+  const isLandlord = user?.role === 'landlord';
+
   function matchPath(p) {
-    if (location.pathname === p) return true;
-    // only allow startsWith for '/' (homepage)
-    if (p === '/' && location.pathname === '/') return true;
-    return false;
+    return location.pathname === p;
   }
 
-  const visible = ALLOWED_PATHS.some(p => matchPath(p));
+  const allowedPaths = isLandlord ? LANDLORD_PATHS : TENANT_PATHS;
+  const visible = allowedPaths.some(p => matchPath(p));
   if (!visible) return null;
 
   const at = (...paths) => paths.some(p => matchPath(p));
@@ -36,21 +30,49 @@ export default function BottomNav() {
 
   function goMessages() {
     if (!user) { navigate('/tenant/login'); return; }
-    if (user.role === 'landlord') navigate('/landlord/messages');
-    else if (user.role === 'tenant') navigate('/tenant/messages');
-    else navigate('/');
+    if (isLandlord) navigate('/landlord/messages');
+    else navigate('/tenant/messages');
   }
 
-  function goAccount() {
-    if (!user) navigate('/tenant/login');
-    else if (user.role === 'landlord') navigate('/landlord/dashboard');
-    else if (user.role === 'admin') navigate('/admin');
-    else navigate('/tenant/dashboard');
-  }
+  const messagesActive = isLandlord
+    ? at('/landlord/messages')
+    : at('/tenant/messages');
 
-  const messagesActive = at('/landlord/messages', '/tenant/messages');
+  const landlordTabs = [
+    {
+      label: 'Properties',
+      active: at('/landlord/properties'),
+      onClick: () => navigate('/landlord/properties'),
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      ),
+    },
+    {
+      label: 'Messages',
+      active: messagesActive,
+      onClick: goMessages,
+      badge: totalUnread > 0 ? (totalUnread > 9 ? '9+' : String(totalUnread)) : null,
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+      ),
+    },
+    {
+      label: 'Account',
+      active: at('/landlord/dashboard'),
+      onClick: () => navigate('/landlord/dashboard'),
+      icon: (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      ),
+    },
+  ];
 
-  const tabs = [
+  const tenantTabs = [
     {
       label: 'Browse',
       active: at('/'),
@@ -84,8 +106,8 @@ export default function BottomNav() {
     },
     {
       label: 'Account',
-      active: at('/landlord/dashboard', '/admin'),
-      onClick: goAccount,
+      active: false,
+      onClick: () => {},
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -93,6 +115,8 @@ export default function BottomNav() {
       ),
     },
   ];
+
+  const tabs = isLandlord ? landlordTabs : tenantTabs;
 
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-100" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>

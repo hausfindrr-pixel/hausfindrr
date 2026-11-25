@@ -202,6 +202,23 @@ async function markRented(req, res, next) {
   }
 }
 
+async function relistProperty(req, res, next) {
+  try {
+    const { id } = req.params;
+    const property = await prisma.property.findUnique({ where: { id } });
+    if (!property) return res.status(404).json({ error: 'Property not found' });
+    if (property.landlordId !== req.user.id)
+      return res.status(403).json({ error: 'Not your property' });
+    if (property.status !== 'rented')
+      return res.status(400).json({ error: 'Only rented listings can be relisted' });
+
+    await prisma.property.update({ where: { id }, data: { status: 'active' } });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getListings(req, res, next) {
   try {
     const { type, location, minPrice, maxPrice, bedrooms, bathrooms, propertyType, amenities, page = 1, limit = 12 } = req.query;
@@ -403,5 +420,5 @@ async function getFullProperty(id) {
 
 module.exports = {
   createProperty, updateProperty, getListings, getProperty,
-  getLandlordProperties, deleteProperty, toggleOccupied, markSold, markRented,
+  getLandlordProperties, deleteProperty, toggleOccupied, markSold, markRented, relistProperty,
 };

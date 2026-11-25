@@ -9,6 +9,7 @@ import LandlordAgreement from './pages/landlord/LandlordAgreement';
 import LandlordDashboard from './pages/landlord/LandlordDashboard';
 import LandlordNewListing from './pages/landlord/LandlordNewListing';
 import LandlordMessagesPage from './pages/landlord/LandlordMessagesPage';
+import LandlordPropertiesPage from './pages/landlord/LandlordPropertiesPage';
 import ConversationPage from './pages/landlord/ConversationPage';
 import TenantLogin from './pages/tenant/TenantLogin';
 import TenantRegister from './pages/tenant/TenantRegister';
@@ -58,6 +59,9 @@ function AppRoutes() {
       } />
       <Route path="/landlord/new-listing" element={
         <ProtectedRoute role="landlord"><LandlordNewListing /></ProtectedRoute>
+      } />
+      <Route path="/landlord/properties" element={
+        <ProtectedRoute role="landlord"><LandlordPropertiesPage /></ProtectedRoute>
       } />
       <Route path="/landlord/messages" element={
         <ProtectedRoute role="landlord"><LandlordMessagesPage /></ProtectedRoute>
