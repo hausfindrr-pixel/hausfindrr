@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { MessagesProvider } from './context/MessagesContext';
 import BottomNav from './components/shared/BottomNav';
 
 import LandlordLogin from './pages/landlord/LandlordLogin';
@@ -7,10 +8,13 @@ import LandlordRegister from './pages/landlord/LandlordRegister';
 import LandlordAgreement from './pages/landlord/LandlordAgreement';
 import LandlordDashboard from './pages/landlord/LandlordDashboard';
 import LandlordNewListing from './pages/landlord/LandlordNewListing';
+import LandlordMessagesPage from './pages/landlord/LandlordMessagesPage';
+import ConversationPage from './pages/landlord/ConversationPage';
 import TenantLogin from './pages/tenant/TenantLogin';
 import TenantRegister from './pages/tenant/TenantRegister';
 import TenantBrowse from './pages/tenant/TenantBrowse';
 import TenantDashboard from './pages/tenant/TenantDashboard';
+import TenantMessagesPage from './pages/tenant/TenantMessagesPage';
 import PropertyDetail from './pages/PropertyDetail';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -55,6 +59,9 @@ function AppRoutes() {
       <Route path="/landlord/new-listing" element={
         <ProtectedRoute role="landlord"><LandlordNewListing /></ProtectedRoute>
       } />
+      <Route path="/landlord/messages" element={
+        <ProtectedRoute role="landlord"><LandlordMessagesPage /></ProtectedRoute>
+      } />
 
       {/* Tenant */}
       <Route path="/tenant/login" element={<TenantLogin />} />
@@ -62,7 +69,14 @@ function AppRoutes() {
       <Route path="/tenant/dashboard" element={
         <ProtectedRoute role="tenant"><TenantDashboard /></ProtectedRoute>
       } />
+      <Route path="/tenant/messages" element={
+        <ProtectedRoute role="tenant"><TenantMessagesPage /></ProtectedRoute>
+      } />
       <Route path="/property/:id" element={<PropertyDetail />} />
+      {/* Shared full-screen conversation — no bottom nav (not in ALLOWED_PATHS) */}
+      <Route path="/conversation/:propertyId/:otherUserId" element={
+        <ProtectedRoute><ConversationPage /></ProtectedRoute>
+      } />
 
       {/* Admin */}
       <Route path="/admin/login" element={<AdminLogin />} />
@@ -87,8 +101,10 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
-      <BottomNav />
+      <MessagesProvider>
+        <AppRoutes />
+        <BottomNav />
+      </MessagesProvider>
     </AuthProvider>
   );
 }

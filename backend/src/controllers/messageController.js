@@ -123,7 +123,14 @@ async function getInbox(req, res, next) {
       include: {
         sender:   { select: { id: true, name: true, role: true } },
         receiver: { select: { id: true, name: true, role: true } },
-        property: { select: { id: true, title: true, photos: { take: 1 } } },
+        property: {
+          select: {
+            id: true, title: true, status: true,
+            locationGeneral: true, price: true,
+            listingType: true, rentFrequency: true,
+            photos: { take: 1 },
+          },
+        },
       },
       orderBy: { sentAt: 'desc' },
     });

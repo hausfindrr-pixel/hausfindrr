@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Navbar from '../../components/shared/Navbar';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import MessageThread from '../../components/tenant/MessageThread';
 import { priceLabel } from '../../utils/format';
 
 const STATUS_BADGE = {
@@ -24,25 +23,21 @@ export default function LandlordDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [deleting, setDeleting] = useState(null);
   const [togglingOccupied, setTogglingOccupied] = useState(null);
-  const [openThread, setOpenThread] = useState(null);
-  const [expandedProperty, setExpandedProperty] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(null); // property id with open "..." menu
+  const [confirmDelete, setConfirmDelete] = useState(null); // property id awaiting confirm
 
   useEffect(() => {
     api.get('/properties/my')
       .then(r => setProperties(r.data.properties))
       .finally(() => setLoading(false));
     api.get('/notifications').then(r => setNotifications(r.data.notifications || [])).catch(() => {});
-  }, []);
-
-  const loadThreads = useCallback(() => {
     api.get('/messages/inbox').then(r => setThreads(r.data.threads || [])).catch(() => {});
   }, []);
 
-  useEffect(() => { loadThreads(); }, [loadThreads]);
-
   async function handleDelete(id) {
-    if (!window.confirm('Delete this listing? This cannot be undone.')) return;
     setDeleting(id);
+    setConfirmDelete(null);
+    setMenuOpen(null);
     try {
       await api.delete(`/properties/${id}`);
       setProperties(prev => prev.filter(p => p.id !== id));
@@ -83,32 +78,13 @@ export default function LandlordDashboard() {
     }
   }
 
-  function handleThreadOpen(thread) {
-    const isAlreadyOpen = openThread?.propertyId === thread.propertyId && openThread?.otherUserId === thread.otherUser.id;
-    if (isAlreadyOpen) {
-      setOpenThread(null);
-    } else {
-      setOpenThread({ propertyId: thread.propertyId, otherUserId: thread.otherUser.id, otherName: thread.otherUser.name });
+  // Unread count per listing for the "N new messages" button
+  const unreadByListing = threads.reduce((acc, t) => {
+    if (!t.isDirect && t.propertyId) {
+      acc[t.propertyId] = (acc[t.propertyId] || 0) + (t.unreadCount || 0);
     }
-  }
-
-  function handleRead() {
-    loadThreads();
-  }
-
-  // Separate direct (admin/system) threads from property-linked threads
-  const directThreads = threads.filter(t => t.isDirect);
-  const propertyThreads = threads.filter(t => !t.isDirect);
-
-  // Group property threads by property
-  const threadsByProperty = propertyThreads.reduce((acc, t) => {
-    const pid = t.propertyId;
-    if (!acc[pid]) acc[pid] = { property: t.property, threads: [] };
-    acc[pid].threads.push(t);
     return acc;
   }, {});
-
-  const totalUnread = threads.reduce((sum, t) => sum + (t.unreadCount || 0), 0);
 
   const isVerified = user?.status === 'active';
   const isPending = user?.status === 'pending_verification';
@@ -274,7 +250,67 @@ export default function LandlordDashboard() {
 
                     {/* Card footer actions */}
                     <div className="px-4 pb-4 space-y-2">
-                      {/* Mark as Rented — active rental listings */}
+                      {/* Top row: unread messages pill + "..." menu */}
+                      <div className="flex items-center gap-2">
+                        {unreadByListing[p.id] > 0 && (
+                          <button
+                            onClick={() => navigate(`/landlord/messages?listing=${p.id}`)}
+                            className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-[#975536] bg-[#EDE0CE] hover:bg-[#ddd0bc] rounded-lg py-2 transition-colors"
+                            style={{ minHeight: 36 }}
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            {unreadByListing[p.id]} new message{unreadByListing[p.id] !== 1 ? 's' : ''}
+                          </button>
+                        )}
+                        {/* "..." kebab for delete */}
+                        <div className="relative ml-auto">
+                          <button
+                            onClick={() => setMenuOpen(menuOpen === p.id ? null : p.id)}
+                            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                            aria-label="More options"
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                              <circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" />
+                            </svg>
+                          </button>
+                          {menuOpen === p.id && (
+                            <div className="absolute right-0 bottom-full mb-1 bg-white border border-gray-100 rounded-xl shadow-lg z-20 py-1 min-w-[140px]">
+                              <button
+                                onClick={() => { setConfirmDelete(p.id); setMenuOpen(null); }}
+                                className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                              >
+                                Delete listing
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Confirm delete inline */}
+                      {confirmDelete === p.id && (
+                        <div className="bg-red-50 border border-red-100 rounded-xl p-3">
+                          <p className="text-xs text-red-700 font-medium mb-2">Delete this listing? This cannot be undone.</p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setConfirmDelete(null)}
+                              className="flex-1 text-xs py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleDelete(p.id)}
+                              disabled={deleting === p.id}
+                              className="flex-1 text-xs py-1.5 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 disabled:opacity-50"
+                            >
+                              {deleting === p.id ? 'Deleting…' : 'Delete'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Mark as Rented — active listings */}
                       {isActive && (
                         <button
                           onClick={() => handleMarkRented(p.id)}
@@ -296,22 +332,11 @@ export default function LandlordDashboard() {
                           }`}
                         >
                           <span>{p.occupied ? 'Occupied — hidden from browse' : 'Mark as Occupied'}</span>
-                          {/* Toggle pill */}
                           <span className={`relative inline-flex h-4 w-7 flex-shrink-0 rounded-full transition-colors ml-2 ${p.occupied ? 'bg-orange-400' : 'bg-gray-300'}`}>
                             <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform mt-0.5 ${p.occupied ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
                           </span>
                         </button>
                       )}
-
-
-                      {/* Delete listing */}
-                      <button
-                        onClick={() => handleDelete(p.id)}
-                        disabled={deleting === p.id}
-                        className="w-full text-xs text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-100 rounded-lg py-1.5 transition-colors"
-                      >
-                        {deleting === p.id ? 'Deleting…' : 'Delete listing'}
-                      </button>
                     </div>
                   </div>
                 );
@@ -332,181 +357,7 @@ export default function LandlordDashboard() {
           </div>
         )}
 
-        {/* Messages section */}
-        <div>
-          <div className="flex items-center gap-3 mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
-            {totalUnread > 0 && (
-              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                {totalUnread} new
-              </span>
-            )}
-          </div>
-
-          {/* HausFindrr Support / direct threads */}
-          {directThreads.length > 0 && (
-            <div className="space-y-3 mb-4">
-              {directThreads.map((t, i) => (
-                <LandlordDirectMessageRow key={i} thread={t} />
-              ))}
-            </div>
-          )}
-
-          {propertyThreads.length === 0 && directThreads.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
-              <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              </div>
-              <p className="text-gray-400 font-medium text-sm">No messages yet</p>
-              <p className="text-gray-300 text-xs mt-1">Tenant inquiries from your listings will appear here</p>
-            </div>
-          ) : propertyThreads.length > 0 ? (
-            <div className="space-y-4">
-              {Object.entries(threadsByProperty).map(([propertyId, group]) => {
-                const propertyUnread = group.threads.reduce((sum, t) => sum + (t.unreadCount || 0), 0);
-                const isExpanded = expandedProperty === propertyId;
-
-                return (
-                  <div key={propertyId} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    {/* Property header */}
-                    <button
-                      onClick={() => setExpandedProperty(isExpanded ? null : propertyId)}
-                      className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors text-left"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                          </svg>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-semibold text-gray-900 text-sm truncate">{group.property?.title || 'Property'}</p>
-                          <p className="text-xs text-gray-400">{group.threads.length} conversation{group.threads.length !== 1 ? 's' : ''}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                        {propertyUnread > 0 && (
-                          <span className="bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                            {propertyUnread}
-                          </span>
-                        )}
-                        <svg className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-                    </button>
-
-                    {/* Thread list */}
-                    {isExpanded && (
-                      <div className="border-t border-gray-100 divide-y divide-gray-50">
-                        {group.threads.map(thread => {
-                          const isOpen = openThread?.propertyId === thread.propertyId && openThread?.otherUserId === thread.otherUser.id;
-                          const hasUnread = thread.unreadCount > 0;
-                          const latest = thread.latestMessage;
-
-                          return (
-                            <div key={thread.otherUser.id}>
-                              <button
-                                onClick={() => handleThreadOpen(thread)}
-                                className={`w-full flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors text-left ${isOpen ? 'bg-primary/5' : ''}`}
-                              >
-                                <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${hasUnread ? 'bg-secondary text-white' : 'bg-gray-100 text-gray-500'}`}>
-                                  <span className="text-sm font-semibold">{(thread.otherUser.name || 'T')[0].toUpperCase()}</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <p className={`text-sm truncate ${hasUnread ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>
-                                      {thread.otherUser.name}
-                                    </p>
-                                    {hasUnread && (
-                                      <span className="bg-red-500 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0">
-                                        {thread.unreadCount}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className={`text-xs truncate mt-0.5 ${hasUnread ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
-                                    {latest?.content || 'No messages yet'}
-                                  </p>
-                                </div>
-                                <div className="flex-shrink-0 text-right">
-                                  {latest?.sentAt && (
-                                    <p className="text-xs text-gray-300">{formatRelativeTime(latest.sentAt)}</p>
-                                  )}
-                                  <svg className={`w-3.5 h-3.5 text-gray-300 mt-1 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                </div>
-                              </button>
-
-                              {isOpen && (
-                                <div className="border-t border-gray-100">
-                                  <MessageThread
-                                    propertyId={thread.propertyId}
-                                    otherUserId={thread.otherUser.id}
-                                    otherName={thread.otherUser.name}
-                                    onRead={handleRead}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : null}
-        </div>
       </div>
-    </div>
-  );
-}
-
-function LandlordDirectMessageRow({ thread }) {
-  const [expanded, setExpanded] = useState(false);
-  const isHausFindrr = thread.otherUser?.role === 'admin';
-  const senderName = isHausFindrr ? 'HausFindrr Support' : (thread.otherUser?.name || 'Admin');
-  const diff = Date.now() - new Date(thread.latestMessage?.sentAt).getTime();
-  const m = Math.floor(diff / 60000);
-  const timeAgo = m < 1 ? 'just now' : m < 60 ? `${m}m ago` : m < 1440 ? `${Math.floor(m/60)}h ago` : `${Math.floor(m/1440)}d ago`;
-
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <button
-        onClick={() => setExpanded(e => !e)}
-        className="w-full flex items-center gap-3.5 p-4 text-left hover:bg-gray-50 transition-colors"
-      >
-        <div className="w-11 h-11 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-          </svg>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <p className="font-semibold text-gray-900 text-sm">{senderName}</p>
-            {isHausFindrr && <span className="text-xs text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded-full font-medium">Official</span>}
-            {thread.unreadCount > 0 && (
-              <span className="bg-primary text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{thread.unreadCount} new</span>
-            )}
-          </div>
-          <p className="text-gray-400 text-xs truncate">{thread.latestMessage?.content}</p>
-        </div>
-        <svg className={`w-4 h-4 text-gray-300 flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-      {expanded && (
-        <div className="border-t border-gray-100 px-4 py-4">
-          <div className="bg-gray-50 rounded-xl px-4 py-4">
-            <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">{thread.latestMessage?.content}</p>
-          </div>
-          <p className="text-gray-400 text-xs mt-2">{timeAgo}</p>
-        </div>
-      )}
     </div>
   );
 }
@@ -537,14 +388,3 @@ function LandlordNotificationRow({ notification }) {
   );
 }
 
-function formatRelativeTime(dateStr) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(dateStr).toLocaleDateString();
-}
