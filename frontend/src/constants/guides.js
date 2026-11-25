@@ -9,7 +9,7 @@ const GUIDES = {
   },
   landlordStep2: {
     title: 'Why do we ask for ID?',
-    body: 'We verify every landlord's identity before listings go live. This protects tenants from fraudulent listings. Documents are stored securely and are not shared with tenants.',
+    body: "We verify every landlord's identity before listings go live. This protects tenants from fraudulent listings. Documents are stored securely and are not shared with tenants.",
   },
   landlordStep3: {
     body: 'Please scroll through the full Landlord Agreement before ticking the checkbox. You can download or print it at any time from your dashboard.',
@@ -30,12 +30,12 @@ const GUIDES = {
   },
   propertyVerifiedBadge: {
     title: 'What does Verified mean?',
-    body: 'HausFindrr has reviewed this landlord's government-issued ID. It does not confirm ownership of this specific property. Always view the property in person before signing or paying anything.',
+    body: "HausFindrr has reviewed this landlord's government-issued ID. It does not confirm ownership of this specific property. Always view the property in person before signing or paying anything.",
   },
 
   // --- Admin ---
   adminPendingLandlords: {
-    body: 'Review each landlord's submitted documents before approving. Use the decline reasons below for common issues — this helps landlords resubmit correctly.',
+    body: "Review each landlord's submitted documents before approving. Use the decline reasons below for common issues — this helps landlords resubmit correctly.",
   },
   adminPendingListings: {
     body: 'Check listing details for accuracy and completeness. Listings go live immediately on approval.',
