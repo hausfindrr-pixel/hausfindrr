@@ -230,7 +230,7 @@ async function getListings(req, res, next) {
         include: {
           photos: true,
           amenities: true,
-          landlord: { select: { id: true, name: true, phone: true, email: true } },
+          landlord: { select: { id: true, name: true, phone: true, email: true, status: true } },
         },
         skip,
         take: parseInt(limit),
@@ -323,6 +323,7 @@ function maskProperty(p, unlocked) {
     metadata: p.metadata,
     status: p.status,
     occupied: p.occupied,
+    landlordVerified: p.landlord?.status === 'active',
     createdAt: p.createdAt,
     unlocked,
     approxLat,
@@ -351,7 +352,7 @@ async function getFullProperty(id) {
       photos: true,
       amenities: true,
       titleDocuments: true,
-      landlord: { select: { id: true, name: true, phone: true, email: true } },
+      landlord: { select: { id: true, name: true, phone: true, email: true, status: true } },
     },
   });
 }

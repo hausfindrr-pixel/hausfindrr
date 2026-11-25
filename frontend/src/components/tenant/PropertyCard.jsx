@@ -61,12 +61,18 @@ export default function PropertyCard({ property, onFavoriteToggle, isFavorited }
         </div>
 
         {/* Listing type badge — compact on mobile */}
-        <div className="absolute top-2 left-2 sm:top-3 sm:left-3">
-          <span className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full shadow-sm ${
-            property.listingType === 'rent' ? 'bg-primary text-white' : 'bg-secondary text-white'
-          }`}>
+        <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex gap-1">
+          <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full shadow-sm bg-primary text-white">
             For Rent
           </span>
+          {property.landlordVerified && (
+            <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full shadow-sm bg-green-600 text-white flex items-center gap-0.5">
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+              Verified
+            </span>
+          )}
         </div>
 
         {/* Favorite button — 36px on mobile, 44px on desktop */}

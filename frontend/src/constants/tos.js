@@ -30,6 +30,17 @@ export const TOS_SECTIONS = [
     body: `While these Terms apply to tenants, please be aware that landlords on HausFindrr are required to submit valid identity documents and comply with separate landlord terms. Landlords must ensure all listing details — including property descriptions, pricing, photographs, and ownership documents — are accurate and lawful. HausFindrr reviews listings before they go live but does not guarantee the accuracy or completeness of any listing. You should conduct your own due diligence before entering into any property agreement.`,
   },
   {
+    heading: '7a. Verified Landlord Badge',
+    body: `Some landlords on HausFindrr display a "Verified" badge on their profile and listings. This badge means that HausFindrr has reviewed and accepted that landlord's government-issued identity documents as part of our verification process.
+
+The Verified badge does not mean that:
+• The landlord is the legal owner of any particular listed property
+• Any listing by that landlord is accurate, complete, or free from error
+• HausFindrr endorses or guarantees any rental agreement made with that landlord
+
+Verification is an identity check only. You remain responsible for conducting your own due diligence — including visiting the property in person, confirming the landlord's right to rent, and reviewing any agreement before signing. HausFindrr accepts no liability for any loss arising from reliance on the Verified badge.`,
+  },
+  {
     heading: '8. Safety',
     body: `Never pay a deposit, rent, or any other fee before viewing a property in person and signing a written agreement with the landlord. HausFindrr does not hold or process any payments between tenants and landlords. If a landlord or anyone else requests payment through the Platform, treat this as suspicious and report it to us at info@hausfindrr.com.`,
   },

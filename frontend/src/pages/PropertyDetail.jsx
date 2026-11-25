@@ -333,11 +333,26 @@ export default function PropertyDetail() {
                     <span className="text-primary font-bold text-lg">{property.landlord.name?.[0]?.toUpperCase()}</span>
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">{property.landlord.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-gray-900">{property.landlord.name}</p>
+                      {property.landlordVerified && (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Verified
+                        </span>
+                      )}
+                    </div>
                     <p className="text-gray-500 text-sm">{property.landlord.phone}</p>
                   </div>
                 </div>
-                <p className="text-xs text-gray-400 mt-4 leading-relaxed">
+                {property.landlordVerified && (
+                  <p className="text-xs text-gray-400 mt-3 bg-green-50 border border-green-100 rounded-lg px-3 py-2 leading-relaxed">
+                    HausFindrr has reviewed and accepted this landlord&apos;s identity documents. This does not guarantee the accuracy of this listing or confirm ownership of the property. Always verify in person before signing any agreement.
+                  </p>
+                )}
+                <p className="text-xs text-gray-400 mt-3 leading-relaxed">
                   Contact the landlord directly. Never pay a deposit or rent before viewing the property in person.
                 </p>
               </div>
