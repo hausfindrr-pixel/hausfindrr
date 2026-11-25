@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/shared/Navbar';
+import Footer from '../components/shared/Footer';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -115,10 +116,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-primary text-white/60 text-center py-5 text-sm">
-        <p>&copy; {new Date().getFullYear()} HausFindrr &mdash; Papua New Guinea's Property Marketplace</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

@@ -114,6 +114,22 @@ export default function LandlordRegister() {
           <span>Your account will be reviewed within 1–2 business days. You'll be able to list properties once verified.</span>
         </div>
 
+        <p className="text-xs text-gray-500 leading-relaxed">
+          By creating an account you agree to our{' '}
+          <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-secondary font-medium hover:underline">
+            Terms of Service
+          </Link>
+          ,{' '}
+          <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-secondary font-medium hover:underline">
+            Privacy Policy
+          </Link>
+          , and{' '}
+          <Link to="/landlord-agreement" target="_blank" rel="noopener noreferrer" className="text-secondary font-medium hover:underline">
+            Landlord Agreement
+          </Link>
+          .
+        </p>
+
         <button className="btn-primary w-full py-3 text-base" disabled={loading}>
           {loading ? 'Creating account…' : 'Create Account'}
         </button>

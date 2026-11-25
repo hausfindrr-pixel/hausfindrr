@@ -15,6 +15,8 @@ import PropertyDetail from './pages/PropertyDetail';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
+import LandlordAgreementPage from './pages/LandlordAgreementPage';
 import OAuthCallback from './pages/OAuthCallback';
 import CompleteProfile from './pages/CompleteProfile';
 
@@ -70,6 +72,8 @@ function AppRoutes() {
 
       {/* Public pages */}
       <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/landlord-agreement" element={<LandlordAgreementPage />} />
       <Route path="/oauth/callback" element={<OAuthCallback />} />
       <Route path="/complete-profile" element={
         <ProtectedRoute requireTerms={false} requireProfile={false}><CompleteProfile /></ProtectedRoute>
