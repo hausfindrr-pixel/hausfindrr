@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import Footer from '../../components/shared/Footer';
+import GuideBox from '../../components/shared/GuideBox';
 
 const ID_TYPE_OPTIONS = [
   { value: 'passport', label: 'Passport' },
@@ -209,6 +210,7 @@ export default function LandlordRegister() {
           {/* Step 1: Your Details */}
           {step === 1 && (
             <form onSubmit={e => { e.preventDefault(); setStep(2); }} className="space-y-4">
+              <GuideBox guideKey="landlordStep1" className="mb-1" />
               <div>
                 <label className="label">Full Name</label>
                 <input className="input" required placeholder="Your full legal name" value={form.name} onChange={set('name')} />
@@ -238,12 +240,7 @@ export default function LandlordRegister() {
           {/* Step 2: Verify */}
           {step === 2 && (
             <form onSubmit={handleStep2Submit} className="space-y-5">
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800 flex gap-3">
-                <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Your documents are stored securely and reviewed only by HausFindrr staff. They are never shown to tenants.</span>
-              </div>
+              <GuideBox guideKey="landlordStep2" />
 
               <div>
                 <label className="label">ID Type</label>
@@ -284,6 +281,7 @@ export default function LandlordRegister() {
           {/* Step 3: Landlord Agreement */}
           {step === 3 && (
             <form onSubmit={handleStep3Submit} className="space-y-4">
+              <GuideBox guideKey="landlordStep3" />
               <p className="text-sm text-gray-600">
                 Before you can add listings, you must read and accept the Landlord Agreement.
               </p>

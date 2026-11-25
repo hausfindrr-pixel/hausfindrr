@@ -5,6 +5,7 @@ import PropertyCard from '../../components/tenant/PropertyCard';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { PNG_CITIES } from '../../constants/pngCities';
+import GuideBox from '../../components/shared/GuideBox';
 
 const CATEGORIES = [
   { label: 'All', value: '' },
@@ -319,6 +320,13 @@ export default function TenantBrowse() {
           </div>
         </div>
       </div>
+
+      {/* Guide — only show when no filters active */}
+      {!hasAnyFilter && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-0">
+          <GuideBox guideKey="tenantBrowse" />
+        </div>
+      )}
 
       {/* Listings grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 pb-24 md:pb-8">

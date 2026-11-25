@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import MessageThread from '../components/tenant/MessageThread';
 import FeedbackBubble from '../components/shared/FeedbackBubble';
+import GuideBox from '../components/shared/GuideBox';
 import { priceLabel } from '../utils/format';
 
 const SAT_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -378,9 +379,7 @@ export default function PropertyDetail() {
                     HausFindrr has reviewed and accepted this landlord&apos;s identity documents. This does not guarantee the accuracy of this listing or confirm ownership of the property. Always verify in person before signing any agreement.
                   </p>
                 )}
-                <p className="text-xs text-gray-400 mt-3 leading-relaxed">
-                  Contact the landlord directly. Never pay a deposit or rent before viewing the property in person.
-                </p>
+                <GuideBox guideKey="propertyContact" className="mt-3" />
               </div>
             )}
 
