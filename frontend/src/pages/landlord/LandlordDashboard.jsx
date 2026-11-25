@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Navbar from '../../components/shared/Navbar';
@@ -158,9 +158,32 @@ export default function LandlordDashboard() {
 
         {/* Properties grid */}
         <div className="mb-10">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            My Listings <span className="text-gray-400 font-normal text-base">({properties.length})</span>
-          </h2>
+          <div className="flex flex-wrap items-center gap-4 mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              My Listings <span className="text-gray-400 font-normal text-base">({properties.length})</span>
+            </h2>
+            {properties.length > 0 && (() => {
+              const totViews = properties.reduce((s, p) => s + (p.stats?.viewsAllTime || 0), 0);
+              const totMsg   = properties.reduce((s, p) => s + (p.stats?.messageCount || 0), 0);
+              return (
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    {totViews.toLocaleString()} total views
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    {totMsg.toLocaleString()} enquiries
+                  </span>
+                </div>
+              );
+            })()}
+          </div>
 
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -247,6 +270,9 @@ export default function LandlordDashboard() {
                         </div>
                       )}
                     </div>
+
+                    {/* Stats row */}
+                    <ListingStats stats={p.stats} propertyId={p.id} />
 
                     {/* Card footer actions */}
                     <div className="px-4 pb-4 space-y-2">
@@ -358,6 +384,95 @@ export default function LandlordDashboard() {
         )}
 
       </div>
+    </div>
+  );
+}
+
+// Stats chip row shown on each listing card, with a popover on the eye icon
+function ListingStats({ stats, propertyId }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function close(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+
+  if (!stats) return null;
+  const { viewsAllTime, views30d, messageCount } = stats;
+
+  return (
+    <div className="px-4 pb-2 flex items-center gap-3 text-xs text-gray-400">
+      {/* Eye icon + count — tappable, opens breakdown */}
+      <div className="relative" ref={ref}>
+        <button
+          onClick={() => setOpen(o => !o)}
+          className="flex items-center gap-1 hover:text-gray-600 transition-colors py-1"
+          aria-label="View count"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+          {viewsAllTime.toLocaleString()}
+        </button>
+        {open && (
+          <ViewBreakdown propertyId={propertyId} viewsAllTime={viewsAllTime} views30d={views30d} onClose={() => setOpen(false)} />
+        )}
+      </div>
+      {/* Message count */}
+      <span className="flex items-center gap-1">
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+        {messageCount.toLocaleString()} {messageCount === 1 ? 'enquiry' : 'enquiries'}
+      </span>
+    </div>
+  );
+}
+
+function ViewBreakdown({ propertyId, viewsAllTime, views30d, onClose }) {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    api.get(`/properties/${propertyId}/stats`)
+      .then(r => setData(r.data))
+      .catch(() => setData({ views: { day7: '—', day30: views30d, allTime: viewsAllTime } }));
+  }, [propertyId]);
+
+  return (
+    <div className="absolute left-0 bottom-full mb-2 bg-white border border-gray-100 rounded-xl shadow-lg z-30 p-4 w-64">
+      <p className="text-xs font-semibold text-gray-700 mb-2">Views</p>
+      {!data ? (
+        <div className="space-y-1.5">
+          {[1,2,3].map(i => <div key={i} className="h-3 bg-gray-100 rounded animate-pulse" />)}
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <StatRow label="Last 7 days"  val={data.views?.day7} />
+          <StatRow label="Last 30 days" val={data.views?.day30} />
+          <StatRow label="All time"     val={data.views?.allTime} />
+        </div>
+      )}
+      <p className="text-[10px] text-gray-400 mt-3 leading-relaxed">
+        Views (each person counted once a day, approximate)
+      </p>
+      <button onClick={onClose} className="absolute top-2 right-2 text-gray-300 hover:text-gray-500 p-1">
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function StatRow({ label, val }) {
+  return (
+    <div className="flex items-center justify-between text-xs">
+      <span className="text-gray-500">{label}</span>
+      <span className="font-semibold text-gray-800">{val ?? '—'}</span>
     </div>
   );
 }

@@ -272,13 +272,54 @@ async function getProperty(req, res, next) {
 
 async function getLandlordProperties(req, res, next) {
   try {
-    // Exclude sold listings — they're done and off the dashboard
     const properties = await prisma.property.findMany({
       where: { landlordId: req.user.id, sold: false },
       include: { photos: true, amenities: true, titleDocuments: true },
       orderBy: { createdAt: 'desc' },
     });
-    res.json({ properties });
+
+    if (!properties.length) return res.json({ properties: [] });
+
+    const ids = properties.map(p => p.id);
+    const now = new Date();
+    const day30 = new Date(now); day30.setDate(day30.getDate() - 30);
+
+    // All-time and 30-day view sums per property
+    const [viewAll, view30, msgRows] = await Promise.all([
+      prisma.propertyViewSummary.groupBy({
+        by: ['propertyId'],
+        where: { propertyId: { in: ids } },
+        _sum: { uniqueViews: true },
+      }),
+      prisma.propertyViewSummary.groupBy({
+        by: ['propertyId'],
+        where: { propertyId: { in: ids }, summaryDate: { gte: day30 } },
+        _sum: { uniqueViews: true },
+      }),
+      // Distinct tenants per listing (non-owner)
+      prisma.$queryRaw`
+        SELECT property_id, COUNT(DISTINCT sender_id)::int AS cnt
+        FROM messages
+        WHERE property_id = ANY(${ids}::text[])
+          AND sender_id != ${req.user.id}
+        GROUP BY property_id
+      `,
+    ]);
+
+    const viewAllMap  = Object.fromEntries(viewAll.map(r => [r.propertyId, r._sum.uniqueViews || 0]));
+    const view30Map   = Object.fromEntries(view30.map(r => [r.propertyId, r._sum.uniqueViews || 0]));
+    const msgMap      = Object.fromEntries(msgRows.map(r => [r.property_id, r.cnt]));
+
+    const enriched = properties.map(p => ({
+      ...p,
+      stats: {
+        viewsAllTime: viewAllMap[p.id] || 0,
+        views30d:     view30Map[p.id]  || 0,
+        messageCount: msgMap[p.id]     || 0,
+      },
+    }));
+
+    res.json({ properties: enriched });
   } catch (err) {
     next(err);
   }

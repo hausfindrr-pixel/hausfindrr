@@ -6,6 +6,7 @@ const {
   createProperty, updateProperty, getListings, getProperty,
   getLandlordProperties, deleteProperty, toggleOccupied, markSold, markRented,
 } = require('../controllers/propertyController');
+const { recordView, getStats } = require('../controllers/viewController');
 
 // Optional auth middleware for public routes
 function optionalAuth(req, res, next) {
@@ -56,6 +57,12 @@ router.patch('/:id/sold', authenticate, requireRole('landlord'), markSold);
 
 // Mark as rented (rental listings only)
 router.patch('/:id/rented', authenticate, requireRole('landlord'), markRented);
+
+// Record a view (auth optional — works for anon visitors too)
+router.post('/:id/view', optionalAuth, recordView);
+
+// Stats for landlord dashboard and admin
+router.get('/:id/stats', authenticate, getStats);
 
 // Delete — landlord deletes own, admin deletes any
 router.delete('/:id', authenticate, deleteProperty);

@@ -37,6 +37,8 @@ export default function PropertyDetail() {
       .then(r => setProperty(r.data.property))
       .catch(() => navigate('/'))
       .finally(() => setLoading(false));
+    // Record view — fire-and-forget, non-blocking
+    api.post(`/properties/${id}/view`).catch(() => {});
   }, [id]);
 
   useEffect(() => {

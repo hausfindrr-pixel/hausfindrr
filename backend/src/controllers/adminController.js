@@ -1,6 +1,30 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+async function attachStats(properties) {
+  if (!properties.length) return properties;
+  const ids = properties.map(p => p.id);
+  const [viewAll, msgRows] = await Promise.all([
+    prisma.propertyViewSummary.groupBy({
+      by: ['propertyId'],
+      where: { propertyId: { in: ids } },
+      _sum: { uniqueViews: true },
+    }),
+    prisma.$queryRaw`
+      SELECT property_id, COUNT(DISTINCT sender_id)::int AS cnt
+      FROM messages
+      WHERE property_id = ANY(${ids}::text[])
+      GROUP BY property_id
+    `,
+  ]);
+  const viewMap = Object.fromEntries(viewAll.map(r => [r.propertyId, r._sum.uniqueViews || 0]));
+  const msgMap  = Object.fromEntries(msgRows.map(r => [r.property_id, r.cnt]));
+  return properties.map(p => ({
+    ...p,
+    stats: { viewsAllTime: viewMap[p.id] || 0, messageCount: msgMap[p.id] || 0 },
+  }));
+}
+
 async function getPendingLandlords(req, res, next) {
   try {
     const landlords = await prisma.user.findMany({
@@ -37,7 +61,7 @@ async function getPendingProperties(req, res, next) {
       },
       orderBy: { createdAt: 'asc' },
     });
-    res.json({ properties });
+    res.json({ properties: await attachStats(properties) });
   } catch (err) { next(err); }
 }
 
@@ -82,7 +106,7 @@ async function getAllListings(req, res, next) {
       },
       orderBy: { createdAt: 'desc' },
     });
-    res.json({ properties });
+    res.json({ properties: await attachStats(properties) });
   } catch (err) { next(err); }
 }
 

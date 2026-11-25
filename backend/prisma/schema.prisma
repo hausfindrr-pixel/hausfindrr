@@ -80,6 +80,7 @@ model User {
   notifications        UserNotification[]
   consentLogs          ConsentLog[]
   dataRequests         DataRequest[]
+  propertyViewLogs     PropertyViewLog[]
 
   @@index([role, status])
   @@index([createdAt])
@@ -145,6 +146,8 @@ model Property {
   favorites      Favorite[]
   messages       Message[]
   complaints     Complaint[]
+  viewLogs       PropertyViewLog[]
+  viewSummaries  PropertyViewSummary[]
 
   @@index([status])
   @@index([landlordId])
@@ -296,4 +299,38 @@ model DataRequest {
   @@index([status])
   @@index([userId])
   @@map("data_requests")
+}
+
+// One row per (property, date, viewer) — deduplicated to count unique viewers per day.
+// viewerId null = anonymous; anonHash = hash(salt+ip+ua+propertyId+date).
+model PropertyViewLog {
+  id         String   @id @default(uuid())
+  propertyId String   @map("property_id")
+  viewedOn   DateTime @map("viewed_on") @db.Date
+  viewerId   String?  @map("viewer_id")
+  anonHash   String?  @map("anon_hash")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  viewer   User?    @relation(fields: [viewerId], references: [id], onDelete: SetNull)
+
+  @@unique([propertyId, viewedOn, viewerId], name: "uniq_auth_view")
+  @@unique([propertyId, viewedOn, anonHash], name: "uniq_anon_view")
+  @@index([propertyId])
+  @@index([viewedOn])
+  @@map("property_view_logs")
+}
+
+// Daily unique-viewer summary per property — pre-aggregated for fast stats queries.
+model PropertyViewSummary {
+  id           String   @id @default(uuid())
+  propertyId   String   @map("property_id")
+  summaryDate  DateTime @map("summary_date") @db.Date
+  uniqueViews  Int      @default(0) @map("unique_views")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, summaryDate])
+  @@index([propertyId])
+  @@index([summaryDate])
+  @@map("property_view_summaries")
 }
