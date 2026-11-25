@@ -65,7 +65,7 @@ export default function PropertyCard({ property, onFavoriteToggle, isFavorited }
           <span className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full shadow-sm ${
             property.listingType === 'rent' ? 'bg-primary text-white' : 'bg-secondary text-white'
           }`}>
-            {property.listingType === 'rent' ? 'For Rent' : 'For Sale'}
+            For Rent
           </span>
         </div>
 

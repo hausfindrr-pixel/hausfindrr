@@ -670,7 +670,7 @@ function PendingListingsSection({ onCountChange }) {
                     <div>
                       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                         <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${p.listingType === 'rent' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'}`}>
-                          {p.listingType === 'rent' ? 'For Rent' : 'For Sale'}
+                          For Rent
                         </span>
                         <span className="text-xs text-gray-400 capitalize">{p.propertyType}</span>
                       </div>

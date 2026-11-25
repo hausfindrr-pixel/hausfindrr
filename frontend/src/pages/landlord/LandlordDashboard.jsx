@@ -244,8 +244,8 @@ export default function LandlordDashboard() {
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${STATUS_BADGE[p.status]}`}>
                           {p.status.charAt(0).toUpperCase() + p.status.slice(1)}
                         </span>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${LISTING_TYPE_BADGE[p.listingType]}`}>
-                          {p.listingType === 'rent' ? 'Rent' : 'Sale'}
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                          Rent
                         </span>
                         {isActive && p.listingType === 'rent' && p.occupied && (
                           <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
@@ -300,16 +300,6 @@ export default function LandlordDashboard() {
                         </button>
                       )}
 
-                      {/* Mark as Sold — sale + active only */}
-                      {isActive && p.listingType === 'sale' && (
-                        <button
-                          onClick={() => handleMarkSold(p.id)}
-                          disabled={markingSold === p.id}
-                          className="w-full text-xs font-medium text-secondary hover:text-secondary/80 hover:bg-secondary/5 border border-secondary/20 rounded-lg py-2 transition-colors"
-                        >
-                          {markingSold === p.id ? 'Processing…' : 'Mark as Sold'}
-                        </button>
-                      )}
 
                       {/* Delete listing */}
                       <button

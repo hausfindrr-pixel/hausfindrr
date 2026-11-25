@@ -15,6 +15,9 @@ async function createProperty(req, res, next) {
       metadata,
     } = req.body;
 
+    if (listingType && listingType !== 'rent')
+      return res.status(400).json({ error: 'Only rental listings are supported at this time.' });
+
     const parsedMetadata = metadata
       ? (typeof metadata === 'string' ? JSON.parse(metadata) : metadata)
       : null;
@@ -91,6 +94,9 @@ async function updateProperty(req, res, next) {
       bedrooms, bathrooms, propertyType, amenities, rentFrequency,
       metadata,
     } = req.body;
+
+    if (listingType && listingType !== 'rent')
+      return res.status(400).json({ error: 'Only rental listings are supported at this time.' });
 
     const effectiveType = listingType || property.listingType;
     const updated = await prisma.property.update({

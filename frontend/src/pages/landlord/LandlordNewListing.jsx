@@ -201,7 +201,7 @@ export default function LandlordNewListing() {
             <div>
               <label className="label">Listing Type</label>
               <div className="flex gap-2 p-1 bg-gray-100 rounded-xl w-fit">
-                {[{ value: 'rent', label: 'For Rent' }, { value: 'sale', label: 'For Sale' }].map(t => (
+                {[{ value: 'rent', label: 'For Rent' }].map(t => (
                   <button
                     key={t.value} type="button"
                     onClick={() => setForm(p => ({ ...p, listingType: t.value }))}

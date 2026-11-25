@@ -113,7 +113,7 @@ function EmptyState({ hasFilters, onClear }) {
 
 const EMPTY_PANEL = { city: '', location: '', minPrice: '', maxPrice: '', bedrooms: '', bathrooms: '', amenities: [] };
 
-const TOGGLE_OPTIONS = [['', 'All'], ['rent', 'For Rent'], ['sale', 'For Sale']];
+const TOGGLE_OPTIONS = [['rent', 'For Rent']];
 
 export default function TenantBrowse() {
   const { user } = useAuth();
@@ -129,7 +129,7 @@ export default function TenantBrowse() {
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState(new Set());
 
-  const [listingType, setListingType] = useState('');
+  const [listingType] = useState('rent');
   const [category, setCategory] = useState('');
 
   const [filterOpen, setFilterOpen] = useState(false);
@@ -140,7 +140,7 @@ export default function TenantBrowse() {
     [applied.city, applied.location, applied.minPrice, applied.maxPrice, applied.bedrooms, applied.bathrooms].filter(Boolean).length +
     applied.amenities.length;
 
-  const hasAnyFilter = !!(listingType || category || activeFilterCount);
+  const hasAnyFilter = !!(category || activeFilterCount);
 
   const fetchListings = useCallback(async () => {
     setLoading(true);
@@ -192,7 +192,6 @@ export default function TenantBrowse() {
   function clearAll() {
     setPending(EMPTY_PANEL);
     setApplied(EMPTY_PANEL);
-    setListingType('');
     setCategory('');
     setFilterOpen(false);
   }
@@ -265,20 +264,6 @@ export default function TenantBrowse() {
             </button>
           </div>
 
-          {/* Mobile Row 2: full-width Rent/Sale toggle */}
-          <div className="sm:hidden flex bg-gray-100 rounded-xl p-1">
-            {TOGGLE_OPTIONS.map(([val, label]) => (
-              <button
-                key={val}
-                onClick={() => setListingType(val)}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                  listingType === val ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
 
           {/* Mobile Row 3: full-width Filters button */}
           <button
@@ -303,21 +288,6 @@ export default function TenantBrowse() {
           {/* Category pills row — desktop: toggle inline left; mobile: pills only */}
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-0.5">
 
-            {/* Desktop-only inline toggle */}
-            <div className="hidden sm:flex bg-gray-100 rounded-xl p-1 flex-shrink-0">
-              {TOGGLE_OPTIONS.map(([val, label]) => (
-                <button
-                  key={val}
-                  onClick={() => setListingType(val)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
-                    listingType === val ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <div className="hidden sm:block w-px h-5 bg-gray-200 flex-shrink-0" />
 
             {/* Category pills — Airbnb-style: icon + label + underline active */}
             {CATEGORIES.map(cat => (
