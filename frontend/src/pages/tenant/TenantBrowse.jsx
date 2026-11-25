@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { PNG_CITIES } from '../../constants/pngCities';
 import GuideBox from '../../components/shared/GuideBox';
+import { CATEGORY_MIN_LISTINGS } from '../../constants/listingTags';
 
 const CATEGORIES = [
   { label: 'All', value: '' },
@@ -132,6 +133,8 @@ export default function TenantBrowse() {
 
   const [listingType] = useState('rent');
   const [category, setCategory] = useState('');
+  const [selectedTag, setSelectedTag] = useState('');
+  const [tagCounts, setTagCounts] = useState([]);
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [pending, setPending] = useState(EMPTY_PANEL);
@@ -141,7 +144,7 @@ export default function TenantBrowse() {
     [applied.city, applied.location, applied.minPrice, applied.maxPrice, applied.bedrooms, applied.bathrooms].filter(Boolean).length +
     applied.amenities.length;
 
-  const hasAnyFilter = !!(category || activeFilterCount);
+  const hasAnyFilter = !!(category || selectedTag || activeFilterCount);
 
   const fetchListings = useCallback(async () => {
     setLoading(true);
@@ -157,15 +160,22 @@ export default function TenantBrowse() {
       if (applied.bedrooms) params.bedrooms = applied.bedrooms;
       if (applied.bathrooms) params.bathrooms = applied.bathrooms;
       if (applied.amenities.length) params.amenities = applied.amenities.join(',');
+      if (selectedTag) params.tags = selectedTag;
       const { data } = await api.get('/properties', { params });
       setProperties(data.properties);
       setTotal(data.total);
     } finally {
       setLoading(false);
     }
-  }, [listingType, category, applied]);
+  }, [listingType, category, selectedTag, applied]);
 
   useEffect(() => { fetchListings(); }, [fetchListings]);
+
+  useEffect(() => {
+    api.get('/properties/tag-counts').then(r => {
+      setTagCounts(r.data.counts || []);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (user?.role !== 'tenant') return;
@@ -194,6 +204,7 @@ export default function TenantBrowse() {
     setPending(EMPTY_PANEL);
     setApplied(EMPTY_PANEL);
     setCategory('');
+    setSelectedTag('');
     setFilterOpen(false);
   }
 
@@ -276,14 +287,14 @@ export default function TenantBrowse() {
           )}
         </div>
 
-        {/* Category pills */}
+        {/* Category + tag pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
           {CATEGORIES.map(cat => (
             <button
               key={cat.value}
               onClick={() => setCategory(cat.value)}
               className={`flex-shrink-0 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all ${
-                category === cat.value
+                category === cat.value && !selectedTag
                   ? 'bg-primary text-white border-primary'
                   : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
               }`}
@@ -291,6 +302,22 @@ export default function TenantBrowse() {
               {cat.label}
             </button>
           ))}
+          {/* Dynamic tag pills — only shown when >= CATEGORY_MIN_LISTINGS listings carry that tag */}
+          {tagCounts
+            .filter(r => r.count >= CATEGORY_MIN_LISTINGS)
+            .map(r => (
+              <button
+                key={r.tag}
+                onClick={() => { setSelectedTag(t => t === r.tag ? '' : r.tag); setCategory(''); }}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all ${
+                  selectedTag === r.tag
+                    ? 'bg-primary text-white border-primary'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                }`}
+              >
+                {r.tag}
+              </button>
+            ))}
         </div>
       </div>
 

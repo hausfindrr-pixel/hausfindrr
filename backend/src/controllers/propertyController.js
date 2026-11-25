@@ -223,7 +223,7 @@ async function relistProperty(req, res, next) {
 
 async function getListings(req, res, next) {
   try {
-    const { type, location, minPrice, maxPrice, bedrooms, bathrooms, propertyType, amenities, page = 1, limit = 12 } = req.query;
+    const { type, location, minPrice, maxPrice, bedrooms, bathrooms, propertyType, amenities, tags, page = 1, limit = 12 } = req.query;
     // Only show active listings (rented/draft/pending are hidden); exclude legacy sold flag
     const where = { status: 'active', sold: false };
     if (type) where.listingType = type;
@@ -236,14 +236,20 @@ async function getListings(req, res, next) {
       if (minPrice) where.price.gte = parseFloat(minPrice);
       if (maxPrice) where.price.lte = parseFloat(maxPrice);
     }
+    const andClauses = [];
     if (amenities) {
       const amenityList = amenities.split(',').map(a => a.trim()).filter(Boolean);
-      if (amenityList.length > 0) {
-        where.AND = amenityList.map(a => ({
-          amenities: { some: { amenityName: { equals: a, mode: 'insensitive' } } },
-        }));
-      }
+      amenityList.forEach(a => {
+        andClauses.push({ amenities: { some: { amenityName: { equals: a, mode: 'insensitive' } } } });
+      });
     }
+    if (tags) {
+      const tagList = tags.split(',').map(t => t.trim()).filter(Boolean);
+      tagList.forEach(tag => {
+        andClauses.push({ metadata: { path: ['tags'], array_contains: tag } });
+      });
+    }
+    if (andClauses.length > 0) where.AND = andClauses;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const [properties, total] = await Promise.all([
@@ -420,7 +426,23 @@ async function getFullProperty(id) {
   });
 }
 
+async function tagCounts(req, res, next) {
+  try {
+    const rows = await prisma.$queryRaw`
+      SELECT tag::text, COUNT(*)::int AS count
+      FROM properties,
+           jsonb_array_elements_text(COALESCE(metadata->'tags', '[]'::jsonb)) AS tag
+      WHERE status = 'active' AND sold = false
+      GROUP BY tag
+      ORDER BY count DESC
+    `;
+    res.json({ counts: rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   createProperty, updateProperty, getListings, getProperty,
-  getLandlordProperties, deleteProperty, toggleOccupied, markSold, markRented, relistProperty,
+  getLandlordProperties, deleteProperty, toggleOccupied, markSold, markRented, relistProperty, tagCounts,
 };

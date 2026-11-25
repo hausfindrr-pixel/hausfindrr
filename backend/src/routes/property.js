@@ -4,7 +4,7 @@ const { authenticate, requireRole } = require('../middleware/auth');
 const { photoUpload, propertyUpload } = require('../middleware/upload');
 const {
   createProperty, updateProperty, getListings, getProperty,
-  getLandlordProperties, deleteProperty, toggleOccupied, markSold, markRented, relistProperty,
+  getLandlordProperties, deleteProperty, toggleOccupied, markSold, markRented, relistProperty, tagCounts,
 } = require('../controllers/propertyController');
 const { recordView, getStats } = require('../controllers/viewController');
 
@@ -22,6 +22,9 @@ function optionalAuth(req, res, next) {
 
 // Public / tenant browse (auth optional for masking)
 router.get('/', optionalAuth, getListings);
+
+// Tag counts for Browse pills — must be before /:id
+router.get('/tag-counts', tagCounts);
 
 router.get('/my', authenticate, requireRole('landlord'), getLandlordProperties);
 

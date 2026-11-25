@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import Navbar from '../../components/shared/Navbar';
 import api from '../../services/api';
 import { PNG_CITIES } from '../../constants/pngCities';
+import { LISTING_TAGS } from '../../constants/listingTags';
 
 const DEFAULT_LAT = -9.4438;
 const DEFAULT_LNG = 147.1803;
@@ -47,6 +48,7 @@ export default function LandlordNewListing() {
   const [supportingDocs, setSupportingDocs] = useState([]);
   const [customAmenity, setCustomAmenity] = useState('');
   const [selectedAmenities, setSelectedAmenities] = useState([]);
+  const [selectedTags, setSelectedTags] = useState([]);
   const [pinLat, setPinLat] = useState(DEFAULT_LAT);
   const [pinLng, setPinLng] = useState(DEFAULT_LNG);
   const [mapReady, setMapReady] = useState(false);
@@ -67,6 +69,12 @@ export default function LandlordNewListing() {
   function toggleAmenity(a) {
     setSelectedAmenities(prev =>
       prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]
+    );
+  }
+
+  function toggleTag(t) {
+    setSelectedTags(prev =>
+      prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]
     );
   }
 
@@ -135,6 +143,7 @@ export default function LandlordNewListing() {
       furnishing: form.furnishing || null,
       floorLevel: form.floorLevel || null,
       parkingAvailable: form.parkingAvailable || null,
+      tags: selectedTags.length > 0 ? selectedTags : null,
     };
   }
 
@@ -468,8 +477,31 @@ export default function LandlordNewListing() {
             )}
           </Section>
 
-          {/* Section 6: Photos */}
-          <Section title="Property Photos" number="6">
+          {/* Section 6: Property Tags */}
+          <Section title="Property Tags" number="6">
+            <p className="text-xs text-gray-500 -mt-1">
+              Tags help tenants discover your listing. Select all that apply — tags only appear in search once enough listings use them.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {LISTING_TAGS.map(tag => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => toggleTag(tag)}
+                  className={`px-3 py-1.5 rounded-full border text-sm font-medium transition-all ${
+                    selectedTags.includes(tag)
+                      ? 'bg-primary text-white border-primary'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          {/* Section 7: Photos */}
+          <Section title="Property Photos" number="7">
             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-secondary/50 hover:bg-secondary/5 transition-colors bg-gray-50">
               <input type="file" className="hidden" accept="image/*" multiple onChange={handlePhotoChange} />
               <svg className="w-8 h-8 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
