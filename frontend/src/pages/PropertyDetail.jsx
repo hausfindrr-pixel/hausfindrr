@@ -19,6 +19,10 @@ export default function PropertyDetail() {
   const [loading, setLoading] = useState(true);
   const [showMessages, setShowMessages] = useState(false);
   const [activePhoto, setActivePhoto] = useState(0);
+  const [showReport, setShowReport] = useState(false);
+  const [reportType, setReportType] = useState('listing_details_incorrect');
+  const [reportDetails, setReportDetails] = useState('');
+  const [reportLoading, setReportLoading] = useState(false);
 
   const mapRef = useRef(null);
   const leafletRef = useRef(null);
@@ -96,6 +100,28 @@ export default function PropertyDetail() {
     const photos = property?.photos || [];
     if (dx < 0) setActivePhoto(p => Math.min(p + 1, photos.length - 1));
     else setActivePhoto(p => Math.max(p - 1, 0));
+  }
+
+  async function handleReport(e) {
+    e.preventDefault();
+    if (!reportDetails.trim()) return toast.error('Please describe the issue');
+    setReportLoading(true);
+    try {
+      await api.post('/complaints', {
+        propertyId: id,
+        landlordId: property?.landlord?.id || null,
+        type: reportType,
+        details: reportDetails,
+        context: 'listing',
+      });
+      toast.success('Report submitted. Thank you.');
+      setShowReport(false);
+      setReportDetails('');
+    } catch {
+      toast.error('Failed to submit report. Please try again.');
+    } finally {
+      setReportLoading(false);
+    }
   }
 
   if (loading) return (
@@ -434,6 +460,70 @@ export default function PropertyDetail() {
           landlordId={property.landlord.id}
           propertyId={id}
         />
+      )}
+
+      {/* Report button — visible to signed-in tenants */}
+      {user?.role === 'tenant' && (
+        <div className="max-w-5xl mx-auto px-4 pb-6 flex justify-end">
+          <button
+            onClick={() => setShowReport(true)}
+            className="text-xs text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.962-.833-2.732 0L4.072 16.5C3.302 18.333 4.264 20 5.804 20z" />
+            </svg>
+            Report this listing
+          </button>
+        </div>
+      )}
+
+      {/* Report modal */}
+      {showReport && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowReport(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-gray-900">Report Listing</h2>
+              <button onClick={() => setShowReport(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleReport} className="space-y-4">
+              <div>
+                <label className="label">What is the issue?</label>
+                <select
+                  className="input"
+                  value={reportType}
+                  onChange={e => setReportType(e.target.value)}
+                >
+                  <option value="listing_details_incorrect">Listing details are incorrect</option>
+                  <option value="landlord_not_responding">Landlord is not responding</option>
+                  <option value="suspicious_activity">Suspicious or fraudulent activity</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Describe the issue</label>
+                <textarea
+                  className="input h-24 resize-none"
+                  required
+                  placeholder="Please describe what you observed…"
+                  value={reportDetails}
+                  onChange={e => setReportDetails(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setShowReport(false)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50">
+                  Cancel
+                </button>
+                <button type="submit" disabled={reportLoading} className="flex-[2] btn-primary py-2.5 text-sm">
+                  {reportLoading ? 'Submitting…' : 'Submit Report'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
