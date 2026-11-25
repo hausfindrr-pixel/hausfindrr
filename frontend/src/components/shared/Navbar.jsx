@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import FeedbackSheet from './FeedbackBubble';
 
 const ROLE_LABELS = { landlord: 'Landlord', tenant: 'Tenant', admin: 'Admin' };
 const ROLE_COLORS = {
@@ -114,6 +115,7 @@ export default function Navbar({ nonSticky = false }) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [modal, setModal] = useState(null); // 'signin' | 'register' | null
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   function handleLogout() {
     logout();
@@ -230,6 +232,15 @@ export default function Navbar({ nonSticky = false }) {
                       Register as Landlord
                     </Link>
                   </div>
+                  <button
+                    onClick={() => { closeMenu(); setFeedbackOpen(true); }}
+                    className="flex w-full items-center gap-2 px-3 py-3 text-sm font-medium text-gray-500 rounded-xl hover:bg-gray-50 transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    Send feedback
+                  </button>
                 </>
               ) : (
                 <>
@@ -251,6 +262,15 @@ export default function Navbar({ nonSticky = false }) {
                   >
                     My Dashboard
                   </Link>
+                  <button
+                    onClick={() => { closeMenu(); setFeedbackOpen(true); }}
+                    className="flex w-full items-center gap-2 px-3 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                  >
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    Send feedback
+                  </button>
                   <button
                     onClick={() => { closeMenu(); handleLogout(); }}
                     className="flex w-full items-center px-3 py-3 text-sm font-medium text-red-500 rounded-xl hover:bg-red-50 transition-colors"
@@ -285,6 +305,8 @@ export default function Navbar({ nonSticky = false }) {
           onClose={() => setModal(null)}
         />
       )}
+
+      <FeedbackSheet open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </>
   );
 }

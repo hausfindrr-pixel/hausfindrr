@@ -4,6 +4,8 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { priceLabel } from '../../utils/format';
+import FeedbackCard from '../../components/shared/FeedbackCard';
+import { shouldShowFeedback, markFeedbackShown } from '../../utils/feedbackState';
 
 const STATUS_BADGE = {
   draft:    { cls: 'bg-gray-100 text-gray-500 border-gray-200',    label: 'Draft' },
@@ -22,8 +24,17 @@ export default function LandlordPropertiesPage() {
   const [deleting, setDeleting] = useState(null);
   const [menuOpen, setMenuOpen] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [showFeedbackCard, setShowFeedbackCard] = useState(false);
 
   useEffect(() => {
+    const justPublished = sessionStorage.getItem('hf_just_published') === '1';
+    if (justPublished) {
+      sessionStorage.removeItem('hf_just_published');
+      if (shouldShowFeedback()) {
+        setShowFeedbackCard(true);
+        markFeedbackShown();
+      }
+    }
     Promise.all([
       api.get('/properties/my'),
       api.get('/messages/inbox'),
@@ -308,6 +319,12 @@ export default function LandlordPropertiesPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {showFeedbackCard && (
+          <div className="mt-4">
+            <FeedbackCard onDismissed={() => setShowFeedbackCard(false)} />
           </div>
         )}
       </div>

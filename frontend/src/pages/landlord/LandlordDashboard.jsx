@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import FeedbackSheet from '../../components/shared/FeedbackBubble';
 
 const STATUS_INFO = {
   active:               { label: 'Verified',         cls: 'bg-green-50 text-green-700 border-green-200' },
@@ -13,6 +14,7 @@ export default function LandlordDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   useEffect(() => {
     api.get('/notifications').then(r => setNotifications(r.data.notifications || [])).catch(() => {});
@@ -113,6 +115,21 @@ export default function LandlordDashboard() {
           </Link>
         </div>
 
+        {/* Send feedback */}
+        <button
+          onClick={() => setFeedbackOpen(true)}
+          className="w-full flex items-center gap-3 px-5 py-4 bg-white rounded-2xl shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors"
+          style={{ minHeight: 56 }}
+        >
+          <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          <span className="flex-1 text-sm font-medium text-[#41271B] text-left">Send feedback</span>
+          <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
         {/* Legal */}
         <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 divide-y divide-gray-50">
           <Link
@@ -162,6 +179,8 @@ export default function LandlordDashboard() {
           Sign out
         </button>
       </div>
+
+      <FeedbackSheet open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
 }

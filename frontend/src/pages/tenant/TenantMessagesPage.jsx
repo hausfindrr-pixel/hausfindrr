@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMessages } from '../../context/MessagesContext';
 import api from '../../services/api';
+import FeedbackCard from '../../components/shared/FeedbackCard';
+import { shouldShowFeedback, markFeedbackShown } from '../../utils/feedbackState';
 
 function timeAgo(date) {
   const diff = Date.now() - new Date(date).getTime();
@@ -21,13 +23,19 @@ export default function TenantMessagesPage() {
 
   const [loading, setLoading] = useState(true);
   const [threads, setThreads] = useState([]);
+  const [showFeedbackCard, setShowFeedbackCard] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const { data } = await api.get('/messages/inbox');
       const all = data.threads || [];
-      setThreads(all.filter(t => !t.isDirect));
+      const filtered = all.filter(t => !t.isDirect);
+      setThreads(filtered);
       refreshUnread(all);
+      if (filtered.length > 0 && shouldShowFeedback()) {
+        setShowFeedbackCard(true);
+        markFeedbackShown();
+      }
     } catch {
       // keep empty
     } finally {
@@ -72,15 +80,22 @@ export default function TenantMessagesPage() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-2 md:grid-cols-2 md:gap-3">
-            {threads.map(t => (
-              <TenantConversationRow
-                key={`${t.propertyId}-${t.otherUser?.id}`}
-                thread={t}
-                onOpen={() => navigate(`/conversation/${t.propertyId}/${t.otherUser.id}`)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-2 md:grid-cols-2 md:gap-3">
+              {threads.map(t => (
+                <TenantConversationRow
+                  key={`${t.propertyId}-${t.otherUser?.id}`}
+                  thread={t}
+                  onOpen={() => navigate(`/conversation/${t.propertyId}/${t.otherUser.id}`)}
+                />
+              ))}
+            </div>
+            {showFeedbackCard && (
+              <div className="mt-3">
+                <FeedbackCard onDismissed={() => setShowFeedbackCard(false)} />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

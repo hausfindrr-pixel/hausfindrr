@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import FeedbackSheet from '../../components/shared/FeedbackBubble';
+import FeedbackCard from '../../components/shared/FeedbackCard';
+import { shouldShowFeedback, markFeedbackShown } from '../../utils/feedbackState';
 
 // ── Brand tokens ──────────────────────────────────────────────────────────────
 const BROWN     = '#41271B';
@@ -171,10 +174,19 @@ export default function TenantDashboard() {
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [showFeedbackCard, setShowFeedbackCard] = useState(false);
 
   useEffect(() => {
     api.get('/tenant/favorites')
-      .then(res => setFavorites(res.data.favorites || []))
+      .then(res => {
+        const favs = res.data.favorites || [];
+        setFavorites(favs);
+        if (favs.length >= 3 && shouldShowFeedback()) {
+          setShowFeedbackCard(true);
+          markFeedbackShown();
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -244,6 +256,17 @@ export default function TenantDashboard() {
               <p style={{ color: MUTED, fontSize: 12, marginTop: 3, marginBottom: 0 }}>{user?.email}</p>
             </div>
             <button
+              onClick={() => { setMenuOpen(false); setFeedbackOpen(true); }}
+              style={{
+                width: '100%', padding: '13px 18px', textAlign: 'left',
+                color: BROWN, fontWeight: 600, fontSize: 14,
+                background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                borderBottom: `1px solid ${DIVIDER}`,
+              }}
+            >
+              Send feedback
+            </button>
+            <button
               onClick={() => { setMenuOpen(false); logout(); navigate('/'); }}
               style={{
                 width: '100%', padding: '13px 18px', textAlign: 'left',
@@ -289,9 +312,14 @@ export default function TenantDashboard() {
                 }}
               />
             ))}
+            {showFeedbackCard && (
+              <FeedbackCard onDismissed={() => setShowFeedbackCard(false)} />
+            )}
           </div>
         )}
       </div>
+
+      <FeedbackSheet open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
 
       {/* ── Bottom navigation ──────────────────────────────────────────────── */}
       <nav style={{

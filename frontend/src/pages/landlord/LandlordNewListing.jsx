@@ -177,7 +177,8 @@ export default function LandlordNewListing() {
 
       await api.post('/properties', fd);
       toast.success('Listing submitted for review!');
-      navigate('/landlord/dashboard');
+      sessionStorage.setItem('hf_just_published', '1');
+      navigate('/landlord/properties');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to submit listing');
     } finally {

@@ -4,7 +4,6 @@ import toast from 'react-hot-toast';
 import Navbar from '../components/shared/Navbar';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import FeedbackBubble from '../components/shared/FeedbackBubble';
 import { priceLabel } from '../utils/format';
 
 const SAT_TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
@@ -435,10 +434,6 @@ export default function PropertyDetail() {
             <Link to="/tenant/login" className="text-xs text-center text-gray-400 hover:text-gray-600 block">Already have an account? Sign in</Link>
           </div>
         </div>
-      )}
-
-      {hasLandlord && isTenant && (
-        <FeedbackBubble mode="landlord" landlordId={property.landlord.id} propertyId={id} />
       )}
 
       {/* ── Report modal ── */}
