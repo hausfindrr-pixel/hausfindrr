@@ -371,7 +371,6 @@ export default function PropertyDetail() {
                         </span>
                       )}
                     </div>
-                    <p className="text-gray-500 text-sm">{property.landlord.phone}</p>
                   </div>
                 </div>
                 {property.landlordVerified && (
@@ -422,7 +421,6 @@ export default function PropertyDetail() {
                   </div>
                   <div>
                     <p className="font-semibold text-gray-900 text-sm">{property.landlord.name}</p>
-                    <p className="text-gray-500 text-sm">{property.landlord.phone}</p>
                   </div>
                 </div>
                 <button
@@ -440,7 +438,7 @@ export default function PropertyDetail() {
                   </svg>
                 </div>
                 <h3 className="font-bold text-gray-900 mb-1 text-sm">Sign in to view landlord details</h3>
-                <p className="text-gray-500 text-xs mb-4">Create a free account to see the landlord's name and phone number.</p>
+                <p className="text-gray-500 text-xs mb-4">Create a free account to message the landlord.</p>
                 <Link to="/tenant/register" className="btn-secondary w-full py-2.5 text-sm block text-center">
                   Sign up — it's free
                 </Link>

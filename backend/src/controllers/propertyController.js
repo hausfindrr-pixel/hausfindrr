@@ -233,7 +233,7 @@ async function getListings(req, res, next) {
         include: {
           photos: true,
           amenities: true,
-          landlord: { select: { id: true, name: true, phone: true, email: true, status: true } },
+          landlord: { select: { id: true, name: true, status: true } },
         },
         skip,
         take: parseInt(limit),
@@ -355,7 +355,7 @@ async function getFullProperty(id) {
       photos: true,
       amenities: true,
       titleDocuments: true,
-      landlord: { select: { id: true, name: true, phone: true, email: true, status: true } },
+      landlord: { select: { id: true, name: true, status: true } },
     },
   });
 }
