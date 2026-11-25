@@ -24,7 +24,6 @@ export default function LandlordDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [deleting, setDeleting] = useState(null);
   const [togglingOccupied, setTogglingOccupied] = useState(null);
-  const [markingSold, setMarkingSold] = useState(null);
   const [openThread, setOpenThread] = useState(null);
   const [expandedProperty, setExpandedProperty] = useState(null);
 
@@ -70,20 +69,6 @@ export default function LandlordDashboard() {
       toast.error('Failed to update occupied status');
     } finally {
       setTogglingOccupied(null);
-    }
-  }
-
-  async function handleMarkSold(id) {
-    if (!window.confirm('Mark this listing as sold? It will be permanently removed from your dashboard.')) return;
-    setMarkingSold(id);
-    try {
-      await api.patch(`/properties/${id}/sold`);
-      setProperties(prev => prev.filter(p => p.id !== id));
-      toast.success('Listing marked as sold and removed');
-    } catch {
-      toast.error('Failed to mark as sold');
-    } finally {
-      setMarkingSold(null);
     }
   }
 

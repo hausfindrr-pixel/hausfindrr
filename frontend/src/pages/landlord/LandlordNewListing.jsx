@@ -496,7 +496,7 @@ export default function LandlordNewListing() {
               </div>
             )}
             <p className="text-xs text-gray-400 mt-2">
-              Use clear, well-lit photos. Listings with quality photos get rented or sold faster.
+              Use clear, well-lit photos. Listings with quality photos get rented faster.
             </p>
           </Section>
 
