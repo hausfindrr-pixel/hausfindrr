@@ -110,18 +110,49 @@ function DocLightbox({ url, onClose }) {
   );
 }
 
-function RejectModal({ title, onConfirm, onCancel }) {
+const DECLINE_PRESETS = {
+  landlord: [
+    'ID document is blurry or unreadable. Please resubmit a clear, well-lit photo.',
+    'ID document appears expired. Please submit a valid, current document.',
+    'The name on the ID does not match the name on your account.',
+    'Proof of right to rent is missing or unacceptable. Please upload a valid lease, title deed, or authority letter.',
+    'We could not verify this document. Please contact info@hausfindrr.com for assistance.',
+  ],
+  listing: [
+    'Listing price appears incorrect or unrealistic. Please review and resubmit.',
+    'Photos are missing, blurry, or do not show the property clearly.',
+    'Property description is insufficient. Please add more details.',
+    'Listing location does not match the address provided.',
+    'Listing appears to duplicate an existing active listing.',
+    'This listing does not meet our content standards. Please contact info@hausfindrr.com.',
+  ],
+};
+
+function RejectModal({ title, onConfirm, onCancel, variant = 'landlord' }) {
   const [reason, setReason] = useState('');
+  const presets = DECLINE_PRESETS[variant] || DECLINE_PRESETS.landlord;
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onCancel}>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
         <h3 className="font-bold text-gray-900 mb-1">{title || 'Rejection Reason'}</h3>
-        <p className="text-sm text-gray-500 mb-4">Provide a reason so the user knows what to fix.</p>
+        <p className="text-sm text-gray-500 mb-3">Select a preset or write a custom reason.</p>
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {presets.map((p, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setReason(p)}
+              className="text-xs px-2.5 py-1 rounded-full border border-gray-200 text-gray-600 hover:border-primary hover:text-primary transition-colors text-left"
+            >
+              {p.length > 50 ? p.slice(0, 48) + '…' : p}
+            </button>
+          ))}
+        </div>
         <textarea
-          className="input h-24 resize-none mb-4 text-sm"
+          className="input h-20 resize-none mb-4 text-sm"
           value={reason}
           onChange={e => setReason(e.target.value)}
-          placeholder="e.g. ID document is blurry. Please resubmit a clear photo…"
+          placeholder="Or type a custom reason…"
           autoFocus
         />
         <div className="flex gap-3">
@@ -177,16 +208,20 @@ const NAV = [
     icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>,
   },
   {
-    key: 'transactions', label: 'Transactions',
-    icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>,
-  },
-  {
     key: 'messages', label: 'Messages',
     icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>,
   },
   {
     key: 'complaints', label: 'Complaints', pendingKey: 'complaints',
     icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
+  },
+  {
+    key: 'consent_logs', label: 'Consent Logs',
+    icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>,
+  },
+  {
+    key: 'data_requests', label: 'Data Requests',
+    icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
   },
   {
     key: 'security', label: 'Security',
@@ -341,10 +376,11 @@ export default function AdminDashboard() {
           {section === 'pending_listings'  && <PendingListingsSection  onCountChange={n => setPendingCounts(p => ({ ...p, pendingListings: n }))} />}
           {section === 'all_landlords'     && <AllLandlordsSection />}
           {section === 'all_listings'      && <AllListingsSection />}
-          {section === 'transactions'      && <TransactionsSection />}
           {section === 'messages'    && <MessagesSection messageTarget={messageTarget} onClearTarget={() => setMessageTarget(null)} />}
-          {section === 'complaints'  && <ComplaintsSection onMessageLandlord={goMessages} onCountChange={n => setPendingCounts(p => ({ ...p, complaints: n }))} />}
-          {section === 'security'    && <SecuritySection />}
+          {section === 'complaints'   && <ComplaintsSection onMessageLandlord={goMessages} onCountChange={n => setPendingCounts(p => ({ ...p, complaints: n }))} />}
+          {section === 'consent_logs' && <ConsentLogsSection />}
+          {section === 'data_requests' && <DataRequestsSection />}
+          {section === 'security'     && <SecuritySection />}
         </main>
       </div>
     </div>
@@ -353,11 +389,9 @@ export default function AdminDashboard() {
 
 const EMPTY_ANALYTICS = {
   totalLandlords: 0, totalTenants: 0, totalActiveListings: 0,
-  totalUnlocks: 0, totalRevenue: 0,
   pendingLandlords: 0, pendingListings: 0,
   recentActivity: [],
   registrationChart: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(label => ({ label, landlords: 0, tenants: 0 })),
-  revenueChart: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(label => ({ label, unlocks: 0, revenue: 0 })),
 };
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
@@ -404,10 +438,10 @@ function DashboardSection() {
           icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>}
         />
         <StatCard
-          label="Total Revenue" value={`K${Number(data.totalRevenue || 0).toLocaleString()}`}
-          sub={`${data.totalUnlocks} unlocks`}
-          color="bg-green-100 text-green-600"
-          icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+          label="Pending Review" value={(data.pendingLandlords || 0) + (data.pendingListings || 0)}
+          sub="landlords + listings"
+          color="bg-amber-100 text-amber-600"
+          icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
         />
       </div>
 
@@ -477,32 +511,6 @@ function DashboardSection() {
           </div>
         </div>
 
-        {/* Revenue bar */}
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-          <p className="text-sm font-semibold text-gray-700 mb-0.5">Revenue (7d)</p>
-          <p className="text-xs text-gray-400 mb-4">Unlock fees · K25 each</p>
-          {data.revenueChart && (() => {
-            const maxVal = Math.max(...data.revenueChart.map(d => d.revenue || 0), 1);
-            return (
-              <div className="flex items-end gap-1.5 h-20">
-                {data.revenueChart.map((d, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
-                    <div
-                      className="w-full rounded-t"
-                      style={{ height: `${Math.max((d.revenue / maxVal) * 72, d.revenue ? 4 : 0)}px`, backgroundColor: '#22c55e', opacity: d.revenue ? 1 : 0.15 }}
-                    />
-                    <span className="text-[9px] text-gray-400">{d.label}</span>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-          <div className="flex gap-4 mt-3">
-            <span className="flex items-center gap-1.5 text-xs text-gray-500">
-              <span className="w-2.5 h-2.5 rounded-sm inline-block bg-green-500" />Revenue (K)
-            </span>
-          </div>
-        </div>
       </div>
 
       {/* Activity feed */}
@@ -518,7 +526,7 @@ function DashboardSection() {
                 const iconProps = {
                   landlord_register: { bg: 'bg-primary/10', color: 'text-primary', d: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
                   listing_active:    { bg: 'bg-blue-100',   color: 'text-blue-500', d: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-                  unlock:            { bg: 'bg-green-100',  color: 'text-green-500', d: 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z' },
+                  tenant_register:   { bg: 'bg-secondary/10', color: 'text-secondary', d: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
                   message:           { bg: 'bg-gray-100',   color: 'text-gray-400', d: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' },
                 }[ev.type] || { bg: 'bg-gray-100', color: 'text-gray-400', d: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' };
                 return (
@@ -571,7 +579,7 @@ function PendingLandlordsSection({ onCountChange }) {
     <div className="space-y-5">
       {lightbox && <DocLightbox url={lightbox} onClose={() => setLightbox(null)} />}
       {rejectTarget && (
-        <RejectModal title="Reject Landlord" onConfirm={r => act(rejectTarget, 'reject', r)} onCancel={() => setRejectTarget(null)} />
+        <RejectModal title="Reject Landlord" variant="landlord" onConfirm={r => act(rejectTarget, 'reject', r)} onCancel={() => setRejectTarget(null)} />
       )}
       <div>
         <h1 className="text-xl font-bold text-gray-900">Pending Landlords</h1>
@@ -685,7 +693,7 @@ function PendingListingsSection({ onCountChange }) {
     <div className="space-y-5">
       {lightbox && <DocLightbox url={lightbox} onClose={() => setLightbox(null)} />}
       {rejectTarget && (
-        <RejectModal title="Reject Listing" onConfirm={r => act(rejectTarget, 'reject', r)} onCancel={() => setRejectTarget(null)} />
+        <RejectModal title="Reject Listing" variant="listing" onConfirm={r => act(rejectTarget, 'reject', r)} onCancel={() => setRejectTarget(null)} />
       )}
       <div>
         <h1 className="text-xl font-bold text-gray-900">Pending Listings</h1>
@@ -703,7 +711,7 @@ function PendingListingsSection({ onCountChange }) {
                     <div>
                       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                         <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${p.listingType === 'rent' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'}`}>
-                          {p.listingType === 'rent' ? 'For Rent' : 'For Sale'}
+                          For Rent
                         </span>
                         <span className="text-xs text-gray-400 capitalize">{p.propertyType}</span>
                       </div>
@@ -921,7 +929,7 @@ function AllLandlordsSection() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
             <h3 className="font-bold text-gray-900 mb-2">Delete Landlord?</h3>
-            <p className="text-sm text-gray-500 mb-4">This permanently deletes the landlord and all their listings, messages and transaction records. This cannot be undone.</p>
+            <p className="text-sm text-gray-500 mb-4">This permanently deletes the landlord and all their listings and messages. This cannot be undone.</p>
             <div className="flex gap-3">
               <button
                 className="flex-1 bg-red-500 text-white py-2.5 rounded-xl font-semibold hover:bg-red-600 text-sm disabled:opacity-50"
@@ -1082,7 +1090,7 @@ function AllListingsSection() {
   return (
     <div className="space-y-5">
       {rejectTarget && (
-        <RejectModal title="Reject Listing" onConfirm={r => reviewProp(rejectTarget, 'reject', r)} onCancel={() => setRejectTarget(null)} />
+        <RejectModal title="Reject Listing" variant="listing" onConfirm={r => reviewProp(rejectTarget, 'reject', r)} onCancel={() => setRejectTarget(null)} />
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1143,81 +1151,6 @@ function AllListingsSection() {
   );
 }
 
-// ─── Transactions ─────────────────────────────────────────────────────────────
-function TransactionsSection() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.get('/admin/transactions')
-      .then(({ data: d }) => setData(d))
-      .catch(() => setData({ transactions: [], totalRevenue: 0, thisMonthRevenue: 0, totalCount: 0 }))
-      .finally(() => setLoading(false));
-  }, []);
-
-  return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Transactions</h1>
-        <p className="text-sm text-gray-400 mt-0.5">All platform payment records</p>
-      </div>
-
-      {loading
-        ? <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-gray-100 animate-pulse rounded-2xl" />)}</div>
-        : !data ? null
-        : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                { label: 'Total Revenue', value: `K${Number(data.totalRevenue).toLocaleString()}` },
-                { label: 'This Month', value: `K${Number(data.thisMonthRevenue).toLocaleString()}` },
-                { label: 'Total Transactions', value: data.totalCount },
-              ].map(s => (
-                <div key={s.label} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm text-center">
-                  <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-                  <p className="text-sm text-gray-400 mt-0.5">{s.label}</p>
-                </div>
-              ))}
-            </div>
-
-            {data.transactions.length === 0
-              ? <Empty text="No transactions yet" />
-              : (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-50">
-                        {['Date', 'Tenant', 'Property', 'Amount', 'Status'].map(h => (
-                          <th key={h} className={`px-5 py-3 font-semibold text-gray-400 text-xs uppercase tracking-wide text-left ${h === 'Amount' ? 'text-right' : ''} ${h === 'Property' ? 'hidden sm:table-cell' : ''}`}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {data.transactions.map(t => (
-                        <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="px-5 py-3 text-gray-400 whitespace-nowrap">
-                            {new Date(t.createdAt).toLocaleDateString('en-PG', { day: 'numeric', month: 'short' })}
-                          </td>
-                          <td className="px-5 py-3">
-                            <p className="font-medium text-gray-900">{t.tenant?.name}</p>
-                            <p className="text-gray-400 text-xs">{t.tenant?.email}</p>
-                          </td>
-                          <td className="px-5 py-3 text-gray-500 hidden sm:table-cell max-w-[200px] truncate">{t.property?.title}</td>
-                          <td className="px-5 py-3 text-right font-semibold text-gray-900">K{Number(t.amount).toLocaleString()}</td>
-                          <td className="px-5 py-3"><StatusBadge status={t.status} /></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )
-            }
-          </>
-        )
-      }
-    </div>
-  );
-}
 
 // ─── Messages ─────────────────────────────────────────────────────────────────
 function MessagesSection({ messageTarget, onClearTarget }) {
@@ -1954,6 +1887,156 @@ function SecuritySection() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Consent Logs ───────────────────────────────────────────────────────────
+function ConsentLogsSection() {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    api.get('/admin/consent-logs')
+      .then(({ data }) => setLogs(data.logs || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = logs.filter(l =>
+    !search ||
+    l.document?.toLowerCase().includes(search.toLowerCase()) ||
+    l.userId?.toLowerCase().includes(search.toLowerCase()) ||
+    l.userEmail?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <h2 className="text-xl font-bold text-gray-900">Consent Log</h2>
+        <input
+          className="input max-w-xs text-sm"
+          placeholder="Search by event or user…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
+      <p className="text-sm text-gray-500">Immutable record of all consent events. Rows are never modified or deleted.</p>
+      {loading ? (
+        <p className="text-sm text-gray-400">Loading…</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-gray-400">No consent events found.</p>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-gray-100">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+              <tr>
+                <th className="px-4 py-3 text-left">Event</th>
+                <th className="px-4 py-3 text-left">User</th>
+                <th className="px-4 py-3 text-left">Version</th>
+                <th className="px-4 py-3 text-left">IP</th>
+                <th className="px-4 py-3 text-left">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {filtered.map(l => (
+                <tr key={l.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 font-mono text-xs text-primary">{l.document}</td>
+                  <td className="px-4 py-3 text-gray-700">{l.userEmail || l.userId || <span className="text-gray-300">—</span>}</td>
+                  <td className="px-4 py-3 text-gray-500">{l.version || '—'}</td>
+                  <td className="px-4 py-3 text-gray-400 font-mono text-xs">{l.ipAddress || '—'}</td>
+                  <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{new Date(l.acceptedAt).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Data Requests ──────────────────────────────────────────────────────────
+function DataRequestsSection() {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  function load() {
+    api.get('/admin/data-requests')
+      .then(({ data }) => setRequests(data.requests || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function markDone(id) {
+    try {
+      await api.patch(`/admin/data-requests/${id}/complete`);
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'completed' } : r));
+      toast.success('Marked as completed');
+    } catch {
+      toast.error('Failed to update');
+    }
+  }
+
+  const pending = requests.filter(r => r.status === 'pending');
+  const done = requests.filter(r => r.status !== 'pending');
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-xl font-bold text-gray-900">Data Requests</h2>
+        <span className="text-xs bg-yellow-100 text-yellow-700 px-2.5 py-1 rounded-full font-semibold">
+          {pending.length} pending
+        </span>
+      </div>
+      <p className="text-sm text-gray-500">
+        Users may request a copy of their data or deletion of their account. Respond within 30 days per applicable law.
+        Contact the user at their email to fulfil the request, then mark it complete here.
+      </p>
+      {loading ? (
+        <p className="text-sm text-gray-400">Loading…</p>
+      ) : requests.length === 0 ? (
+        <p className="text-sm text-gray-400">No data requests yet.</p>
+      ) : (
+        <div className="space-y-3">
+          {pending.length > 0 && (
+            <>
+              <h3 className="text-sm font-semibold text-gray-700">Pending</h3>
+              {pending.map(r => (
+                <div key={r.id} className="bg-white rounded-xl border border-yellow-100 p-4 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{r.type === 'export' ? 'Data Export' : 'Account Deletion'}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{r.user?.email || r.userId}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{new Date(r.createdAt).toLocaleString()}</p>
+                    {r.notes && <p className="text-xs text-gray-600 mt-1 italic">&quot;{r.notes}&quot;</p>}
+                  </div>
+                  <button onClick={() => markDone(r.id)} className="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-200 transition-colors font-semibold whitespace-nowrap">
+                    Mark Done
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+          {done.length > 0 && (
+            <>
+              <h3 className="text-sm font-semibold text-gray-500 mt-4">Completed</h3>
+              {done.map(r => (
+                <div key={r.id} className="bg-gray-50 rounded-xl border border-gray-100 p-4 flex items-start justify-between gap-4 opacity-60">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700">{r.type === 'export' ? 'Data Export' : 'Account Deletion'}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{r.user?.email || r.userId}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{new Date(r.createdAt).toLocaleString()}</p>
+                  </div>
+                  <span className="text-xs text-green-600 font-semibold">Done</span>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       )}
     </div>

@@ -7,7 +7,7 @@ import { TOS_SECTIONS, TOS_VERSION } from '../constants/tos';
 
 const ERROR_MESSAGES = {
   access_denied:    'You cancelled the Google sign-in. Please try again.',
-  suspended:        'Your account has been suspended. Contact support@hausfindrr.com.',
+  suspended:        'Your account has been suspended. Contact info@hausfindrr.com.',
   invalid_state:    'The sign-in session expired. Please try again.',
   auth_failed:      'Google sign-in failed. Please try again or use email/password.',
   not_configured:   'Google sign-in is not configured yet. Please try again later.',
@@ -210,7 +210,7 @@ export default function OAuthCallback() {
             />
             {selectedRole === 'landlord' && (
               <p className="text-xs text-gray-400 mt-1.5">
-                Visible to tenants who unlock your listings. Use a number you actively monitor.
+                Visible to signed-in tenants viewing your listings. Use a number you actively monitor.
               </p>
             )}
           </div>

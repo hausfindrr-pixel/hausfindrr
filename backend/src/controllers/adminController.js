@@ -92,27 +92,18 @@ async function getAnalytics(req, res, next) {
       totalLandlords,
       totalTenants,
       totalActiveListings,
-      totalUnlocks,
-      revenueAgg,
       pendingLandlords,
       pendingListings,
     ] = await Promise.all([
       prisma.user.count({ where: { role: 'landlord', status: 'active' } }),
       prisma.user.count({ where: { role: 'tenant' } }),
       prisma.property.count({ where: { status: 'active' } }),
-      prisma.unlock.count(),
-      prisma.transaction.aggregate({
-        where: { status: 'success' },
-        _sum: { amount: true },
-      }),
       prisma.user.count({ where: { role: 'landlord', status: 'pending_verification' } }),
       prisma.property.count({ where: { status: 'pending' } }),
     ]);
 
-    const totalRevenue = Number(revenueAgg._sum.amount || 0);
-
-    // Recent activity — gather from 4 sources
-    const [landlordEvents, propertyEvents, unlockEvents, messageEvents] = await Promise.all([
+    // Recent activity — gather from 3 sources
+    const [landlordEvents, propertyEvents, messageEvents] = await Promise.all([
       prisma.user.findMany({
         where: { role: 'landlord' },
         orderBy: { createdAt: 'desc' },
@@ -124,14 +115,6 @@ async function getAnalytics(req, res, next) {
         orderBy: { createdAt: 'desc' },
         take: 5,
         select: { title: true, locationGeneral: true, createdAt: true },
-      }),
-      prisma.unlock.findMany({
-        orderBy: { unlockedAt: 'desc' },
-        take: 5,
-        include: {
-          tenant: { select: { name: true } },
-          property: { select: { title: true } },
-        },
       }),
       prisma.message.findMany({
         orderBy: { sentAt: 'desc' },
@@ -153,11 +136,6 @@ async function getAnalytics(req, res, next) {
         type: 'listing_active',
         text: `Listing active: ${p.title}, ${p.locationGeneral}`,
         time: p.createdAt,
-      })),
-      ...unlockEvents.map(u => ({
-        type: 'unlock',
-        text: `${u.tenant.name} unlocked ${u.property.title}`,
-        time: u.unlockedAt,
       })),
       ...messageEvents.map(m => ({
         type: 'message',
@@ -209,75 +187,19 @@ async function getAnalytics(req, res, next) {
     }
     const registrationChart = last7Days.map(({ dateStr }) => regByDay[dateStr]);
 
-    // Revenue chart
-    const recentUnlocks = await prisma.unlock.findMany({
-      where: { unlockedAt: { gte: sevenDaysAgo } },
-      select: { unlockedAt: true },
-    });
-
-    const revByDay = {};
-    for (const { dateStr, label } of last7Days) {
-      revByDay[dateStr] = { date: dateStr, label, unlocks: 0, revenue: 0 };
-    }
-    for (const u of recentUnlocks) {
-      const dateStr = u.unlockedAt.toISOString().split('T')[0];
-      if (revByDay[dateStr]) {
-        revByDay[dateStr].unlocks++;
-        revByDay[dateStr].revenue += 25;
-      }
-    }
-    const revenueChart = last7Days.map(({ dateStr }) => revByDay[dateStr]);
-
     res.set('Cache-Control', 'private, max-age=60');
     res.json({
       totalLandlords,
       totalTenants,
       totalActiveListings,
-      totalUnlocks,
-      totalRevenue,
       pendingLandlords,
       pendingListings,
       recentActivity,
       registrationChart,
-      revenueChart,
     });
   } catch (err) { next(err); }
 }
 
-async function getAllTransactions(req, res, next) {
-  try {
-    const transactions = await prisma.transaction.findMany({
-      include: {
-        tenant: { select: { name: true, email: true } },
-        property: { select: { title: true, locationGeneral: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    const successfulTxns = transactions.filter(t => t.status === 'success');
-
-    const totalRevenue = Number(
-      successfulTxns.reduce((sum, t) => sum + Number(t.amount || 0), 0)
-    );
-
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-
-    const thisMonthRevenue = Number(
-      successfulTxns
-        .filter(t => new Date(t.createdAt) >= startOfMonth)
-        .reduce((sum, t) => sum + Number(t.amount || 0), 0)
-    );
-
-    res.json({
-      transactions,
-      totalRevenue,
-      thisMonthRevenue,
-      totalCount: transactions.length,
-    });
-  } catch (err) { next(err); }
-}
 
 async function getAllMessages(req, res, next) {
   try {
@@ -343,8 +265,6 @@ async function deleteLandlord(req, res, next) {
     await prisma.$transaction([
       prisma.message.deleteMany({ where: { propertyId: { in: propertyIds } } }),
       prisma.favorite.deleteMany({ where: { propertyId: { in: propertyIds } } }),
-      prisma.unlock.deleteMany({ where: { propertyId: { in: propertyIds } } }),
-      prisma.transaction.deleteMany({ where: { propertyId: { in: propertyIds } } }),
       prisma.property.deleteMany({ where: { id: { in: propertyIds } } }),
       prisma.landlordIdDocument.deleteMany({ where: { userId: id } }),
       prisma.user.delete({ where: { id } }),
@@ -359,7 +279,6 @@ module.exports = {
   getPendingProperties, reviewProperty,
   getAllLandlords, getAllListings,
   getAnalytics,
-  getAllTransactions,
   getAllMessages,
   suspendLandlord,
   deleteLandlord,

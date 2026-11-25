@@ -7,13 +7,6 @@ async function sendMessage(req, res, next) {
     if (!propertyId || !receiverId || !content?.trim())
       return res.status(400).json({ error: 'propertyId, receiverId, and content required' });
 
-    if (req.user.role === 'tenant') {
-      const unlock = await prisma.unlock.findUnique({
-        where: { tenantId_propertyId: { tenantId: req.user.id, propertyId } },
-      });
-      if (!unlock) return res.status(403).json({ error: 'Unlock this property to send messages' });
-    }
-
     const message = await prisma.message.create({
       data: { propertyId, senderId: req.user.id, receiverId, content: content.trim() },
       include: { sender: { select: { id: true, name: true, role: true } } },

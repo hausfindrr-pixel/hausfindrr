@@ -42,16 +42,13 @@ enum PropertyType {
 }
 
 enum PropertyStatus {
+  draft
   pending
   active
   rejected
+  rented
 }
 
-enum TransactionStatus {
-  pending
-  success
-  failed
-}
 
 model User {
   id            String     @id @default(uuid())
@@ -74,8 +71,6 @@ model User {
 
   landlordIdDocuments  LandlordIdDocument[]
   properties           Property[]
-  transactions         Transaction[]
-  unlocks              Unlock[]
   favorites            Favorite[]
   sentMessages         Message[]      @relation("SentMessages")
   receivedMessages     Message[]      @relation("ReceivedMessages")
@@ -83,6 +78,8 @@ model User {
   tenantComplaints     Complaint[]    @relation("TenantComplaints")
   landlordComplaints   Complaint[]    @relation("LandlordComplaints")
   notifications        UserNotification[]
+  consentLogs          ConsentLog[]
+  dataRequests         DataRequest[]
 
   @@index([role, status])
   @@index([createdAt])
@@ -90,11 +87,14 @@ model User {
 }
 
 model LandlordIdDocument {
-  id         String    @id @default(uuid())
-  userId     String    @map("user_id")
-  docType    IdDocType @map("doc_type")
-  filePath   String    @map("file_path")
-  uploadedAt DateTime  @default(now()) @map("uploaded_at")
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  docType     IdDocType @map("doc_type")
+  filePath    String    @map("file_path")
+  publicId    String?   @map("public_id")
+  uploadedAt  DateTime  @default(now()) @map("uploaded_at")
+  expiresAt   DateTime  @map("expires_at")
+  legalHold   Boolean   @default(false) @map("legal_hold")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -102,11 +102,14 @@ model LandlordIdDocument {
 }
 
 model PropertyTitleDocument {
-  id         String       @id @default(uuid())
-  propertyId String       @map("property_id")
-  docType    TitleDocType @map("doc_type")
-  filePath   String       @map("file_path")
-  uploadedAt DateTime     @default(now()) @map("uploaded_at")
+  id          String       @id @default(uuid())
+  propertyId  String       @map("property_id")
+  docType     TitleDocType @map("doc_type")
+  filePath    String       @map("file_path")
+  publicId    String?      @map("public_id")
+  uploadedAt  DateTime     @default(now()) @map("uploaded_at")
+  expiresAt   DateTime     @map("expires_at")
+  legalHold   Boolean      @default(false) @map("legal_hold")
 
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
@@ -139,8 +142,6 @@ model Property {
   photos         PropertyPhoto[]
   amenities      Amenity[]
   titleDocuments PropertyTitleDocument[]
-  transactions   Transaction[]
-  unlocks        Unlock[]
   favorites      Favorite[]
   messages       Message[]
   complaints     Complaint[]
@@ -172,38 +173,6 @@ model Amenity {
   @@map("amenities")
 }
 
-model Transaction {
-  id            String            @id @default(uuid())
-  tenantId      String            @map("tenant_id")
-  propertyId    String            @map("property_id")
-  amount        Decimal           @db.Decimal(10, 2)
-  status        TransactionStatus @default(pending)
-  paymentMethod String            @map("payment_method")
-  createdAt     DateTime          @default(now()) @map("created_at")
-
-  tenant   User     @relation(fields: [tenantId], references: [id])
-  property Property @relation(fields: [propertyId], references: [id])
-
-  @@index([status])
-  @@index([tenantId])
-  @@index([propertyId])
-  @@index([createdAt])
-  @@map("transactions")
-}
-
-model Unlock {
-  id         String   @id @default(uuid())
-  tenantId   String   @map("tenant_id")
-  propertyId String   @map("property_id")
-  unlockedAt DateTime @default(now()) @map("unlocked_at")
-
-  tenant   User     @relation(fields: [tenantId], references: [id])
-  property Property @relation(fields: [propertyId], references: [id])
-
-  @@unique([tenantId, propertyId])
-  @@index([unlockedAt])
-  @@map("unlocks")
-}
 
 model Favorite {
   id         String   @id @default(uuid())
@@ -287,4 +256,44 @@ model UserNotification {
   @@index([userId])
   @@index([createdAt])
   @@map("user_notifications")
+}
+
+// Immutable consent audit log — one row per acceptance event, never updated.
+// userId is nullable so rows survive account deletion.
+model ConsentLog {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id")
+  userEmail   String   @map("user_email")
+  userRole    String   @map("user_role")
+  document    String   // e.g. "terms_of_service", "privacy_policy", "landlord_agreement", "tenant_safety"
+  version     String   // e.g. "v1.0-july2026"
+  accepted    Boolean  @default(true)
+  acceptedAt  DateTime @default(now()) @map("accepted_at")
+  ipAddress   String   @map("ip_address")
+  userAgent   String   @map("user_agent")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userEmail])
+  @@index([document])
+  @@index([acceptedAt])
+  @@map("consent_logs")
+}
+
+model DataRequest {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  userEmail String   @map("user_email")
+  type      String   // "export" | "deletion"
+  status    String   @default("pending") // "pending" | "completed"
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([userId])
+  @@map("data_requests")
 }

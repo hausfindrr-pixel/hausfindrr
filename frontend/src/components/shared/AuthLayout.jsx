@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import Footer from './Footer';
 
 export default function AuthLayout({ title, subtitle, children }) {
   return (
@@ -17,6 +18,7 @@ export default function AuthLayout({ title, subtitle, children }) {
           {children}
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

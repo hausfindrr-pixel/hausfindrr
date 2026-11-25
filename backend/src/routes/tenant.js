@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, requireRole } = require('../middleware/auth');
-const { unlockProperty, getUnlockedProperties, toggleFavorite, getFavorites } = require('../controllers/tenantController');
+const { toggleFavorite, getFavorites } = require('../controllers/tenantController');
+const { createDataRequest } = require('../controllers/dataRequestController');
 
 router.use(authenticate, requireRole('tenant'));
 
-router.post('/unlock/:propertyId', unlockProperty);
-router.get('/unlocked', getUnlockedProperties);
 router.post('/favorite/:propertyId', toggleFavorite);
 router.get('/favorites', getFavorites);
+router.post('/data-request', createDataRequest);
 
 module.exports = router;

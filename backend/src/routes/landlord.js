@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, requireRole } = require('../middleware/auth');
+const { createDataRequest } = require('../controllers/dataRequestController');
 
 router.use(authenticate, requireRole('landlord'));
 
@@ -18,5 +19,7 @@ router.get('/profile', async (req, res, next) => {
     res.json({ user: safe });
   } catch (err) { next(err); }
 });
+
+router.post('/data-request', createDataRequest);
 
 module.exports = router;

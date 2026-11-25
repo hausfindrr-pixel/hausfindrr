@@ -201,7 +201,7 @@ export default function LandlordNewListing() {
             <div>
               <label className="label">Listing Type</label>
               <div className="flex gap-2 p-1 bg-gray-100 rounded-xl w-fit">
-                {[{ value: 'rent', label: 'For Rent' }, { value: 'sale', label: 'For Sale' }].map(t => (
+                {[{ value: 'rent', label: 'For Rent' }].map(t => (
                   <button
                     key={t.value} type="button"
                     onClick={() => setForm(p => ({ ...p, listingType: t.value }))}
@@ -345,7 +345,7 @@ export default function LandlordNewListing() {
               )}
             </div>
             <div>
-              <label className="label">Exact Address <span className="text-gray-400 font-normal">(hidden until tenant unlocks)</span></label>
+              <label className="label">Exact Address <span className="text-gray-400 font-normal">(visible to signed-in tenants)</span></label>
               <input className="input" required value={form.locationExact} onChange={set('locationExact')}
                 placeholder="Full street address" />
             </div>
@@ -496,7 +496,7 @@ export default function LandlordNewListing() {
               </div>
             )}
             <p className="text-xs text-gray-400 mt-2">
-              Use clear, well-lit photos. Listings with quality photos get rented or sold faster.
+              Use clear, well-lit photos. Listings with quality photos get rented faster.
             </p>
           </Section>
 

@@ -123,6 +123,16 @@ export default function TenantRegister() {
               >
                 Terms of Service
               </Link>
+              {' '}and{' '}
+              <Link
+                to="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-secondary font-medium hover:underline"
+                onClick={e => e.stopPropagation()}
+              >
+                Privacy Policy
+              </Link>
               .
             </span>
           </label>

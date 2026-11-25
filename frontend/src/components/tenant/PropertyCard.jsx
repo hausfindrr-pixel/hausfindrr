@@ -61,12 +61,18 @@ export default function PropertyCard({ property, onFavoriteToggle, isFavorited }
         </div>
 
         {/* Listing type badge — compact on mobile */}
-        <div className="absolute top-2 left-2 sm:top-3 sm:left-3">
-          <span className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full shadow-sm ${
-            property.listingType === 'rent' ? 'bg-primary text-white' : 'bg-secondary text-white'
-          }`}>
-            {property.listingType === 'rent' ? 'For Rent' : 'For Sale'}
+        <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex gap-1">
+          <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full shadow-sm bg-primary text-white">
+            For Rent
           </span>
+          {property.landlordVerified && (
+            <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full shadow-sm bg-green-600 text-white flex items-center gap-0.5">
+              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+              </svg>
+              Verified
+            </span>
+          )}
         </div>
 
         {/* Favorite button — 36px on mobile, 44px on desktop */}
@@ -107,14 +113,6 @@ export default function PropertyCard({ property, onFavoriteToggle, isFavorited }
           <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">
             {priceLabel(property.price, property.listingType, property.rentFrequency)}
           </p>
-          {!property.unlocked && (
-            <span className="flex items-center gap-0.5 text-gray-400 flex-shrink-0" title="K25 to unlock">
-              <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              <span className="text-[10px] sm:text-sm hidden sm:inline">K25 to unlock</span>
-            </span>
-          )}
         </div>
       </div>
     </Link>

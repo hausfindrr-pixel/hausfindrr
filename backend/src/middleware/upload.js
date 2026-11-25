@@ -11,25 +11,40 @@ cloudinary.config({
 const ALLOWED_DOC_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
 const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-function makeStorage(folder) {
+// Private storage for sensitive identity/title documents — not publicly accessible
+function makePrivateStorage(folder) {
   return new CloudinaryStorage({
     cloudinary,
     params: async (req, file) => ({
       folder: `hausfindrr/${folder}`,
       resource_type: 'auto',
+      type: 'private',
+      public_id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    }),
+  });
+}
+
+// Public storage for property listing photos
+function makePublicStorage(folder) {
+  return new CloudinaryStorage({
+    cloudinary,
+    params: async (req, file) => ({
+      folder: `hausfindrr/${folder}`,
+      resource_type: 'image',
+      type: 'upload',
       public_id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     }),
   });
 }
 
 const documentUpload = multer({
-  storage: makeStorage('documents'),
+  storage: makePrivateStorage('documents'),
   fileFilter: (req, file, cb) => cb(null, ALLOWED_DOC_TYPES.includes(file.mimetype)),
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 const photoUpload = multer({
-  storage: makeStorage('photos'),
+  storage: makePublicStorage('photos'),
   fileFilter: (req, file, cb) => cb(null, ALLOWED_PHOTO_TYPES.includes(file.mimetype)),
   limits: { fileSize: 5 * 1024 * 1024 },
 });
@@ -37,11 +52,22 @@ const photoUpload = multer({
 const propertyUpload = multer({
   storage: new CloudinaryStorage({
     cloudinary,
-    params: async (req, file) => ({
-      folder: file.fieldname === 'title_documents' ? 'hausfindrr/documents' : 'hausfindrr/photos',
-      resource_type: 'auto',
-      public_id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-    }),
+    params: async (req, file) => {
+      if (file.fieldname === 'title_documents') {
+        return {
+          folder: 'hausfindrr/documents',
+          resource_type: 'auto',
+          type: 'private',
+          public_id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        };
+      }
+      return {
+        folder: 'hausfindrr/photos',
+        resource_type: 'image',
+        type: 'upload',
+        public_id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      };
+    },
   }),
   fileFilter: (req, file, cb) => {
     if (file.fieldname === 'title_documents') {
@@ -53,4 +79,4 @@ const propertyUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-module.exports = { documentUpload, photoUpload, propertyUpload };
+module.exports = { cloudinary, documentUpload, photoUpload, propertyUpload };

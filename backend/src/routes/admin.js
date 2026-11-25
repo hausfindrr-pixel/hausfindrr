@@ -6,7 +6,6 @@ const {
   getPendingProperties, reviewProperty,
   getAllLandlords, getAllListings,
   getAnalytics,
-  getAllTransactions,
   getAllMessages,
   suspendLandlord,
   deleteLandlord,
@@ -15,6 +14,9 @@ const { setupTwoFactor, confirmTwoFactor, disableTwoFactor } = require('../contr
 const { createAnnouncement, getAdminAnnouncements } = require('../controllers/announcementController');
 const { getComplaints, updateComplaintStatus } = require('../controllers/complaintController');
 const { sendDirectMessage } = require('../controllers/messageController');
+const { getConsentLogs } = require('../controllers/consentController');
+const { getDocumentSignedUrl, setDocumentLegalHold } = require('../controllers/documentController');
+const { getDataRequests, completeDataRequest } = require('../controllers/dataRequestController');
 
 router.use(authenticate, requireRole('admin'));
 
@@ -29,7 +31,6 @@ router.patch('/properties/:id/review', reviewProperty);
 router.get('/properties', getAllListings);
 
 router.get('/analytics', getAnalytics);
-router.get('/transactions', getAllTransactions);
 router.get('/messages', getAllMessages);
 
 router.post('/announcements', createAnnouncement);
@@ -39,6 +40,16 @@ router.post('/direct-message', sendDirectMessage);
 
 router.get('/complaints', getComplaints);
 router.patch('/complaints/:id/status', updateComplaintStatus);
+
+router.get('/consent-logs', getConsentLogs);
+
+// Private document access (admin-only signed URLs + legal hold management)
+router.get('/documents/:type/:id/url', getDocumentSignedUrl);
+router.patch('/documents/:type/:id/legal-hold', setDocumentLegalHold);
+
+// Data requests
+router.get('/data-requests', getDataRequests);
+router.patch('/data-requests/:id/complete', completeDataRequest);
 
 router.get('/2fa/setup', setupTwoFactor);
 router.post('/2fa/confirm', confirmTwoFactor);

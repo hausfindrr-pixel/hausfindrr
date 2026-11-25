@@ -90,14 +90,6 @@ const cardStyle = {
 
 // ── Empty state ───────────────────────────────────────────────────────────────
 const EMPTY_CONFIG = {
-  unlocked: {
-    Icon: KeyIcon,
-    heading: 'Nothing unlocked yet',
-    body: 'Browse listings and unlock a property to see full details and contact the landlord.',
-    cta: 'Browse listings',
-    ctaLink: '/',
-    secondary: 'How unlocking works',
-  },
   saved: {
     Icon: HeartIcon,
     heading: 'No saved properties',
@@ -109,7 +101,7 @@ const EMPTY_CONFIG = {
   messages: {
     Icon: ChatIcon,
     heading: 'No messages yet',
-    body: 'Unlock a property to start a conversation with the landlord.',
+    body: 'Find a listing you like and message the landlord directly.',
     cta: 'Find a property',
     ctaLink: '/',
     secondary: 'How messaging works',
@@ -294,8 +286,7 @@ function DirectMessageRow({ thread }) {
 export default function TenantDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState('unlocked');
-  const [unlocked, setUnlocked] = useState([]);
+  const [tab, setTab] = useState('saved');
   const [favorites, setFavorites] = useState([]);
   const [threads, setThreads] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
@@ -305,13 +296,11 @@ export default function TenantDashboard() {
 
   useEffect(() => {
     Promise.allSettled([
-      api.get('/tenant/unlocked'),
       api.get('/tenant/favorites'),
       api.get('/messages/inbox'),
       api.get('/announcements'),
       api.get('/notifications'),
-    ]).then(([u, f, m, a, n]) => {
-      if (u.status === 'fulfilled') setUnlocked(u.value.data.unlocks || []);
+    ]).then(([f, m, a, n]) => {
       if (f.status === 'fulfilled') setFavorites(f.value.data.favorites || []);
       if (m.status === 'fulfilled') setThreads(m.value.data.threads || []);
       if (a.status === 'fulfilled') setAnnouncements(a.value.data.announcements || []);
@@ -322,7 +311,6 @@ export default function TenantDashboard() {
   const messageCount = threads.length + announcements.length + notifications.length;
 
   const TABS = [
-    { key: 'unlocked', label: 'Unlocked', Icon: KeyIcon,   count: unlocked.length },
     { key: 'saved',    label: 'Saved',    Icon: HeartIcon, count: favorites.length },
     { key: 'messages', label: 'Messages', Icon: ChatIcon,  count: messageCount },
   ];
@@ -331,7 +319,7 @@ export default function TenantDashboard() {
     { key: 'browse',   label: 'Browse',   Icon: HomeIcon,  action: () => navigate('/') },
     { key: 'saved',    label: 'Saved',    Icon: HeartIcon, action: () => setTab('saved') },
     { key: 'messages', label: 'Messages', Icon: ChatIcon,  action: () => setTab('messages') },
-    { key: 'account',  label: 'Account',  Icon: UserIcon,  action: () => setTab('unlocked') },
+    { key: 'account',  label: 'Account',  Icon: UserIcon,  action: () => setTab('saved') },
   ];
 
   return (
@@ -451,17 +439,6 @@ export default function TenantDashboard() {
           <div style={{ textAlign: 'center', paddingTop: 64, color: MUTED, fontSize: 14 }}>Loading…</div>
         ) : (
           <>
-            {/* Unlocked */}
-            {tab === 'unlocked' && (
-              unlocked.length === 0 ? <EmptyState tabKey="unlocked" /> : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {unlocked.map(u => (
-                    <PropertyRow key={u.id} property={u.property} badge="Unlocked" isUnlocked />
-                  ))}
-                </div>
-              )
-            )}
-
             {/* Saved */}
             {tab === 'saved' && (
               favorites.length === 0 ? <EmptyState tabKey="saved" /> : (

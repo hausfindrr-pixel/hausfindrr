@@ -15,6 +15,9 @@ async function createProperty(req, res, next) {
       metadata,
     } = req.body;
 
+    if (listingType && listingType !== 'rent')
+      return res.status(400).json({ error: 'Only rental listings are supported at this time.' });
+
     const parsedMetadata = metadata
       ? (typeof metadata === 'string' ? JSON.parse(metadata) : metadata)
       : null;
@@ -57,14 +60,17 @@ async function createProperty(req, res, next) {
       });
     }
 
-    // Save title documents (field: title_documents)
+    // Save title documents (field: title_documents) — private Cloudinary storage
     const titleDocs = files['title_documents'] || [];
     if (titleDocs.length > 0) {
+      const docExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       await prisma.propertyTitleDocument.createMany({
         data: titleDocs.map((f, i) => ({
           propertyId: property.id,
           docType: i === 0 ? 'title' : 'other',
           filePath: f.path,
+          publicId: f.filename || null,
+          expiresAt: docExpiry,
         })),
       });
     }
@@ -91,6 +97,9 @@ async function updateProperty(req, res, next) {
       bedrooms, bathrooms, propertyType, amenities, rentFrequency,
       metadata,
     } = req.body;
+
+    if (listingType && listingType !== 'rent')
+      return res.status(400).json({ error: 'Only rental listings are supported at this time.' });
 
     const effectiveType = listingType || property.listingType;
     const updated = await prisma.property.update({
@@ -176,6 +185,23 @@ async function markSold(req, res, next) {
   }
 }
 
+async function markRented(req, res, next) {
+  try {
+    const { id } = req.params;
+    const property = await prisma.property.findUnique({ where: { id } });
+    if (!property) return res.status(404).json({ error: 'Property not found' });
+    if (property.landlordId !== req.user.id)
+      return res.status(403).json({ error: 'Not your property' });
+    if (property.status !== 'active')
+      return res.status(400).json({ error: 'Only active listings can be marked as rented' });
+
+    await prisma.property.update({ where: { id }, data: { status: 'rented' } });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getListings(req, res, next) {
   try {
     const { type, location, minPrice, maxPrice, bedrooms, bathrooms, propertyType, amenities, page = 1, limit = 12 } = req.query;
@@ -207,7 +233,7 @@ async function getListings(req, res, next) {
         include: {
           photos: true,
           amenities: true,
-          landlord: { select: { id: true, name: true, phone: true, email: true } },
+          landlord: { select: { id: true, name: true, phone: true, email: true, status: true } },
         },
         skip,
         take: parseInt(limit),
@@ -216,17 +242,7 @@ async function getListings(req, res, next) {
       prisma.property.count({ where }),
     ]);
 
-    // Determine which listings the requesting tenant has unlocked
-    let unlockedIds = new Set();
-    if (req.user?.role === 'tenant') {
-      const unlocks = await prisma.unlock.findMany({
-        where: { tenantId: req.user.id },
-        select: { propertyId: true },
-      });
-      unlockedIds = new Set(unlocks.map(u => u.propertyId));
-    }
-
-    const masked = properties.map(p => maskProperty(p, unlockedIds.has(p.id)));
+    const masked = properties.map(p => maskProperty(p, req.user?.role === 'tenant'));
     res.json({ properties: masked, total, page: parseInt(page), limit: parseInt(limit) });
   } catch (err) {
     next(err);
@@ -237,18 +253,16 @@ async function getProperty(req, res, next) {
   try {
     const property = await getFullProperty(req.params.id);
     if (!property) return res.status(404).json({ error: 'Property not found' });
-    if (property.status !== 'active' || property.sold)
-      return res.status(404).json({ error: 'Property not available' });
 
-    let unlocked = false;
-    if (req.user?.role === 'tenant') {
-      const unlock = await prisma.unlock.findUnique({
-        where: { tenantId_propertyId: { tenantId: req.user.id, propertyId: property.id } },
-      });
-      unlocked = !!unlock;
-    } else if (req.user?.role === 'landlord' && req.user.id === property.landlordId) {
-      unlocked = true;
+    const isOwner = req.user?.role === 'landlord' && req.user.id === property.landlordId;
+    const isAdmin = req.user?.role === 'admin';
+
+    // Non-active listings are only visible to their owner or admin
+    if (property.status !== 'active' || property.sold) {
+      if (!isOwner && !isAdmin) return res.status(404).json({ error: 'Property not available' });
     }
+
+    const unlocked = req.user?.role === 'tenant' || isOwner || isAdmin;
 
     res.json({ property: maskProperty(property, unlocked), unlocked });
   } catch (err) {
@@ -279,12 +293,9 @@ async function deleteProperty(req, res, next) {
     if (req.user.role !== 'admin' && property.landlordId !== req.user.id)
       return res.status(403).json({ error: 'Not your property' });
 
-    // Delete referencing records that lack ON DELETE CASCADE before removing the property
     await prisma.$transaction([
       prisma.message.deleteMany({ where: { propertyId: id } }),
       prisma.favorite.deleteMany({ where: { propertyId: id } }),
-      prisma.unlock.deleteMany({ where: { propertyId: id } }),
-      prisma.transaction.deleteMany({ where: { propertyId: id } }),
       prisma.property.delete({ where: { id } }),
     ]);
 
@@ -313,7 +324,9 @@ function maskProperty(p, unlocked) {
     amenities: p.amenities,
     rentFrequency: p.rentFrequency,
     metadata: p.metadata,
+    status: p.status,
     occupied: p.occupied,
+    landlordVerified: p.landlord?.status === 'active',
     createdAt: p.createdAt,
     unlocked,
     approxLat,
@@ -342,12 +355,12 @@ async function getFullProperty(id) {
       photos: true,
       amenities: true,
       titleDocuments: true,
-      landlord: { select: { id: true, name: true, phone: true, email: true } },
+      landlord: { select: { id: true, name: true, phone: true, email: true, status: true } },
     },
   });
 }
 
 module.exports = {
   createProperty, updateProperty, getListings, getProperty,
-  getLandlordProperties, deleteProperty, toggleOccupied, markSold,
+  getLandlordProperties, deleteProperty, toggleOccupied, markSold, markRented,
 };

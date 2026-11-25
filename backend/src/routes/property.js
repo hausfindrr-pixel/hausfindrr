@@ -4,7 +4,7 @@ const { authenticate, requireRole } = require('../middleware/auth');
 const { photoUpload, propertyUpload } = require('../middleware/upload');
 const {
   createProperty, updateProperty, getListings, getProperty,
-  getLandlordProperties, deleteProperty, toggleOccupied, markSold,
+  getLandlordProperties, deleteProperty, toggleOccupied, markSold, markRented,
 } = require('../controllers/propertyController');
 
 // Optional auth middleware for public routes
@@ -51,8 +51,11 @@ router.put(
 // Occupied toggle (rental listings only)
 router.patch('/:id/occupied', authenticate, requireRole('landlord'), toggleOccupied);
 
-// Mark as sold (sale listings only)
+// Mark as sold (sale listings only — legacy)
 router.patch('/:id/sold', authenticate, requireRole('landlord'), markSold);
+
+// Mark as rented (rental listings only)
+router.patch('/:id/rented', authenticate, requireRole('landlord'), markRented);
 
 // Delete — landlord deletes own, admin deletes any
 router.delete('/:id', authenticate, deleteProperty);

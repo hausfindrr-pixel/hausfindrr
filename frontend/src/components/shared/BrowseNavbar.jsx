@@ -151,7 +151,7 @@ export default function BrowseNavbar({ searchValue, onSearchChange, onSearchSubm
                         onClick={close}
                         icon={iconTenant}
                         label="Tenant"
-                        sub="Browse &amp; unlock listings"
+                        sub="Browse rental listings"
                       />
                       <DropdownItem
                         to="/landlord/login"
@@ -184,7 +184,7 @@ export default function BrowseNavbar({ searchValue, onSearchChange, onSearchSubm
                         onClick={close}
                         icon={iconTenant}
                         label="Tenant"
-                        sub="Browse &amp; unlock listings"
+                        sub="Browse rental listings"
                       />
                       <DropdownItem
                         to="/landlord/register"
@@ -247,7 +247,7 @@ export default function BrowseNavbar({ searchValue, onSearchChange, onSearchSubm
                         onClick={close}
                         icon={iconListings}
                         label="My Dashboard"
-                        sub="Saved &amp; unlocked"
+                        sub="Saved properties &amp; messages"
                       />
                     )}
                     {user.role === 'admin' && (

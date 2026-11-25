@@ -8,14 +8,11 @@ import MessageThread from '../../components/tenant/MessageThread';
 import { priceLabel } from '../../utils/format';
 
 const STATUS_BADGE = {
-  pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  active: 'bg-green-100 text-green-700 border-green-200',
+  draft:    'bg-gray-100 text-gray-500 border-gray-200',
+  pending:  'bg-yellow-100 text-yellow-700 border-yellow-200',
+  active:   'bg-green-100 text-green-700 border-green-200',
   rejected: 'bg-red-100 text-red-700 border-red-200',
-};
-
-const LISTING_TYPE_BADGE = {
-  rent: 'bg-primary/10 text-primary',
-  sale: 'bg-secondary/10 text-secondary',
+  rented:   'bg-blue-100 text-blue-700 border-blue-200',
 };
 
 export default function LandlordDashboard() {
@@ -27,7 +24,6 @@ export default function LandlordDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [deleting, setDeleting] = useState(null);
   const [togglingOccupied, setTogglingOccupied] = useState(null);
-  const [markingSold, setMarkingSold] = useState(null);
   const [openThread, setOpenThread] = useState(null);
   const [expandedProperty, setExpandedProperty] = useState(null);
 
@@ -76,17 +72,14 @@ export default function LandlordDashboard() {
     }
   }
 
-  async function handleMarkSold(id) {
-    if (!window.confirm('Mark this listing as sold? It will be permanently removed from your dashboard.')) return;
-    setMarkingSold(id);
+  async function handleMarkRented(id) {
+    if (!window.confirm('Mark this property as rented? It will be hidden from search results.')) return;
     try {
-      await api.patch(`/properties/${id}/sold`);
-      setProperties(prev => prev.filter(p => p.id !== id));
-      toast.success('Listing marked as sold and removed');
+      await api.patch(`/properties/${id}/rented`);
+      setProperties(prev => prev.map(p => p.id === id ? { ...p, status: 'rented' } : p));
+      toast.success('Property marked as rented');
     } catch {
-      toast.error('Failed to mark as sold');
-    } finally {
-      setMarkingSold(null);
+      toast.error('Failed to mark as rented');
     }
   }
 
@@ -173,7 +166,7 @@ export default function LandlordDashboard() {
             </svg>
             <div>
               <p className="text-sm font-medium text-red-800">Account verification failed</p>
-              <p className="text-xs text-red-700 mt-0.5">Please contact support at support@hausfindrr.com for assistance.</p>
+              <p className="text-xs text-red-700 mt-0.5">Please contact us at info@hausfindrr.com for assistance.</p>
             </div>
           </div>
         )}
@@ -244,8 +237,8 @@ export default function LandlordDashboard() {
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${STATUS_BADGE[p.status]}`}>
                           {p.status.charAt(0).toUpperCase() + p.status.slice(1)}
                         </span>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${LISTING_TYPE_BADGE[p.listingType]}`}>
-                          {p.listingType === 'rent' ? 'Rent' : 'Sale'}
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                          Rent
                         </span>
                         {isActive && p.listingType === 'rent' && p.occupied && (
                           <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200">
@@ -281,6 +274,16 @@ export default function LandlordDashboard() {
 
                     {/* Card footer actions */}
                     <div className="px-4 pb-4 space-y-2">
+                      {/* Mark as Rented — active rental listings */}
+                      {isActive && (
+                        <button
+                          onClick={() => handleMarkRented(p.id)}
+                          className="w-full text-xs font-medium text-blue-700 hover:text-blue-900 hover:bg-blue-50 border border-blue-200 rounded-lg py-2 transition-colors"
+                        >
+                          Mark as Rented
+                        </button>
+                      )}
+
                       {/* Occupied toggle — rental + active only */}
                       {isActive && p.listingType === 'rent' && (
                         <button
@@ -300,16 +303,6 @@ export default function LandlordDashboard() {
                         </button>
                       )}
 
-                      {/* Mark as Sold — sale + active only */}
-                      {isActive && p.listingType === 'sale' && (
-                        <button
-                          onClick={() => handleMarkSold(p.id)}
-                          disabled={markingSold === p.id}
-                          className="w-full text-xs font-medium text-secondary hover:text-secondary/80 hover:bg-secondary/5 border border-secondary/20 rounded-lg py-2 transition-colors"
-                        >
-                          {markingSold === p.id ? 'Processing…' : 'Mark as Sold'}
-                        </button>
-                      )}
 
                       {/* Delete listing */}
                       <button
@@ -367,7 +360,7 @@ export default function LandlordDashboard() {
                 </svg>
               </div>
               <p className="text-gray-400 font-medium text-sm">No messages yet</p>
-              <p className="text-gray-300 text-xs mt-1">Tenant inquiries will appear here once they unlock your listings</p>
+              <p className="text-gray-300 text-xs mt-1">Tenant inquiries from your listings will appear here</p>
             </div>
           ) : propertyThreads.length > 0 ? (
             <div className="space-y-4">

@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
+const cron = require('node-cron');
+const { purgeExpiredDocuments } = require('./services/documentService');
 
 const authRoutes = require('./routes/auth');
 const oauthRoutes = require('./routes/oauth');
@@ -81,3 +83,8 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`HausFindrr API running on port ${PORT}`));
+
+// Daily 02:00 UTC — purge expired documents from Cloudinary and DB
+cron.schedule('0 2 * * *', () => {
+  purgeExpiredDocuments().catch(err => console.error('[docPurge] cron error:', err.message));
+});

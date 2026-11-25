@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { TOS_SECTIONS, TOS_VERSION } from '../constants/tos';
+import Footer from '../components/shared/Footer';
 
 export default function TermsPage() {
   return (
@@ -41,21 +42,25 @@ export default function TermsPage() {
         </div>
 
         <div className="mt-10 text-center">
-          <Link
-            to="/tenant/register"
-            className="inline-block px-6 py-3 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{ backgroundColor: '#975536' }}
-          >
-            Back to Registration
-          </Link>
-          <p className="text-xs text-gray-400 mt-4">
+          <div className="flex flex-wrap justify-center gap-3 mb-4">
+            <Link to="/privacy" className="text-sm font-medium hover:underline" style={{ color: '#975536' }}>
+              Privacy Policy
+            </Link>
+            <span className="text-gray-300">·</span>
+            <Link to="/landlord-agreement" className="text-sm font-medium hover:underline" style={{ color: '#975536' }}>
+              Landlord Agreement
+            </Link>
+          </div>
+          <p className="text-xs text-gray-400">
             Questions? Email us at{' '}
-            <a href="mailto:support@hausfindrr.com" className="hover:underline" style={{ color: '#975536' }}>
-              support@hausfindrr.com
+            <a href="mailto:info@hausfindrr.com" className="hover:underline" style={{ color: '#975536' }}>
+              info@hausfindrr.com
             </a>
           </p>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }

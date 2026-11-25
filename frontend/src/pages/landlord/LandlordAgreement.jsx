@@ -6,45 +6,62 @@ import toast from 'react-hot-toast';
 
 const AGREEMENT_TEXT = `HAUSFINDRR LANDLORD AGREEMENT
 Code of Conduct & Platform Policy
+Version 1.0 — Effective July 2026
 
 Welcome to HausFindrr. Before you can list properties or access your dashboard, you must read and agree to the following terms in full.
 
-1. OCCUPIED STATUS OBLIGATION
+1. WHO THIS AGREEMENT APPLIES TO
 
-You are required to mark your listing as "Occupied" immediately once a tenant has moved into your property. Failure to do so — leaving an unavailable property listed as active — causes tenants to pay the K25 unlock fee for a property that is no longer accessible. This is considered deceptive conduct and a direct violation of this agreement.
+This agreement applies to any person or entity ("Landlord") who registers on HausFindrr with the intention of listing residential or commercial properties for rent. By completing the sign-up process and ticking the confirmation box, you enter into this legally binding agreement with HausFindrr.
 
 2. LISTING ACCURACY
 
-All information in your property listings (price, location, photos, amenities, availability) must be accurate and current at all times. You must update or remove listings that are no longer available. Misleading or false listings are a serious violation of this agreement.
+All information in your property listings — including price, location, photographs, amenities, and availability — must be accurate and current at all times. You must update or remove any listing that is no longer available. Posting misleading, false, or duplicate listings is a serious violation of this agreement.
 
-3. CODE OF CONDUCT
+3. RENTED STATUS OBLIGATION
 
-You agree to:
-  • Communicate professionally and honestly with all tenants who contact you through HausFindrr
-  • Never request payments or deposits outside the HausFindrr platform
-  • Never post duplicate, fake, or misleading listings
-  • Treat all tenants with respect regardless of their background
+You are required to mark your listing as "Rented" as soon as a tenant has agreed to rent your property. Leaving an unavailable property listed as active misleads other tenants who are searching in good faith. This is considered deceptive conduct and a direct violation of this agreement.
 
-4. TENANT PROTECTION
+4. LANDLORD IDENTITY VERIFICATION
 
-HausFindrr tenants pay a K25 unlock fee to access your contact details in good faith. You have a direct obligation to be responsive and available when a tenant unlocks your listing. Repeatedly ignoring tenant inquiries after being unlocked is a violation of this agreement.
+You must submit a valid government-issued identity document as part of your registration. HausFindrr will review this document as part of the verification process. You confirm that all documents submitted are genuine and belong to you. Submitting false or fraudulent documents is a criminal offence under Papua New Guinea law.
 
-5. LEGAL CONSEQUENCES
+5. RIGHT TO LIST
+
+By listing a property on HausFindrr, you confirm that:
+  • You are the legal owner of the property, or
+  • You have the owner's written authority to list and rent the property on their behalf, and
+  • You have the right to enter into a rental agreement in respect of that property.
+
+Listing a property without the right to do so is fraud and may result in criminal prosecution.
+
+6. CONTACT DETAILS & TENANT COMMUNICATION
+
+Your name and phone number will be visible to signed-in tenants viewing your listings. You agree to:
+  • Use these details for genuine rental enquiries only
+  • Respond professionally and honestly to all tenant enquiries
+  • Never request payments or deposits before a tenant has viewed the property in person and signed a written agreement
+
+7. CODE OF CONDUCT
+
+You agree to treat all tenants with respect regardless of their background, and to never engage in discriminatory, harassing, or abusive conduct toward any user of the Platform.
+
+8. LEGAL CONSEQUENCES
 
 Violation of this agreement — including but not limited to:
-  • Failure to mark occupied properties as Occupied
-  • Posting false or misleading listings
-  • Defrauding tenants who have paid the unlock fee
-  • Harassment or misconduct toward tenants
+  • Posting false, misleading, or fraudulent listings
+  • Submitting fraudulent identity or ownership documents
+  • Listing a property without the right to do so
+  • Harassment or misconduct toward tenants or HausFindrr staff
 
 ...may result in:
   • Immediate suspension or permanent removal of your HausFindrr account
-  • Removal of all your listings without refund or notice
+  • Removal of all your listings without notice
   • Reporting to relevant Papua New Guinea authorities
-  • Civil legal action for damages caused to tenants who unlocked your listing in good faith
+  • Civil legal action
   • Criminal referral where applicable under Papua New Guinea law
 
-6. PLATFORM AUTHORITY
+9. PLATFORM AUTHORITY
 
 HausFindrr reserves the right to:
   • Investigate all complaints made against landlords
@@ -52,15 +69,17 @@ HausFindrr reserves the right to:
   • Suspend or permanently ban any landlord account found in violation of this agreement
   • Share landlord information with law enforcement if required
 
-7. AGREEMENT TO TERMS
+10. AGREEMENT TO TERMS
 
 By completing this agreement, you confirm that:
   • You have read every section of this document in full
   • You understand your obligations as a landlord on HausFindrr
   • You agree to be bound by this Code of Conduct and Platform Policy
-  • You understand that violation may result in legal action under Papua New Guinea law
+  • You understand that violation may result in account suspension and legal action under Papua New Guinea law
 
 This agreement is effective immediately upon confirmation and applies for the duration of your use of the HausFindrr platform.
+
+Questions? Contact us at info@hausfindrr.com.
 
 HausFindrr — Connecting Papua New Guineans to their next home.`;
 
