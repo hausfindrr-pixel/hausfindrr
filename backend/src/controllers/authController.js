@@ -33,7 +33,7 @@ const WELCOME_NOTIFICATIONS = {
     {
       type: 'privacy_policy',
       title: 'Our Privacy Policy',
-      content: 'By using HausFindrr, you agree to our Privacy Policy. We collect your name, contact details, and identity documents solely to verify your account and facilitate property listings. Your personal data is never sold to third parties. You can request deletion of your account at any time by contacting support@hausfindrr.com.',
+      content: 'By using HausFindrr, you agree to our Privacy Policy. We collect your name, contact details, and identity documents solely to verify your account and facilitate property listings. Your personal data is never sold to third parties. You can request deletion of your account at any time by contacting info@hausfindrr.com.',
     },
     {
       type: 'terms',
@@ -45,17 +45,17 @@ const WELCOME_NOTIFICATIONS = {
     {
       type: 'welcome',
       title: 'Welcome to HausFindrr!',
-      content: 'Welcome to HausFindrr! You can now browse thousands of rental and sale listings across PNG. Unlock a property to see full details, contact the landlord, and save your favourites. Happy house hunting!',
+      content: 'Welcome to HausFindrr! You can now browse rental listings across PNG. Sign in to view the landlord\'s contact details and save your favourites. Happy house hunting!',
     },
     {
       type: 'privacy_policy',
       title: 'Our Privacy Policy',
-      content: 'By using HausFindrr, you agree to our Privacy Policy. We collect your name and contact details to facilitate connections between tenants and landlords. Your personal data is never sold to third parties. You can request deletion of your account at any time by contacting support@hausfindrr.com.',
+      content: 'By using HausFindrr, you agree to our Privacy Policy. We collect your name and contact details to facilitate connections between tenants and landlords. Your personal data is never sold to third parties. You can request deletion of your account at any time by contacting info@hausfindrr.com.',
     },
     {
       type: 'terms',
       title: 'Terms of Service',
-      content: 'By registering as a tenant on HausFindrr, you agree to our Terms of Service. You agree to use the platform honestly, not to misrepresent yourself to landlords, and to use contact details obtained through unlocking for legitimate housing enquiries only. HausFindrr reserves the right to suspend accounts that violate these terms.',
+      content: 'By registering as a tenant on HausFindrr, you agree to our Terms of Service. You agree to use the platform honestly, not to misrepresent yourself to landlords, and to use landlord contact details for legitimate housing enquiries only. HausFindrr reserves the right to suspend accounts that violate these terms.',
     },
   ],
 };
@@ -69,32 +69,32 @@ async function createWelcomeNotifications(userId, role) {
 }
 
 const WELCOME_MESSAGE_CONTENT = {
-  tenant: `Welcome to HausFindrr — PNG's property marketplace! 🏠
+  tenant: `Welcome to HausFindrr — PNG's rental property marketplace!
 
-You can now browse hundreds of rental and sale listings across the country. To see the full details of any listing — including the exact address and the landlord's direct contact — simply unlock it for a one-time fee of K25.
+You can now browse rental listings across the country. Once you sign in, you'll see the landlord's name and phone number directly on each listing so you can contact them yourself.
 
 A few tips to get started:
 • Browse listings from the homepage
-• Tap "Unlock Now" on any listing that interests you
+• View the landlord's contact details on any listing
 • Save favourites with the heart icon
-• Message the landlord directly once you've unlocked a listing
+• Contact the landlord directly by phone
 
-Happy house hunting! If you ever need help, reply to this message or email us at support@hausfindrr.com.
+Happy house hunting! If you ever need help, reply to this message or email us at info@hausfindrr.com.
 
 — The HausFindrr Team`,
 
-  landlord: `Welcome to HausFindrr — PNG's fastest-growing property platform! 🏠
+  landlord: `Welcome to HausFindrr — PNG's fastest-growing property platform!
 
 Your account has been created and is currently under review. Our admin team will verify your identity and uploaded documents within 1–2 business days.
 
 What happens next:
 • We'll review your ID document and account details
 • Once approved, you'll be able to post property listings
-• Tenants can then browse and unlock your listings to get in touch
+• Tenants will be able to view your contact details and reach out directly
 
 To speed up verification, make sure your ID document is uploaded clearly in your account. Listings you submit will be reviewed by our team before going live — this keeps the platform safe and trustworthy for everyone.
 
-Questions? Reply to this message or email support@hausfindrr.com.
+Questions? Reply to this message or email info@hausfindrr.com.
 
 — The HausFindrr Team`,
 };

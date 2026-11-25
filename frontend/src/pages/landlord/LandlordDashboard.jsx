@@ -173,7 +173,7 @@ export default function LandlordDashboard() {
             </svg>
             <div>
               <p className="text-sm font-medium text-red-800">Account verification failed</p>
-              <p className="text-xs text-red-700 mt-0.5">Please contact support at support@hausfindrr.com for assistance.</p>
+              <p className="text-xs text-red-700 mt-0.5">Please contact us at info@hausfindrr.com for assistance.</p>
             </div>
           </div>
         )}
@@ -367,7 +367,7 @@ export default function LandlordDashboard() {
                 </svg>
               </div>
               <p className="text-gray-400 font-medium text-sm">No messages yet</p>
-              <p className="text-gray-300 text-xs mt-1">Tenant inquiries will appear here once they unlock your listings</p>
+              <p className="text-gray-300 text-xs mt-1">Tenant inquiries from your listings will appear here</p>
             </div>
           ) : propertyThreads.length > 0 ? (
             <div className="space-y-4">

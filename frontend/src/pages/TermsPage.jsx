@@ -50,8 +50,8 @@ export default function TermsPage() {
           </Link>
           <p className="text-xs text-gray-400 mt-4">
             Questions? Email us at{' '}
-            <a href="mailto:support@hausfindrr.com" className="hover:underline" style={{ color: '#975536' }}>
-              support@hausfindrr.com
+            <a href="mailto:info@hausfindrr.com" className="hover:underline" style={{ color: '#975536' }}>
+              info@hausfindrr.com
             </a>
           </p>
         </div>

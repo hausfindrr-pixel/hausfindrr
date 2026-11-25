@@ -345,7 +345,7 @@ export default function LandlordNewListing() {
               )}
             </div>
             <div>
-              <label className="label">Exact Address <span className="text-gray-400 font-normal">(hidden until tenant unlocks)</span></label>
+              <label className="label">Exact Address <span className="text-gray-400 font-normal">(visible to signed-in tenants)</span></label>
               <input className="input" required value={form.locationExact} onChange={set('locationExact')}
                 placeholder="Full street address" />
             </div>

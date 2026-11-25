@@ -7,31 +7,39 @@ export const TOS_SECTIONS = [
   },
   {
     heading: '2. Role of HausFindrr',
-    body: `HausFindrr is a technology platform that connects tenants seeking residential and commercial properties with landlords who list those properties. HausFindrr is not a real estate agent, property manager, or party to any rental or sale agreement. We do not own, manage, control, or inspect any listed property. All agreements for the rental or purchase of property are solely between the tenant and the landlord.`,
+    body: `HausFindrr is a technology platform that connects tenants seeking residential and commercial properties with landlords who list those properties. HausFindrr is not a real estate agent, property manager, or party to any rental or sale agreement. We do not own, manage, control, or inspect any listed property. All agreements for the rental of property are solely between the tenant and the landlord.`,
   },
   {
-    heading: '3. Eligibility',
+    heading: '3. Free Service',
+    body: `HausFindrr is free to use for tenants. We do not charge any fees to browse listings, view landlord contact details, or use any feature of the Platform. You will never be asked for payment by HausFindrr to access a listing or contact a landlord. If you encounter any request for payment from someone claiming to represent HausFindrr, please contact us immediately at info@hausfindrr.com.`,
+  },
+  {
+    heading: '4. Eligibility',
     body: `You must be at least 18 years of age to create a tenant account on HausFindrr. By registering, you confirm that you meet this requirement and that all information you provide is accurate, truthful, and current. HausFindrr reserves the right to suspend or terminate any account where we have reason to believe eligibility requirements are not met.`,
   },
   {
-    heading: '4. Account Registration',
-    body: `When you register, you must provide your full legal name, a valid email address, a current phone number, and a secure password. You are responsible for maintaining the confidentiality of your password and for all activity that occurs under your account. You must notify HausFindrr immediately at support@hausfindrr.com if you suspect unauthorised access to your account. HausFindrr will not be liable for any loss arising from your failure to keep your credentials secure.`,
+    heading: '5. Account Registration',
+    body: `When you register, you must provide your full legal name, a valid email address, a current phone number, and a secure password. You are responsible for maintaining the confidentiality of your password and for all activity that occurs under your account. You must notify HausFindrr immediately at info@hausfindrr.com if you suspect unauthorised access to your account. HausFindrr will not be liable for any loss arising from your failure to keep your credentials secure.`,
   },
   {
-    heading: '5. Landlord Obligations',
+    heading: '6. Viewing Landlord Contact Details',
+    body: `Once you are signed in, you can view the landlord's name and phone number directly on any active listing. You must use these contact details only for genuine property enquiries. You may not share, resell, or distribute landlord contact details to any third party. HausFindrr does not automatically share your phone number or personal details with landlords.`,
+  },
+  {
+    heading: '7. Landlord Obligations',
     body: `While these Terms apply to tenants, please be aware that landlords on HausFindrr are required to submit valid identity documents and comply with separate landlord terms. Landlords must ensure all listing details — including property descriptions, pricing, photographs, and ownership documents — are accurate and lawful. HausFindrr reviews listings before they go live but does not guarantee the accuracy or completeness of any listing. You should conduct your own due diligence before entering into any property agreement.`,
   },
   {
-    heading: '6. Unlock Fee',
-    body: `To view the full details of a property listing — including the exact address and the landlord's direct contact information — tenants pay a one-time, non-refundable Unlock Fee of K25 per listing. Payment of the Unlock Fee grants you personal, non-transferable access to that listing's confidential details. You may not share, resell, or distribute unlocked listing details to any third party. Fees are processed securely and are not refundable except where required by applicable law.`,
+    heading: '8. Safety',
+    body: `Never pay a deposit, rent, or any other fee before viewing a property in person and signing a written agreement with the landlord. HausFindrr does not hold or process any payments between tenants and landlords. If a landlord or anyone else requests payment through the Platform, treat this as suspicious and report it to us at info@hausfindrr.com.`,
   },
   {
-    heading: '7. Prohibited Conduct',
+    heading: '9. Prohibited Conduct',
     body: `You agree not to use the Platform to:
 • Misrepresent your identity or create false accounts
 • Contact landlords for purposes other than genuine property enquiries
 • Scrape, harvest, or collect data from the Platform without authorisation
-• Share unlocked listing details with third parties
+• Share landlord contact details with third parties for commercial purposes
 • Post or transmit any harassing, abusive, defamatory, or unlawful content
 • Attempt to circumvent any security measure or access controls
 • Use automated bots, scripts, or tools to interact with the Platform
@@ -40,52 +48,49 @@ export const TOS_SECTIONS = [
 Violation of these rules may result in immediate account suspension and/or legal action.`,
   },
   {
-    heading: '8. Disclaimer of Liability',
+    heading: '10. Disclaimer of Liability',
     body: `HausFindrr provides the Platform on an "as is" and "as available" basis. To the maximum extent permitted by law, HausFindrr disclaims all warranties, express or implied, including but not limited to implied warranties of merchantability, fitness for a particular purpose, and non-infringement.
 
-HausFindrr does not verify the accuracy of listing descriptions, photographs, or landlord-provided documents beyond the identity verification process. We are not responsible for any loss, damage, or disappointment arising from your reliance on listing information or from any agreement made between you and a landlord.
-
-In no event shall HausFindrr's total liability to you exceed the amount of the Unlock Fee paid by you in respect of the specific listing that gave rise to the claim.`,
+HausFindrr does not verify the accuracy of listing descriptions, photographs, or landlord-provided documents beyond the identity verification process. We are not responsible for any loss, damage, or disappointment arising from your reliance on listing information or from any agreement made between you and a landlord.`,
   },
   {
-    heading: '9. Intellectual Property',
-    body: `All content on the Platform — including the HausFindrr name, logo, design, text, and software — is the property of HausFindrr or its licensors and is protected by intellectual property laws. You may not reproduce, distribute, or create derivative works from any Platform content without our prior written consent. By submitting content to the Platform (such as reviews or messages), you grant HausFindrr a non-exclusive, royalty-free licence to use that content in connection with operating the Platform.`,
+    heading: '11. Intellectual Property',
+    body: `All content on the Platform — including the HausFindrr name, logo, design, text, and software — is the property of HausFindrr or its licensors and is protected by intellectual property laws. You may not reproduce, distribute, or create derivative works from any Platform content without our prior written consent. By submitting content to the Platform (such as messages), you grant HausFindrr a non-exclusive, royalty-free licence to use that content in connection with operating the Platform.`,
   },
   {
-    heading: '10. Account Suspension & Termination',
-    body: `HausFindrr reserves the right to suspend or permanently terminate your account at any time, with or without notice, if we reasonably believe you have violated these Terms, engaged in fraudulent activity, or otherwise misused the Platform. You may also close your account at any time by contacting support@hausfindrr.com. Upon termination, your access to the Platform and any unlocked listing details will cease. Unlock Fees already paid are non-refundable.`,
+    heading: '12. Account Suspension & Termination',
+    body: `HausFindrr reserves the right to suspend or permanently terminate your account at any time, with or without notice, if we reasonably believe you have violated these Terms, engaged in fraudulent activity, or otherwise misused the Platform. You may also close your account at any time by contacting info@hausfindrr.com. Upon termination, your access to the Platform will cease.`,
   },
   {
-    heading: '11. Dispute Resolution',
-    body: `If you have a dispute with a landlord or another user, we encourage you to contact HausFindrr support at support@hausfindrr.com. We will endeavour to assist in resolving disputes on a goodwill basis, but we are under no obligation to mediate or resolve disputes between users. Any dispute between you and HausFindrr that cannot be resolved informally shall be submitted to binding arbitration under the laws of Papua New Guinea, unless otherwise required by applicable mandatory law.`,
+    heading: '13. Dispute Resolution',
+    body: `If you have a dispute with a landlord or another user, we encourage you to contact HausFindrr support at info@hausfindrr.com. We will endeavour to assist in resolving disputes on a goodwill basis, but we are under no obligation to mediate or resolve disputes between users. Any dispute between you and HausFindrr that cannot be resolved informally shall be submitted to the laws of Papua New Guinea.`,
   },
   {
-    heading: '12. Governing Law',
-    body: `These Terms are governed by and construed in accordance with the laws of Papua New Guinea, without regard to its conflict of law principles. You irrevocably submit to the exclusive jurisdiction of the courts of Papua New Guinea for any dispute arising under or in connection with these Terms, to the extent that such disputes are not resolved by arbitration.`,
+    heading: '14. Governing Law',
+    body: `These Terms are governed by and construed in accordance with the laws of Papua New Guinea, without regard to its conflict of law principles. You irrevocably submit to the exclusive jurisdiction of the courts of Papua New Guinea for any dispute arising under or in connection with these Terms.`,
   },
   {
-    heading: '13. Changes to These Terms',
+    heading: '15. Changes to These Terms',
     body: `HausFindrr may update these Terms from time to time to reflect changes in our practices, legal requirements, or platform features. When we make material changes, we will notify you by email or through a prominent notice on the Platform, and update the "Terms Version" identifier. Continued use of the Platform after the effective date of any changes constitutes your acceptance of the revised Terms.`,
   },
   {
-    heading: '14. Contact Us',
+    heading: '16. Contact Us',
     body: `If you have any questions about these Terms, please contact us at:
 
 HausFindrr Support
-Email: support@hausfindrr.com
+Email: info@hausfindrr.com
 Platform: hausfindrr.com
 
 We aim to respond to all enquiries within 2 business days.`,
   },
   {
-    heading: '15. Tenant Acknowledgement',
+    heading: '17. Tenant Acknowledgement',
     body: `By ticking the "I Agree" checkbox and creating your account, you confirm that:
 
 • You have read and understood these Terms of Service in full
 • You are at least 18 years of age
 • All registration information you have provided is accurate and truthful
 • You agree to be bound by these Terms and any future updates notified to you
-• You understand that the K25 Unlock Fee is non-refundable
 • You will use the Platform solely for legitimate property-seeking purposes
 
 These Terms were last updated in July 2026 (Version ${TOS_VERSION}).`,

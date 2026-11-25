@@ -216,17 +216,7 @@ async function getListings(req, res, next) {
       prisma.property.count({ where }),
     ]);
 
-    // Determine which listings the requesting tenant has unlocked
-    let unlockedIds = new Set();
-    if (req.user?.role === 'tenant') {
-      const unlocks = await prisma.unlock.findMany({
-        where: { tenantId: req.user.id },
-        select: { propertyId: true },
-      });
-      unlockedIds = new Set(unlocks.map(u => u.propertyId));
-    }
-
-    const masked = properties.map(p => maskProperty(p, unlockedIds.has(p.id)));
+    const masked = properties.map(p => maskProperty(p, req.user?.role === 'tenant'));
     res.json({ properties: masked, total, page: parseInt(page), limit: parseInt(limit) });
   } catch (err) {
     next(err);
@@ -240,15 +230,8 @@ async function getProperty(req, res, next) {
     if (property.status !== 'active' || property.sold)
       return res.status(404).json({ error: 'Property not available' });
 
-    let unlocked = false;
-    if (req.user?.role === 'tenant') {
-      const unlock = await prisma.unlock.findUnique({
-        where: { tenantId_propertyId: { tenantId: req.user.id, propertyId: property.id } },
-      });
-      unlocked = !!unlock;
-    } else if (req.user?.role === 'landlord' && req.user.id === property.landlordId) {
-      unlocked = true;
-    }
+    const unlocked = req.user?.role === 'tenant' ||
+      (req.user?.role === 'landlord' && req.user.id === property.landlordId);
 
     res.json({ property: maskProperty(property, unlocked), unlocked });
   } catch (err) {
@@ -279,12 +262,9 @@ async function deleteProperty(req, res, next) {
     if (req.user.role !== 'admin' && property.landlordId !== req.user.id)
       return res.status(403).json({ error: 'Not your property' });
 
-    // Delete referencing records that lack ON DELETE CASCADE before removing the property
     await prisma.$transaction([
       prisma.message.deleteMany({ where: { propertyId: id } }),
       prisma.favorite.deleteMany({ where: { propertyId: id } }),
-      prisma.unlock.deleteMany({ where: { propertyId: id } }),
-      prisma.transaction.deleteMany({ where: { propertyId: id } }),
       prisma.property.delete({ where: { id } }),
     ]);
 

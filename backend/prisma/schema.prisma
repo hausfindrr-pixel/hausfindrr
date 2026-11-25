@@ -47,11 +47,6 @@ enum PropertyStatus {
   rejected
 }
 
-enum TransactionStatus {
-  pending
-  success
-  failed
-}
 
 model User {
   id            String     @id @default(uuid())
@@ -74,8 +69,6 @@ model User {
 
   landlordIdDocuments  LandlordIdDocument[]
   properties           Property[]
-  transactions         Transaction[]
-  unlocks              Unlock[]
   favorites            Favorite[]
   sentMessages         Message[]      @relation("SentMessages")
   receivedMessages     Message[]      @relation("ReceivedMessages")
@@ -139,8 +132,6 @@ model Property {
   photos         PropertyPhoto[]
   amenities      Amenity[]
   titleDocuments PropertyTitleDocument[]
-  transactions   Transaction[]
-  unlocks        Unlock[]
   favorites      Favorite[]
   messages       Message[]
   complaints     Complaint[]
@@ -172,38 +163,6 @@ model Amenity {
   @@map("amenities")
 }
 
-model Transaction {
-  id            String            @id @default(uuid())
-  tenantId      String            @map("tenant_id")
-  propertyId    String            @map("property_id")
-  amount        Decimal           @db.Decimal(10, 2)
-  status        TransactionStatus @default(pending)
-  paymentMethod String            @map("payment_method")
-  createdAt     DateTime          @default(now()) @map("created_at")
-
-  tenant   User     @relation(fields: [tenantId], references: [id])
-  property Property @relation(fields: [propertyId], references: [id])
-
-  @@index([status])
-  @@index([tenantId])
-  @@index([propertyId])
-  @@index([createdAt])
-  @@map("transactions")
-}
-
-model Unlock {
-  id         String   @id @default(uuid())
-  tenantId   String   @map("tenant_id")
-  propertyId String   @map("property_id")
-  unlockedAt DateTime @default(now()) @map("unlocked_at")
-
-  tenant   User     @relation(fields: [tenantId], references: [id])
-  property Property @relation(fields: [propertyId], references: [id])
-
-  @@unique([tenantId, propertyId])
-  @@index([unlockedAt])
-  @@map("unlocks")
-}
 
 model Favorite {
   id         String   @id @default(uuid())

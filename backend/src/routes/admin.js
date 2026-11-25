@@ -6,7 +6,6 @@ const {
   getPendingProperties, reviewProperty,
   getAllLandlords, getAllListings,
   getAnalytics,
-  getAllTransactions,
   getAllMessages,
   suspendLandlord,
   deleteLandlord,
@@ -29,7 +28,6 @@ router.patch('/properties/:id/review', reviewProperty);
 router.get('/properties', getAllListings);
 
 router.get('/analytics', getAnalytics);
-router.get('/transactions', getAllTransactions);
 router.get('/messages', getAllMessages);
 
 router.post('/announcements', createAnnouncement);

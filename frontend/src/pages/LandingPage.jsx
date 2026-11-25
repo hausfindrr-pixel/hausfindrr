@@ -37,7 +37,7 @@ export default function LandingPage() {
             <span className="text-orange-200">Haus in PNG</span>
           </h1>
           <p className="text-white/80 text-lg sm:text-xl mb-10 leading-relaxed max-w-xl mx-auto">
-            Discover rentals and properties for sale across Papua New Guinea. Verified listings, direct contact with landlords.
+            Discover rental properties across Papua New Guinea. Verified listings, direct contact with landlords. Free to use.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
@@ -95,7 +95,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-xl font-bold text-primary mb-2">I'm a Tenant</h3>
               <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-                Browse properties for rent or sale. Unlock contact details to connect directly with landlords.
+                Browse rental properties and connect directly with landlords. Free to use.
               </p>
               <span className="inline-flex items-center gap-1.5 text-secondary font-semibold text-sm group-hover:gap-2.5 transition-all">
                 Start browsing
