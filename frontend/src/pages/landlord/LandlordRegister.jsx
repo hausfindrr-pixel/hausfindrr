@@ -149,7 +149,6 @@ export default function LandlordRegister() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ name: '', phone: '', email: '', password: '', id_type: 'passport' });
   const [idFile, setIdFile] = useState(null);
-  const [rightToRentFile, setRightToRentFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [scrolledAgreement, setScrolledAgreement] = useState(false);
@@ -173,7 +172,6 @@ export default function LandlordRegister() {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
       fd.append('id_document', idFile);
-      if (rightToRentFile) fd.append('right_to_rent', rightToRentFile);
 
       const { data } = await api.post('/auth/register/landlord', fd);
       saveAuth(data.token, data.user);
@@ -269,16 +267,6 @@ export default function LandlordRegister() {
                 file={idFile}
                 onChange={e => setIdFile(e.target.files[0])}
               />
-
-              <FileUpload
-                label="Proof of Right to Rent (optional)"
-                file={rightToRentFile}
-                onChange={e => setRightToRentFile(e.target.files[0])}
-                hint="Lease, ownership deed, or written authority — PDF, JPG, PNG"
-              />
-              <p className="text-xs text-gray-500 -mt-2">
-                If you are listing on behalf of a property owner, please upload written authority from the owner.
-              </p>
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setStep(1)} className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
