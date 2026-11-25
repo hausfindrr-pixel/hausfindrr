@@ -76,6 +76,7 @@ model User {
   tenantComplaints     Complaint[]    @relation("TenantComplaints")
   landlordComplaints   Complaint[]    @relation("LandlordComplaints")
   notifications        UserNotification[]
+  consentLogs          ConsentLog[]
 
   @@index([role, status])
   @@index([createdAt])
@@ -246,4 +247,27 @@ model UserNotification {
   @@index([userId])
   @@index([createdAt])
   @@map("user_notifications")
+}
+
+// Immutable consent audit log — one row per acceptance event, never updated.
+// userId is nullable so rows survive account deletion.
+model ConsentLog {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id")
+  userEmail   String   @map("user_email")
+  userRole    String   @map("user_role")
+  document    String   // e.g. "terms_of_service", "privacy_policy", "landlord_agreement", "tenant_safety"
+  version     String   // e.g. "v1.0-july2026"
+  accepted    Boolean  @default(true)
+  acceptedAt  DateTime @default(now()) @map("accepted_at")
+  ipAddress   String   @map("ip_address")
+  userAgent   String   @map("user_agent")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userEmail])
+  @@index([document])
+  @@index([acceptedAt])
+  @@map("consent_logs")
 }

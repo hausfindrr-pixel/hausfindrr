@@ -6,6 +6,7 @@ const {
   sendWelcomeMessages,
   generateAccountCode,
 } = require('./authController');
+const { logSignupConsents } = require('../services/consentService');
 
 const prisma = new PrismaClient();
 
@@ -191,6 +192,7 @@ async function googleComplete(req, res, next) {
 
     await createWelcomeNotifications(user.id, role);
     await sendWelcomeMessages(user.id, role);
+    await logSignupConsents(req, user);
 
     const token = signFullToken(user);
     res.status(201).json({ token, user: safeUser(user) });

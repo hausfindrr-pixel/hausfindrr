@@ -14,6 +14,7 @@ const { setupTwoFactor, confirmTwoFactor, disableTwoFactor } = require('../contr
 const { createAnnouncement, getAdminAnnouncements } = require('../controllers/announcementController');
 const { getComplaints, updateComplaintStatus } = require('../controllers/complaintController');
 const { sendDirectMessage } = require('../controllers/messageController');
+const { getConsentLogs } = require('../controllers/consentController');
 
 router.use(authenticate, requireRole('admin'));
 
@@ -37,6 +38,8 @@ router.post('/direct-message', sendDirectMessage);
 
 router.get('/complaints', getComplaints);
 router.patch('/complaints/:id/status', updateComplaintStatus);
+
+router.get('/consent-logs', getConsentLogs);
 
 router.get('/2fa/setup', setupTwoFactor);
 router.post('/2fa/confirm', confirmTwoFactor);

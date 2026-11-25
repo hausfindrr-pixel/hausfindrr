@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { logSignupConsents, logLandlordAgreementConsent } = require('../services/consentService');
 
 // Normalise + validate an email address
 function normaliseEmail(raw) {
@@ -180,6 +181,7 @@ async function registerLandlord(req, res, next) {
 
     await createWelcomeNotifications(user.id, 'landlord');
     await sendWelcomeMessages(user.id, 'landlord');
+    await logSignupConsents(req, user);
 
     const token = signToken(user);
     res.status(201).json({ token, user: safeUser(user) });
@@ -222,6 +224,7 @@ async function registerTenant(req, res, next) {
 
     await createWelcomeNotifications(user.id, 'tenant');
     await sendWelcomeMessages(user.id, 'tenant');
+    await logSignupConsents(req, user);
 
     const token = signToken(user);
     res.status(201).json({ token, user: safeUser(user) });
@@ -337,6 +340,7 @@ async function acceptTerms(req, res, next) {
     });
 
     console.log(`[TERMS] Landlord ${user.id} (${user.email}) accepted terms at ${new Date().toISOString()} from IP ${ip}`);
+    await logLandlordAgreementConsent(req, user);
     res.json({ user: safeUser(user) });
   } catch (err) {
     next(err);
