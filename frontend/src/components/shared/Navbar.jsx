@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import FeedbackSheet from './FeedbackBubble';
@@ -11,13 +12,55 @@ const ROLE_COLORS = {
 };
 
 function RoleModal({ title, subtitle, options, onSelect, onClose }) {
-  return (
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+
+    function onKeyDown(e) {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key === 'Tab') {
+        const focusable = modalRef.current?.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (!focusable?.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+        } else {
+          if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown);
+    // Auto-focus the first interactive element
+    const timer = setTimeout(() => {
+      modalRef.current?.querySelector('button')?.focus();
+    }, 40);
+
+    return () => {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', onKeyDown);
+      clearTimeout(timer);
+    };
+  }, [onClose]);
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
       onClick={onClose}
     >
       <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
         className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
@@ -28,6 +71,7 @@ function RoleModal({ title, subtitle, options, onSelect, onClose }) {
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,18 +89,19 @@ function RoleModal({ title, subtitle, options, onSelect, onClose }) {
               <div className={`w-11 h-11 rounded-xl bg-${opt.accent}/10 flex items-center justify-center flex-shrink-0 group-hover:bg-${opt.accent}/20 transition-colors`}>
                 {opt.icon}
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-900 text-sm">{opt.label}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{opt.description}</p>
               </div>
-              <svg className={`w-4 h-4 text-gray-300 ml-auto flex-shrink-0 group-hover:text-${opt.accent} transition-colors`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-4 h-4 text-gray-300 flex-shrink-0 group-hover:text-${opt.accent} transition-colors`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -64,8 +109,8 @@ const SIGN_IN_OPTIONS = [
   {
     path: '/tenant/login',
     accent: 'secondary',
-    label: "I'm a Tenant",
-    description: 'Browse rental listings and contact landlords',
+    label: 'Tenant',
+    description: 'Find and message landlords',
     icon: (
       <svg className="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -75,8 +120,8 @@ const SIGN_IN_OPTIONS = [
   {
     path: '/landlord/login',
     accent: 'primary',
-    label: "I'm a Landlord",
-    description: 'Manage and list your properties',
+    label: 'Landlord',
+    description: 'Manage your listings',
     icon: (
       <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -89,8 +134,8 @@ const REGISTER_OPTIONS = [
   {
     path: '/tenant/register',
     accent: 'secondary',
-    label: 'Register as Tenant',
-    description: 'Find rental properties and connect with landlords',
+    label: 'Tenant',
+    description: 'Find and message landlords',
     icon: (
       <svg className="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -100,8 +145,8 @@ const REGISTER_OPTIONS = [
   {
     path: '/landlord/register',
     accent: 'primary',
-    label: 'Register as Landlord',
-    description: 'List your properties and reach tenants across PNG',
+    label: 'Landlord',
+    description: 'Manage your listings',
     icon: (
       <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -115,7 +160,6 @@ export default function Navbar({ nonSticky = false }) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [modal, setModal] = useState(null); // 'signin' | 'register' | null
-  const [mobileExpanded, setMobileExpanded] = useState(null); // 'signin' | 'register' | null
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   function handleLogout() {
@@ -123,10 +167,11 @@ export default function Navbar({ nonSticky = false }) {
     navigate('/');
   }
 
-  const closeMenu = () => { setMenuOpen(false); setMobileExpanded(null); };
+  const closeMenu = () => setMenuOpen(false);
 
   function handleRoleSelect(path) {
     setModal(null);
+    closeMenu();
     navigate(path);
   }
 
@@ -178,7 +223,7 @@ export default function Navbar({ nonSticky = false }) {
                   </button>
                 </div>
               )}
-              {/* Discreet admin access — no label, low visual weight */}
+              {/* Discreet admin access */}
               <Link
                 to="/admin/login"
                 aria-label="Admin"
@@ -211,70 +256,20 @@ export default function Navbar({ nonSticky = false }) {
             <div className="md:hidden border-t border-gray-100 py-3 space-y-1">
               {!user ? (
                 <>
-                  {/* Sign in accordion */}
-                  <div>
+                  {/* Sign in + Register — side by side, no expanding */}
+                  <div className="flex gap-2 px-3 pb-1">
                     <button
-                      onClick={() => setMobileExpanded(e => e === 'signin' ? null : 'signin')}
-                      className="flex w-full items-center justify-between px-3 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                      onClick={() => setModal('signin')}
+                      className="flex-1 py-2.5 text-sm font-medium rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors"
                     >
-                      <span>Sign in</span>
-                      <svg
-                        className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${mobileExpanded === 'signin' ? 'rotate-180' : ''}`}
-                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                      Sign in
                     </button>
-                    {mobileExpanded === 'signin' && (
-                      <div className="pl-3 pb-1 space-y-1">
-                        <button
-                          onClick={() => { closeMenu(); navigate('/tenant/login'); }}
-                          className="flex w-full items-center px-3 py-2.5 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors"
-                        >
-                          I&apos;m a Tenant
-                        </button>
-                        <button
-                          onClick={() => { closeMenu(); navigate('/landlord/login'); }}
-                          className="flex w-full items-center px-3 py-2.5 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors"
-                        >
-                          I&apos;m a Landlord
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Register accordion */}
-                  <div>
                     <button
-                      onClick={() => setMobileExpanded(e => e === 'register' ? null : 'register')}
-                      className="flex w-full items-center justify-between px-3 py-3 text-sm font-semibold bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors"
+                      onClick={() => setModal('register')}
+                      className="flex-1 py-2.5 text-sm font-semibold rounded-xl bg-primary text-white hover:bg-primary/90 active:bg-primary/80 transition-colors"
                     >
-                      <span>Register</span>
-                      <svg
-                        className={`w-4 h-4 transition-transform duration-200 ${mobileExpanded === 'register' ? 'rotate-180' : ''}`}
-                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                      Register
                     </button>
-                    {mobileExpanded === 'register' && (
-                      <div className="pl-3 pb-1 space-y-1 mt-1">
-                        <Link
-                          to="/tenant/register"
-                          onClick={closeMenu}
-                          className="flex w-full items-center px-3 py-2.5 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors"
-                        >
-                          I&apos;m a Tenant
-                        </Link>
-                        <Link
-                          to="/landlord/register"
-                          onClick={closeMenu}
-                          className="flex w-full items-center px-3 py-2.5 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors"
-                        >
-                          I&apos;m a Landlord
-                        </Link>
-                      </div>
-                    )}
                   </div>
 
                   <button
@@ -329,10 +324,10 @@ export default function Navbar({ nonSticky = false }) {
         </div>
       </nav>
 
-      {/* Sign In modal */}
+      {/* Sign in modal */}
       {modal === 'signin' && (
         <RoleModal
-          title="Sign In"
+          title="Sign in as"
           subtitle="How are you using HausFindrr?"
           options={SIGN_IN_OPTIONS}
           onSelect={handleRoleSelect}
@@ -343,7 +338,7 @@ export default function Navbar({ nonSticky = false }) {
       {/* Register modal */}
       {modal === 'register' && (
         <RoleModal
-          title="Create an Account"
+          title="Register as"
           subtitle="What brings you to HausFindrr?"
           options={REGISTER_OPTIONS}
           onSelect={handleRoleSelect}
