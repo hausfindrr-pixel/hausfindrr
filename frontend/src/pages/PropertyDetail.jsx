@@ -407,14 +407,26 @@ export default function PropertyDetail() {
           </div>
         )}
 
-        {/* ── Report ── last item, centered, quiet */}
+        {/* ── Report ── last item, outlined red card */}
         {user?.role === 'tenant' && (
-          <div className="flex justify-center pt-4" style={{ paddingBottom: showBottomBar ? 0 : 8 }}>
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100" style={{ marginBottom: showBottomBar ? 0 : 8 }}>
+            <p className="text-xs text-gray-400 mb-3">Something wrong with this listing?</p>
             <button
               onClick={() => setShowReport(true)}
-              className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-500 transition-colors py-2 px-3"
+              className="w-full flex items-center justify-center gap-2 rounded-xl font-medium text-base transition-colors active:scale-[0.98]"
+              style={{
+                minHeight: 48,
+                border: '1.5px solid #B42318',
+                color: '#B42318',
+                backgroundColor: '#FEF3F2',
+              }}
+              onMouseDown={e => e.currentTarget.style.backgroundColor = '#FEE4E2'}
+              onMouseUp={e => e.currentTarget.style.backgroundColor = '#FEF3F2'}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = '#FEF3F2'}
+              onTouchStart={e => e.currentTarget.style.backgroundColor = '#FEE4E2'}
+              onTouchEnd={e => e.currentTarget.style.backgroundColor = '#FEF3F2'}
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.962-.833-2.732 0L4.072 16.5C3.302 18.333 4.264 20 5.804 20z" />
               </svg>
               Report this listing
@@ -555,7 +567,8 @@ export default function PropertyDetail() {
                     <button
                       type="submit"
                       disabled={reportLoading}
-                      className="flex-[2] bg-[#975536] text-white font-semibold text-sm py-3 rounded-xl hover:bg-[#41271B] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="flex-[2] text-white font-semibold text-sm py-3 rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: '#B42318' }}
                     >
                       {reportLoading ? 'Submitting…' : 'Submit Report'}
                     </button>
