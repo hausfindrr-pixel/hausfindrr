@@ -188,14 +188,16 @@ async function markSold(req, res, next) {
 async function markRented(req, res, next) {
   try {
     const { id } = req.params;
+    const { rentedToUserId } = req.body || {};
     const property = await prisma.property.findUnique({ where: { id } });
     if (!property) return res.status(404).json({ error: 'Property not found' });
     if (property.landlordId !== req.user.id)
       return res.status(403).json({ error: 'Not your property' });
-    if (property.status !== 'active')
+    if (!['active', 'rented'].includes(property.status))
       return res.status(400).json({ error: 'Only active listings can be marked as rented' });
 
-    await prisma.property.update({ where: { id }, data: { status: 'rented' } });
+    const metadata = { ...(property.metadata || {}), ...(rentedToUserId ? { rentedToUserId } : {}) };
+    await prisma.property.update({ where: { id }, data: { status: 'rented', metadata } });
     res.json({ success: true });
   } catch (err) {
     next(err);
@@ -222,8 +224,8 @@ async function relistProperty(req, res, next) {
 async function getListings(req, res, next) {
   try {
     const { type, location, minPrice, maxPrice, bedrooms, bathrooms, propertyType, amenities, page = 1, limit = 12 } = req.query;
-    // Hide occupied rentals and sold properties from public browse
-    const where = { status: 'active', occupied: false, sold: false };
+    // Only show active listings (rented/draft/pending are hidden); exclude legacy sold flag
+    const where = { status: 'active', sold: false };
     if (type) where.listingType = type;
     if (propertyType) where.propertyType = propertyType;
     if (location) where.locationGeneral = { contains: location, mode: 'insensitive' };

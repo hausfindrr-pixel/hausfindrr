@@ -81,8 +81,23 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
 });
 
+const { PrismaClient } = require('@prisma/client');
+const _prisma = new PrismaClient();
+
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`HausFindrr API running on port ${PORT}`));
+app.listen(PORT, async () => {
+  console.log(`HausFindrr API running on port ${PORT}`);
+  // One-time migration: occupied=true → status='rented'
+  try {
+    const updated = await _prisma.property.updateMany({
+      where: { occupied: true, status: 'active' },
+      data: { status: 'rented', occupied: false },
+    });
+    if (updated.count > 0) console.log(`[migrate] ${updated.count} occupied listings → rented`);
+  } catch (e) {
+    console.error('[migrate] occupied→rented failed:', e.message);
+  }
+});
 
 // Daily 02:00 UTC — purge expired documents from Cloudinary and DB
 cron.schedule('0 2 * * *', () => {

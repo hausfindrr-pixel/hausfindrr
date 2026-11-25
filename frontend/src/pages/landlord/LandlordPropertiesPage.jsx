@@ -48,9 +48,9 @@ export default function LandlordPropertiesPage() {
     }
   }
 
-  async function handleMarkRented(id) {
+  async function handleMarkRented(id, rentedToUserId) {
     try {
-      await api.patch(`/properties/${id}/rented`);
+      await api.patch(`/properties/${id}/rented`, rentedToUserId ? { rentedToUserId } : {});
       setProperties(prev => prev.map(p => p.id === id ? { ...p, status: 'rented' } : p));
       toast.success('Property marked as rented');
     } catch {
@@ -225,7 +225,7 @@ export default function LandlordPropertiesPage() {
                     stats={p.stats}
                     propertyId={p.id}
                     unread={unread}
-                    onMessagesClick={() => navigate(`/landlord/messages?listing=${p.id}`)}
+                    onMessagesClick={() => navigate(`/landlord/messages/${p.id}`)}
                   />
 
                   {/* Card footer actions */}
@@ -291,7 +291,7 @@ export default function LandlordPropertiesPage() {
 
                     {/* Mark as Rented — active only */}
                     {isActive && (
-                      <MarkRentedButton propertyId={p.id} onRented={() => handleMarkRented(p.id)} />
+                      <MarkRentedButton propertyId={p.id} onRented={(uid) => handleMarkRented(p.id, uid)} />
                     )}
 
                     {/* Relist — rented only */}
@@ -316,31 +316,94 @@ export default function LandlordPropertiesPage() {
 }
 
 function MarkRentedButton({ propertyId, onRented }) {
-  const [pending, setPending] = useState(false);
-  const [confirm, setConfirm] = useState(false);
+  // step: 'idle' | 'confirm' | 'who' | 'done'
+  const [step, setStep] = useState('idle');
+  const [saving, setSaving] = useState(false);
+  const [tenants, setTenants] = useState([]);    // tenants who messaged
+  const [loadingTenants, setLoadingTenants] = useState(false);
 
-  if (confirm) {
+  async function doMarkRented() {
+    setSaving(true);
+    await onRented(null);  // mark rented with no tenant selection yet
+    setSaving(false);
+    // Now show the "who rented it?" step
+    setLoadingTenants(true);
+    try {
+      const { data } = await api.get('/messages/inbox');
+      const pts = (data.threads || []).filter(t => !t.isDirect && t.propertyId === propertyId);
+      setTenants(pts.map(t => t.otherUser).filter(Boolean));
+    } catch {
+      // no tenants — that's fine
+    } finally {
+      setLoadingTenants(false);
+    }
+    setStep('who');
+  }
+
+  async function selectTenant(userId) {
+    if (userId) {
+      try { await api.patch(`/properties/${propertyId}/rented`, { rentedToUserId: userId }); } catch {}
+    }
+    setStep('done');
+  }
+
+  if (step === 'done') {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-xl">
+        <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+        </svg>
+        <span className="text-xs text-blue-700 font-medium">Marked as rented</span>
+      </div>
+    );
+  }
+
+  if (step === 'who') {
+    return (
+      <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 space-y-2">
+        <p className="text-xs font-semibold text-blue-800">Who rented it?</p>
+        {loadingTenants ? (
+          <p className="text-xs text-blue-500">Loading…</p>
+        ) : (
+          <div className="space-y-1">
+            {tenants.map(t => (
+              <button
+                key={t.id}
+                onClick={() => selectTenant(t.id)}
+                className="w-full text-left text-xs py-2 px-3 rounded-lg bg-white hover:bg-blue-100 text-blue-800 font-medium border border-blue-100 transition-colors"
+              >
+                {t.name?.split(' ')[0] || 'Tenant'}
+              </button>
+            ))}
+            <button
+              onClick={() => selectTenant(null)}
+              className="w-full text-left text-xs py-2 px-3 rounded-lg bg-white hover:bg-gray-100 text-gray-500 border border-gray-100 transition-colors"
+            >
+              Someone else / not through HausFindrr
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (step === 'confirm') {
     return (
       <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
         <p className="text-xs text-blue-700 font-medium mb-2">Mark as rented? It will be hidden from search.</p>
         <div className="flex gap-2">
           <button
-            onClick={() => setConfirm(false)}
+            onClick={() => setStep('idle')}
             className="flex-1 text-xs py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
-            onClick={async () => {
-              setPending(true);
-              await onRented();
-              setPending(false);
-              setConfirm(false);
-            }}
-            disabled={pending}
+            onClick={doMarkRented}
+            disabled={saving}
             className="flex-1 text-xs py-1.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50"
           >
-            {pending ? 'Saving…' : 'Confirm'}
+            {saving ? 'Saving…' : 'Confirm'}
           </button>
         </div>
       </div>
@@ -349,7 +412,7 @@ function MarkRentedButton({ propertyId, onRented }) {
 
   return (
     <button
-      onClick={() => setConfirm(true)}
+      onClick={() => setStep('confirm')}
       className="w-full text-xs font-semibold text-blue-700 hover:text-blue-900 hover:bg-blue-50 border border-blue-200 rounded-lg py-2 transition-colors"
       style={{ minHeight: 36 }}
     >

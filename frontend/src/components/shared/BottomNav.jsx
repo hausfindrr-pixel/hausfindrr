@@ -3,6 +3,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useMessages } from '../../context/MessagesContext';
 
 const LANDLORD_PATHS = ['/landlord/properties', '/landlord/messages', '/landlord/dashboard'];
+// Messages sub-pages also show the nav
+function matchesLandlordMessages(pathname) {
+  return pathname.startsWith('/landlord/messages');
+}
 const TENANT_PATHS  = ['/', '/tenant/dashboard', '/tenant/messages'];
 
 export default function BottomNav() {
@@ -18,7 +22,9 @@ export default function BottomNav() {
   }
 
   const allowedPaths = isLandlord ? LANDLORD_PATHS : TENANT_PATHS;
-  const visible = allowedPaths.some(p => matchPath(p));
+  const visible = isLandlord
+    ? (allowedPaths.some(p => matchPath(p)) || matchesLandlordMessages(location.pathname))
+    : allowedPaths.some(p => matchPath(p));
   if (!visible) return null;
 
   const at = (...paths) => paths.some(p => matchPath(p));
@@ -35,7 +41,7 @@ export default function BottomNav() {
   }
 
   const messagesActive = isLandlord
-    ? at('/landlord/messages')
+    ? matchesLandlordMessages(location.pathname)
     : at('/tenant/messages');
 
   const landlordTabs = [

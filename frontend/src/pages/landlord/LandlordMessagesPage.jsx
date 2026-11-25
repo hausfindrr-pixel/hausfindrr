@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMessages } from '../../context/MessagesContext';
 import api from '../../services/api';
 
@@ -23,22 +23,13 @@ const STATUS_LABEL = {
   rejected: { label: 'Declined', cls: 'bg-red-100 text-red-700' },
 };
 
-const PREVIEW_COUNT = 3;
-
 export default function LandlordMessagesPage() {
   const { refreshUnread } = useMessages();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [loading, setLoading] = useState(true);
   const [threads, setThreads] = useState([]);
   const [properties, setProperties] = useState([]);
-  const [filter, setFilter] = useState('all');
-  const [expanded, setExpanded] = useState({});
-  const didScrollRef = useRef(false);
-
-  const params = new URLSearchParams(location.search);
-  const deepLink = params.get('listing');
 
   const load = useCallback(async () => {
     try {
@@ -59,55 +50,38 @@ export default function LandlordMessagesPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Deep-link scroll after data loads
-  useEffect(() => {
-    if (!deepLink || loading || didScrollRef.current) return;
-    const el = document.getElementById(`listing-${deepLink}`);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      didScrollRef.current = true;
-    }
-  }, [deepLink, loading]);
-
   // Build grouped structure
   const propertyThreads = threads.filter(t => !t.isDirect);
 
-  const groups = Object.values(
-    propertyThreads.reduce((acc, t) => {
-      const pid = t.propertyId;
-      if (!acc[pid]) {
-        const full = properties.find(p => p.id === pid);
-        acc[pid] = {
-          property: full ? { ...t.property, ...full } : t.property,
-          threads: [],
-          unreadCount: 0,
-          latestAt: null,
-        };
-      }
-      acc[pid].threads.push(t);
-      acc[pid].unreadCount += t.unreadCount || 0;
+  // Map threads onto properties; include all properties (even those with no threads)
+  const groups = properties.map(prop => {
+    const pts = propertyThreads.filter(t => t.propertyId === prop.id);
+    const unreadCount = pts.reduce((s, t) => s + (t.unreadCount || 0), 0);
+    const latestAt = pts.reduce((best, t) => {
       const at = t.latestMessage?.sentAt;
-      if (at && (!acc[pid].latestAt || new Date(at) > new Date(acc[pid].latestAt))) {
-        acc[pid].latestAt = at;
-      }
-      return acc;
-    }, {})
-  ).sort((a, b) => {
+      if (!at) return best;
+      return (!best || new Date(at) > new Date(best)) ? at : best;
+    }, null);
+    return { property: prop, threads: pts, unreadCount, latestAt };
+  }).sort((a, b) => {
+    // unread first → latest message → no-thread properties last
     if (b.unreadCount !== a.unreadCount) return b.unreadCount - a.unreadCount;
-    return new Date(b.latestAt || 0) - new Date(a.latestAt || 0);
+    if (a.latestAt && b.latestAt) return new Date(b.latestAt) - new Date(a.latestAt);
+    if (a.latestAt) return -1;
+    if (b.latestAt) return 1;
+    return 0;
   });
 
-  const filtered = filter === 'unread' ? groups.filter(g => g.unreadCount > 0) : groups;
   const totalUnread = threads.reduce((s, t) => s + (t.unreadCount || 0), 0);
 
-  if (loading) return <SkeletonInbox />;
+  if (loading) return <SkeletonList />;
 
   return (
     <div className="min-h-dvh bg-[#F5F0EB]">
       {/* Sticky header */}
       <div className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 pt-4 pb-3">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-[#41271B]">Messages</h1>
             {totalUnread > 0 && (
               <span className="bg-[#975536] text-white text-xs font-bold px-2 py-0.5 rounded-full">
@@ -115,48 +89,22 @@ export default function LandlordMessagesPage() {
               </span>
             )}
           </div>
-          <div className="flex gap-2">
-            {['all', 'unread'].map(f => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  filter === f
-                    ? 'bg-[#41271B] text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {f === 'all' ? 'All' : 'Unread'}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
-      {/* Content — no inner scroll, page scrolls */}
       <div
-        className="max-w-4xl mx-auto px-4 py-4"
+        className="max-w-2xl mx-auto px-4 py-4"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
       >
-        {threads.length === 0 ? (
+        {groups.length === 0 ? (
           <EmptyState />
-        ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-2xl p-10 text-center shadow-sm mt-2">
-            <p className="text-gray-500 text-sm">No unread messages</p>
-          </div>
         ) : (
-          <div className="space-y-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 md:items-start">
-            {filtered.map(group => (
-              <ListingSection
-                key={group.property?.id}
+          <div className="space-y-2">
+            {groups.map(group => (
+              <PropertyRow
+                key={group.property.id}
                 group={group}
-                isExpanded={!!expanded[group.property?.id]}
-                onToggle={() =>
-                  setExpanded(e => ({ ...e, [group.property?.id]: !e[group.property?.id] }))
-                }
-                onOpen={thread =>
-                  navigate(`/conversation/${thread.propertyId}/${thread.otherUser.id}`)
-                }
+                onPress={() => navigate(`/landlord/messages/${group.property.id}`)}
               />
             ))}
           </div>
@@ -166,17 +114,20 @@ export default function LandlordMessagesPage() {
   );
 }
 
-function ListingSection({ group, isExpanded, onToggle, onOpen }) {
-  const { property, threads, unreadCount } = group;
+function PropertyRow({ group, onPress }) {
+  const { property, threads, unreadCount, latestAt } = group;
   const photo = property?.photos?.[0]?.filePath;
   const statusInfo = STATUS_LABEL[property?.status] || STATUS_LABEL.draft;
-  const visible = isExpanded ? threads : threads.slice(0, PREVIEW_COUNT);
-  const hidden = threads.length - PREVIEW_COUNT;
+  const hasThreads = threads.length > 0;
 
   return (
-    <div id={`listing-${property?.id}`} className="bg-white rounded-2xl overflow-hidden shadow-sm">
-      {/* Listing header card */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+    <button
+      onClick={onPress}
+      className="w-full bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-50 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
+      style={{ minHeight: 80 }}
+    >
+      <div className="flex items-center gap-3 px-4 py-3.5">
+        {/* Photo */}
         <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#EDE0CE] flex-shrink-0">
           {photo ? (
             <img src={photo} alt={property?.title} className="w-full h-full object-cover" loading="lazy" />
@@ -188,92 +139,43 @@ function ListingSection({ group, isExpanded, onToggle, onOpen }) {
             </div>
           )}
         </div>
+
+        {/* Info */}
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-[#41271B] text-sm truncate">{property?.title || 'Property'}</p>
-          <p className="text-xs text-gray-500 truncate">
-            {[
-              property?.locationGeneral,
-              property?.price
-                ? `K${Number(property.price).toLocaleString()}${property.rentFrequency ? `/${property.rentFrequency}` : ''}`
-                : null,
-            ].filter(Boolean).join(' · ')}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusInfo.cls}`}>
-            {statusInfo.label}
-          </span>
-          {unreadCount > 0 && (
-            <span className="w-5 h-5 rounded-full bg-[#975536] text-white text-[11px] font-bold flex items-center justify-center">
-              {unreadCount > 9 ? '9+' : unreadCount}
+          <div className="flex items-center gap-2 mb-0.5">
+            <p className="font-semibold text-[#41271B] text-sm truncate">{property?.title || 'Property'}</p>
+            {unreadCount > 0 && (
+              <span className="w-5 h-5 rounded-full bg-[#975536] text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusInfo.cls}`}>
+              {statusInfo.label}
             </span>
+            {property?.locationGeneral && (
+              <span className="text-xs text-gray-400">{property.locationGeneral}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Right side */}
+        <div className="flex-shrink-0 flex flex-col items-end gap-1">
+          {hasThreads ? (
+            <>
+              <p className="text-xs text-gray-400">{threads.length} {threads.length === 1 ? 'conversation' : 'conversations'}</p>
+              {latestAt && (
+                <p className="text-[11px] text-gray-300">{timeAgo(latestAt)}</p>
+              )}
+            </>
+          ) : (
+            <p className="text-xs text-gray-300">No messages</p>
           )}
+          <svg className="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
         </div>
-      </div>
-
-      {/* Conversation rows — no inner scroll */}
-      <div className="divide-y divide-gray-50">
-        {visible.map(t => (
-          <ConversationRow key={t.otherUser.id} thread={t} onOpen={() => onOpen(t)} />
-        ))}
-      </div>
-
-      {/* See all / show less */}
-      {hidden > 0 && !isExpanded && (
-        <button
-          onClick={onToggle}
-          className="w-full text-center py-3.5 text-sm text-[#975536] font-medium hover:bg-[#EDE0CE]/30 transition-colors border-t border-gray-50"
-          style={{ minHeight: 44 }}
-        >
-          See all ({threads.length})
-        </button>
-      )}
-      {isExpanded && threads.length > PREVIEW_COUNT && (
-        <button
-          onClick={onToggle}
-          className="w-full text-center py-3.5 text-sm text-gray-400 font-medium hover:bg-gray-50 transition-colors border-t border-gray-50"
-          style={{ minHeight: 44 }}
-        >
-          Show less
-        </button>
-      )}
-    </div>
-  );
-}
-
-function ConversationRow({ thread, onOpen }) {
-  const hasUnread = thread.unreadCount > 0;
-  const firstName = (thread.otherUser?.name || 'Tenant').split(' ')[0];
-
-  return (
-    <button
-      onClick={onOpen}
-      className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
-      style={{ minHeight: 60 }}
-    >
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold ${
-        hasUnread ? 'bg-[#975536] text-white' : 'bg-[#EDE0CE] text-[#975536]'
-      }`}>
-        {firstName[0].toUpperCase()}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <p className={`text-sm truncate ${hasUnread ? 'font-semibold text-[#41271B]' : 'font-medium text-gray-700'}`}>
-            {firstName}
-          </p>
-          {hasUnread && <span className="w-2 h-2 rounded-full bg-[#975536] flex-shrink-0" />}
-        </div>
-        <p className={`text-xs truncate mt-0.5 ${hasUnread ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
-          {thread.latestMessage?.content || 'No messages yet'}
-        </p>
-      </div>
-      <div className="flex-shrink-0 flex flex-col items-end gap-1">
-        {thread.latestMessage?.sentAt && (
-          <p className="text-[11px] text-gray-400">{timeAgo(thread.latestMessage.sentAt)}</p>
-        )}
-        <svg className="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
       </div>
     </button>
   );
@@ -289,35 +191,24 @@ function EmptyState() {
       </div>
       <p className="font-semibold text-[#41271B]">No messages yet</p>
       <p className="text-gray-500 text-sm mt-1 max-w-xs mx-auto">
-        When tenants message you about a house, they'll show here.
+        When tenants message you about a listing, they'll show here.
       </p>
     </div>
   );
 }
 
-function SkeletonInbox() {
+function SkeletonList() {
   return (
     <div className="min-h-dvh bg-[#F5F0EB]">
-      <div className="sticky top-0 z-30 bg-white border-b border-gray-100 h-24" />
-      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
-        {[1, 2].map(i => (
-          <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm">
-            <div className="flex gap-3 p-4 border-b border-gray-100">
-              <div className="w-14 h-14 rounded-xl bg-gray-200 animate-pulse flex-shrink-0" />
-              <div className="flex-1 space-y-2 pt-1">
-                <div className="h-4 bg-gray-200 rounded animate-pulse w-2/3" />
-                <div className="h-3 bg-gray-100 rounded animate-pulse w-1/2" />
-              </div>
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-100 h-16" />
+      <div className="max-w-2xl mx-auto px-4 py-4 space-y-2">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="bg-white rounded-2xl p-4 shadow-sm flex gap-3 items-center">
+            <div className="w-14 h-14 rounded-xl bg-gray-200 animate-pulse flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 bg-gray-200 rounded animate-pulse w-2/3" />
+              <div className="h-3 bg-gray-100 rounded animate-pulse w-1/3" />
             </div>
-            {[1, 2].map(j => (
-              <div key={j} className="flex gap-3 px-4 py-4 border-b border-gray-50 last:border-0">
-                <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse flex-shrink-0" />
-                <div className="flex-1 space-y-2 pt-1">
-                  <div className="h-3.5 bg-gray-200 rounded animate-pulse w-1/3" />
-                  <div className="h-3 bg-gray-100 rounded animate-pulse w-3/4" />
-                </div>
-              </div>
-            ))}
           </div>
         ))}
       </div>
