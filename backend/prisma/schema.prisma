@@ -86,11 +86,14 @@ model User {
 }
 
 model LandlordIdDocument {
-  id         String    @id @default(uuid())
-  userId     String    @map("user_id")
-  docType    IdDocType @map("doc_type")
-  filePath   String    @map("file_path")
-  uploadedAt DateTime  @default(now()) @map("uploaded_at")
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  docType     IdDocType @map("doc_type")
+  filePath    String    @map("file_path")
+  publicId    String?   @map("public_id")
+  uploadedAt  DateTime  @default(now()) @map("uploaded_at")
+  expiresAt   DateTime  @map("expires_at")
+  legalHold   Boolean   @default(false) @map("legal_hold")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -98,11 +101,14 @@ model LandlordIdDocument {
 }
 
 model PropertyTitleDocument {
-  id         String       @id @default(uuid())
-  propertyId String       @map("property_id")
-  docType    TitleDocType @map("doc_type")
-  filePath   String       @map("file_path")
-  uploadedAt DateTime     @default(now()) @map("uploaded_at")
+  id          String       @id @default(uuid())
+  propertyId  String       @map("property_id")
+  docType     TitleDocType @map("doc_type")
+  filePath    String       @map("file_path")
+  publicId    String?      @map("public_id")
+  uploadedAt  DateTime     @default(now()) @map("uploaded_at")
+  expiresAt   DateTime     @map("expires_at")
+  legalHold   Boolean      @default(false) @map("legal_hold")
 
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 

@@ -60,14 +60,17 @@ async function createProperty(req, res, next) {
       });
     }
 
-    // Save title documents (field: title_documents)
+    // Save title documents (field: title_documents) — private Cloudinary storage
     const titleDocs = files['title_documents'] || [];
     if (titleDocs.length > 0) {
+      const docExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       await prisma.propertyTitleDocument.createMany({
         data: titleDocs.map((f, i) => ({
           propertyId: property.id,
           docType: i === 0 ? 'title' : 'other',
           filePath: f.path,
+          publicId: f.filename || null,
+          expiresAt: docExpiry,
         })),
       });
     }

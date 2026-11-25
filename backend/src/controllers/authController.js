@@ -170,11 +170,14 @@ async function registerLandlord(req, res, next) {
     const docType = normaliseIdDocType(id_type);
 
     if (idFiles.length > 0) {
+      const docExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       await prisma.landlordIdDocument.createMany({
         data: idFiles.map(f => ({
           userId: user.id,
           docType,
           filePath: f.path,
+          publicId: f.filename || null,
+          expiresAt: docExpiry,
         })),
       });
     }
@@ -301,11 +304,14 @@ async function completeProfile(req, res, next) {
 
     if (req.user.role === 'landlord' && idFiles.length > 0) {
       const docType = normaliseIdDocType(id_type);
+      const docExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       await prisma.landlordIdDocument.createMany({
         data: idFiles.map(f => ({
           userId: req.user.id,
           docType,
           filePath: f.path,
+          publicId: f.filename || null,
+          expiresAt: docExpiry,
         })),
       });
     }
