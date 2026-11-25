@@ -110,18 +110,49 @@ function DocLightbox({ url, onClose }) {
   );
 }
 
-function RejectModal({ title, onConfirm, onCancel }) {
+const DECLINE_PRESETS = {
+  landlord: [
+    'ID document is blurry or unreadable. Please resubmit a clear, well-lit photo.',
+    'ID document appears expired. Please submit a valid, current document.',
+    'The name on the ID does not match the name on your account.',
+    'Proof of right to rent is missing or unacceptable. Please upload a valid lease, title deed, or authority letter.',
+    'We could not verify this document. Please contact info@hausfindrr.com for assistance.',
+  ],
+  listing: [
+    'Listing price appears incorrect or unrealistic. Please review and resubmit.',
+    'Photos are missing, blurry, or do not show the property clearly.',
+    'Property description is insufficient. Please add more details.',
+    'Listing location does not match the address provided.',
+    'Listing appears to duplicate an existing active listing.',
+    'This listing does not meet our content standards. Please contact info@hausfindrr.com.',
+  ],
+};
+
+function RejectModal({ title, onConfirm, onCancel, variant = 'landlord' }) {
   const [reason, setReason] = useState('');
+  const presets = DECLINE_PRESETS[variant] || DECLINE_PRESETS.landlord;
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onCancel}>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
         <h3 className="font-bold text-gray-900 mb-1">{title || 'Rejection Reason'}</h3>
-        <p className="text-sm text-gray-500 mb-4">Provide a reason so the user knows what to fix.</p>
+        <p className="text-sm text-gray-500 mb-3">Select a preset or write a custom reason.</p>
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {presets.map((p, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setReason(p)}
+              className="text-xs px-2.5 py-1 rounded-full border border-gray-200 text-gray-600 hover:border-primary hover:text-primary transition-colors text-left"
+            >
+              {p.length > 50 ? p.slice(0, 48) + '…' : p}
+            </button>
+          ))}
+        </div>
         <textarea
-          className="input h-24 resize-none mb-4 text-sm"
+          className="input h-20 resize-none mb-4 text-sm"
           value={reason}
           onChange={e => setReason(e.target.value)}
-          placeholder="e.g. ID document is blurry. Please resubmit a clear photo…"
+          placeholder="Or type a custom reason…"
           autoFocus
         />
         <div className="flex gap-3">
@@ -183,6 +214,14 @@ const NAV = [
   {
     key: 'complaints', label: 'Complaints', pendingKey: 'complaints',
     icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
+  },
+  {
+    key: 'consent_logs', label: 'Consent Logs',
+    icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>,
+  },
+  {
+    key: 'data_requests', label: 'Data Requests',
+    icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
   },
   {
     key: 'security', label: 'Security',
@@ -338,8 +377,10 @@ export default function AdminDashboard() {
           {section === 'all_landlords'     && <AllLandlordsSection />}
           {section === 'all_listings'      && <AllListingsSection />}
           {section === 'messages'    && <MessagesSection messageTarget={messageTarget} onClearTarget={() => setMessageTarget(null)} />}
-          {section === 'complaints'  && <ComplaintsSection onMessageLandlord={goMessages} onCountChange={n => setPendingCounts(p => ({ ...p, complaints: n }))} />}
-          {section === 'security'    && <SecuritySection />}
+          {section === 'complaints'   && <ComplaintsSection onMessageLandlord={goMessages} onCountChange={n => setPendingCounts(p => ({ ...p, complaints: n }))} />}
+          {section === 'consent_logs' && <ConsentLogsSection />}
+          {section === 'data_requests' && <DataRequestsSection />}
+          {section === 'security'     && <SecuritySection />}
         </main>
       </div>
     </div>
@@ -538,7 +579,7 @@ function PendingLandlordsSection({ onCountChange }) {
     <div className="space-y-5">
       {lightbox && <DocLightbox url={lightbox} onClose={() => setLightbox(null)} />}
       {rejectTarget && (
-        <RejectModal title="Reject Landlord" onConfirm={r => act(rejectTarget, 'reject', r)} onCancel={() => setRejectTarget(null)} />
+        <RejectModal title="Reject Landlord" variant="landlord" onConfirm={r => act(rejectTarget, 'reject', r)} onCancel={() => setRejectTarget(null)} />
       )}
       <div>
         <h1 className="text-xl font-bold text-gray-900">Pending Landlords</h1>
@@ -652,7 +693,7 @@ function PendingListingsSection({ onCountChange }) {
     <div className="space-y-5">
       {lightbox && <DocLightbox url={lightbox} onClose={() => setLightbox(null)} />}
       {rejectTarget && (
-        <RejectModal title="Reject Listing" onConfirm={r => act(rejectTarget, 'reject', r)} onCancel={() => setRejectTarget(null)} />
+        <RejectModal title="Reject Listing" variant="listing" onConfirm={r => act(rejectTarget, 'reject', r)} onCancel={() => setRejectTarget(null)} />
       )}
       <div>
         <h1 className="text-xl font-bold text-gray-900">Pending Listings</h1>
@@ -1049,7 +1090,7 @@ function AllListingsSection() {
   return (
     <div className="space-y-5">
       {rejectTarget && (
-        <RejectModal title="Reject Listing" onConfirm={r => reviewProp(rejectTarget, 'reject', r)} onCancel={() => setRejectTarget(null)} />
+        <RejectModal title="Reject Listing" variant="listing" onConfirm={r => reviewProp(rejectTarget, 'reject', r)} onCancel={() => setRejectTarget(null)} />
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1846,6 +1887,156 @@ function SecuritySection() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Consent Logs ───────────────────────────────────────────────────────────
+function ConsentLogsSection() {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    api.get('/admin/consent-logs')
+      .then(({ data }) => setLogs(data.logs || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = logs.filter(l =>
+    !search ||
+    l.document?.toLowerCase().includes(search.toLowerCase()) ||
+    l.userId?.toLowerCase().includes(search.toLowerCase()) ||
+    l.userEmail?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <h2 className="text-xl font-bold text-gray-900">Consent Log</h2>
+        <input
+          className="input max-w-xs text-sm"
+          placeholder="Search by event or user…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
+      <p className="text-sm text-gray-500">Immutable record of all consent events. Rows are never modified or deleted.</p>
+      {loading ? (
+        <p className="text-sm text-gray-400">Loading…</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-gray-400">No consent events found.</p>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-gray-100">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+              <tr>
+                <th className="px-4 py-3 text-left">Event</th>
+                <th className="px-4 py-3 text-left">User</th>
+                <th className="px-4 py-3 text-left">Version</th>
+                <th className="px-4 py-3 text-left">IP</th>
+                <th className="px-4 py-3 text-left">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {filtered.map(l => (
+                <tr key={l.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 font-mono text-xs text-primary">{l.document}</td>
+                  <td className="px-4 py-3 text-gray-700">{l.userEmail || l.userId || <span className="text-gray-300">—</span>}</td>
+                  <td className="px-4 py-3 text-gray-500">{l.version || '—'}</td>
+                  <td className="px-4 py-3 text-gray-400 font-mono text-xs">{l.ipAddress || '—'}</td>
+                  <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{new Date(l.acceptedAt).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Data Requests ──────────────────────────────────────────────────────────
+function DataRequestsSection() {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  function load() {
+    api.get('/admin/data-requests')
+      .then(({ data }) => setRequests(data.requests || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function markDone(id) {
+    try {
+      await api.patch(`/admin/data-requests/${id}/complete`);
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'completed' } : r));
+      toast.success('Marked as completed');
+    } catch {
+      toast.error('Failed to update');
+    }
+  }
+
+  const pending = requests.filter(r => r.status === 'pending');
+  const done = requests.filter(r => r.status !== 'pending');
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-xl font-bold text-gray-900">Data Requests</h2>
+        <span className="text-xs bg-yellow-100 text-yellow-700 px-2.5 py-1 rounded-full font-semibold">
+          {pending.length} pending
+        </span>
+      </div>
+      <p className="text-sm text-gray-500">
+        Users may request a copy of their data or deletion of their account. Respond within 30 days per applicable law.
+        Contact the user at their email to fulfil the request, then mark it complete here.
+      </p>
+      {loading ? (
+        <p className="text-sm text-gray-400">Loading…</p>
+      ) : requests.length === 0 ? (
+        <p className="text-sm text-gray-400">No data requests yet.</p>
+      ) : (
+        <div className="space-y-3">
+          {pending.length > 0 && (
+            <>
+              <h3 className="text-sm font-semibold text-gray-700">Pending</h3>
+              {pending.map(r => (
+                <div key={r.id} className="bg-white rounded-xl border border-yellow-100 p-4 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{r.type === 'export' ? 'Data Export' : 'Account Deletion'}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{r.user?.email || r.userId}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{new Date(r.createdAt).toLocaleString()}</p>
+                    {r.notes && <p className="text-xs text-gray-600 mt-1 italic">&quot;{r.notes}&quot;</p>}
+                  </div>
+                  <button onClick={() => markDone(r.id)} className="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-200 transition-colors font-semibold whitespace-nowrap">
+                    Mark Done
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+          {done.length > 0 && (
+            <>
+              <h3 className="text-sm font-semibold text-gray-500 mt-4">Completed</h3>
+              {done.map(r => (
+                <div key={r.id} className="bg-gray-50 rounded-xl border border-gray-100 p-4 flex items-start justify-between gap-4 opacity-60">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700">{r.type === 'export' ? 'Data Export' : 'Account Deletion'}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{r.user?.email || r.userId}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{new Date(r.createdAt).toLocaleString()}</p>
+                  </div>
+                  <span className="text-xs text-green-600 font-semibold">Done</span>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       )}
     </div>

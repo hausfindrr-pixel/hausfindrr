@@ -79,6 +79,7 @@ model User {
   landlordComplaints   Complaint[]    @relation("LandlordComplaints")
   notifications        UserNotification[]
   consentLogs          ConsentLog[]
+  dataRequests         DataRequest[]
 
   @@index([role, status])
   @@index([createdAt])
@@ -278,4 +279,21 @@ model ConsentLog {
   @@index([document])
   @@index([acceptedAt])
   @@map("consent_logs")
+}
+
+model DataRequest {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  userEmail String   @map("user_email")
+  type      String   // "export" | "deletion"
+  status    String   @default("pending") // "pending" | "completed"
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([userId])
+  @@map("data_requests")
 }

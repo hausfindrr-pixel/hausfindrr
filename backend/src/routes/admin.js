@@ -16,6 +16,7 @@ const { getComplaints, updateComplaintStatus } = require('../controllers/complai
 const { sendDirectMessage } = require('../controllers/messageController');
 const { getConsentLogs } = require('../controllers/consentController');
 const { getDocumentSignedUrl, setDocumentLegalHold } = require('../controllers/documentController');
+const { getDataRequests, completeDataRequest } = require('../controllers/dataRequestController');
 
 router.use(authenticate, requireRole('admin'));
 
@@ -45,6 +46,10 @@ router.get('/consent-logs', getConsentLogs);
 // Private document access (admin-only signed URLs + legal hold management)
 router.get('/documents/:type/:id/url', getDocumentSignedUrl);
 router.patch('/documents/:type/:id/legal-hold', setDocumentLegalHold);
+
+// Data requests
+router.get('/data-requests', getDataRequests);
+router.patch('/data-requests/:id/complete', completeDataRequest);
 
 router.get('/2fa/setup', setupTwoFactor);
 router.post('/2fa/confirm', confirmTwoFactor);
