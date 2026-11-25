@@ -160,38 +160,50 @@ function EmptyState({ tabKey }) {
 }
 
 // ── Property card ─────────────────────────────────────────────────────────────
-function PropertyRow({ property, badge, isUnlocked }) {
+function PropertyRow({ property, onRemove }) {
   const photo = property?.photos?.[0];
-  return (
-    <Link
-      to={`/property/${property.id}`}
-      style={{ ...cardStyle, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', textDecoration: 'none' }}
-    >
+  const isAvailable = property?.status === 'active';
+  const unavailableLabel = property?.status === 'rented' ? 'Rented' : 'No longer available';
+
+  const inner = (
+    <>
       {photo ? (
-        <img src={photo.filePath} style={{ width: 80, height: 64, objectFit: 'cover', borderRadius: 10, flexShrink: 0 }} alt="" />
+        <img src={photo.filePath} style={{ width: 80, height: 64, objectFit: 'cover', borderRadius: 10, flexShrink: 0, opacity: isAvailable ? 1 : 0.5 }} alt="" />
       ) : (
-        <div style={{ width: 80, height: 64, borderRadius: 10, flexShrink: 0, backgroundColor: CLAY_TINT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 80, height: 64, borderRadius: 10, flexShrink: 0, backgroundColor: CLAY_TINT, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isAvailable ? 1 : 0.5 }}>
           <HomeIcon size={28} color={CLAY} sw={1.5} />
         </div>
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <p style={{ fontWeight: 700, color: BROWN, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, margin: 0 }}>
-            {property.title}
-          </p>
-          <span style={{
-            fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 20, flexShrink: 0,
-            backgroundColor: isUnlocked ? '#E6F4EA' : CLAY_TINT,
-            color: isUnlocked ? '#1E7E34' : CLAY,
-          }}>
-            {badge}
+        <p style={{ fontWeight: 700, color: isAvailable ? BROWN : MUTED, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: '0 0 2px' }}>
+          {property.title}
+        </p>
+        {!isAvailable && (
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#B45309', backgroundColor: '#FEF3C7', padding: '2px 8px', borderRadius: 20, display: 'inline-block', marginBottom: 4 }}>
+            {unavailableLabel}
           </span>
-        </div>
-        <p style={{ color: MUTED, fontSize: 13, margin: '0 0 3px' }}>📍 {property.locationGeneral}</p>
-        <p style={{ color: CLAY, fontWeight: 700, fontSize: 14, margin: 0 }}>K{Number(property.price).toLocaleString()}</p>
+        )}
+        <p style={{ color: MUTED, fontSize: 13, margin: '0 0 2px' }}>📍 {property.locationGeneral}</p>
+        <p style={{ color: isAvailable ? CLAY : MUTED, fontWeight: 700, fontSize: 14, margin: 0 }}>K{Number(property.price).toLocaleString()}</p>
       </div>
-    </Link>
+      <button
+        onClick={e => { e.preventDefault(); e.stopPropagation(); onRemove(); }}
+        title="Remove from saved"
+        style={{ width: 32, height: 32, borderRadius: '50%', border: `1px solid ${DIVIDER}`, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer' }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth={2} strokeLinecap="round">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </button>
+    </>
   );
+
+  const rowStyle = { ...cardStyle, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', textDecoration: 'none' };
+
+  if (isAvailable) {
+    return <Link to={`/property/${property.id}`} style={rowStyle}>{inner}</Link>;
+  }
+  return <div style={rowStyle}>{inner}</div>;
 }
 
 // ── Message rows ──────────────────────────────────────────────────────────────
@@ -444,7 +456,18 @@ export default function TenantDashboard() {
               favorites.length === 0 ? <EmptyState tabKey="saved" /> : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {favorites.map(f => (
-                    <PropertyRow key={f.id} property={f.property} badge="Saved" isUnlocked={false} />
+                    <PropertyRow
+                      key={f.id}
+                      property={f.property}
+                      onRemove={async () => {
+                        try {
+                          await api.post(`/tenant/favorite/${f.property.id}`);
+                          setFavorites(prev => prev.filter(x => x.id !== f.id));
+                        } catch {
+                          // silent — user can retry
+                        }
+                      }}
+                    />
                   ))}
                 </div>
               )

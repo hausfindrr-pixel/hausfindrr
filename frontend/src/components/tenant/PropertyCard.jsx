@@ -22,16 +22,35 @@ export default function PropertyCard({ property, onFavoriteToggle, isFavorited }
     e.preventDefault();
     e.stopPropagation();
     if (!user) {
-      toast.error('Sign in to save favorites');
-      navigate('/tenant/login');
+      toast(t => (
+        <span className="flex flex-col gap-1.5">
+          <span className="font-semibold text-gray-900">Save this home</span>
+          <span className="text-gray-500 text-xs">Sign up free to save homes and pick up where you left off.</span>
+          <span className="flex gap-2 mt-1">
+            <button
+              onClick={() => { toast.dismiss(t.id); navigate('/tenant/register'); }}
+              className="text-xs font-semibold text-white bg-primary px-3 py-1.5 rounded-lg"
+            >
+              Sign up — it&apos;s free
+            </button>
+            <button
+              onClick={() => { toast.dismiss(t.id); navigate('/tenant/login'); }}
+              className="text-xs font-semibold text-gray-600 px-2 py-1.5"
+            >
+              Sign in
+            </button>
+          </span>
+        </span>
+      ), { duration: 6000 });
       return;
     }
     setFavLoading(true);
     try {
       const { data } = await api.post(`/tenant/favorite/${property.id}`);
       onFavoriteToggle?.(property.id, data.favorited);
+      toast.success(data.favorited ? 'Saved to your homes' : 'Removed from saved');
     } catch {
-      toast.error('Failed to update favorite');
+      toast.error('Could not save. Try again.');
     } finally {
       setFavLoading(false);
     }
