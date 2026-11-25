@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Navbar from '../components/shared/Navbar';
@@ -22,6 +23,8 @@ export default function PropertyDetail() {
   const [reportType, setReportType] = useState('listing_details_incorrect');
   const [reportDetails, setReportDetails] = useState('');
   const [reportLoading, setReportLoading] = useState(false);
+  const [reportDone, setReportDone] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
 
   const mapRef = useRef(null);
@@ -74,6 +77,33 @@ export default function PropertyDetail() {
       if (leafletRef.current) { leafletRef.current.remove(); leafletRef.current = null; }
     };
   }, [property]);
+
+  // Scroll-lock + keyboard offset while report sheet is open
+  useEffect(() => {
+    if (!showReport) {
+      setKeyboardOffset(0);
+      return;
+    }
+    document.body.style.overflow = 'hidden';
+    function onVVResize() {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      setKeyboardOffset(Math.max(0, window.innerHeight - vv.offsetTop - vv.height));
+    }
+    window.visualViewport?.addEventListener('resize', onVVResize);
+    onVVResize();
+    return () => {
+      document.body.style.overflow = '';
+      window.visualViewport?.removeEventListener('resize', onVVResize);
+    };
+  }, [showReport]);
+
+  function closeReport() {
+    setShowReport(false);
+    setReportDone(false);
+    setReportDetails('');
+    setReportType('listing_details_incorrect');
+  }
 
   function toggleSatellite() {
     const map = leafletRef.current;
@@ -133,9 +163,8 @@ export default function PropertyDetail() {
         details: reportDetails,
         context: 'listing',
       });
-      toast.success('Report submitted. Thank you.');
-      setShowReport(false);
-      setReportDetails('');
+      setReportDone(true);
+      setTimeout(closeReport, 3000);
     } catch {
       toast.error('Failed to submit report. Please try again.');
     } finally {
@@ -330,9 +359,9 @@ export default function PropertyDetail() {
           </div>
         )}
 
-        {/* ── Map ── */}
+        {/* ── Map ── isolation:isolate creates a stacking context so Leaflet z-indexes stay inside */}
         {hasCoords && (
-          <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 mb-4">
+          <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 mb-4" style={{ position: 'relative', zIndex: 0, isolation: 'isolate' }}>
             <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
               <h2 className="font-semibold text-gray-900">Property Location</h2>
               <button onClick={toggleSatellite} className="text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5">
@@ -378,11 +407,16 @@ export default function PropertyDetail() {
           </div>
         )}
 
-        {/* ── Report ── */}
+        {/* ── Report ── last item, centered, quiet */}
         {user?.role === 'tenant' && (
-          <div className="flex justify-end">
-            <button onClick={() => setShowReport(true)} className="text-xs text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.962-.833-2.732 0L4.072 16.5C3.302 18.333 4.264 20 5.804 20z" /></svg>
+          <div className="flex justify-center pt-4" style={{ paddingBottom: showBottomBar ? 0 : 8 }}>
+            <button
+              onClick={() => setShowReport(true)}
+              className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-500 transition-colors py-2 px-3"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.962-.833-2.732 0L4.072 16.5C3.302 18.333 4.264 20 5.804 20z" />
+              </svg>
               Report this listing
             </button>
           </div>
@@ -436,37 +470,102 @@ export default function PropertyDetail() {
         </div>
       )}
 
-      {/* ── Report modal ── */}
-      {showReport && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowReport(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
+      {/* ── Report bottom sheet — rendered via portal so it's always above the map ── */}
+      {showReport && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeReport} />
+
+          {/* Sheet */}
+          <div
+            className="relative w-full max-w-lg bg-white rounded-t-3xl shadow-2xl flex flex-col"
+            style={{
+              bottom: keyboardOffset,
+              maxHeight: `min(85dvh, calc(100dvh - 24px - ${keyboardOffset}px))`,
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="w-10 h-1 bg-gray-200 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-2 pb-4 flex-shrink-0">
               <h2 className="text-lg font-bold text-gray-900">Report Listing</h2>
-              <button onClick={() => setShowReport(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
-                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <button
+                onClick={closeReport}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-gray-500"
+                aria-label="Close"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
-            <form onSubmit={handleReport} className="space-y-4">
-              <div>
-                <label className="label">What is the issue?</label>
-                <select className="input" value={reportType} onChange={e => setReportType(e.target.value)}>
-                  <option value="listing_details_incorrect">Listing details are incorrect</option>
-                  <option value="landlord_not_responding">Landlord is not responding</option>
-                  <option value="suspicious_activity">Suspicious or fraudulent activity</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="label">Describe the issue</label>
-                <textarea className="input h-24 resize-none" required placeholder="Please describe what you observed…" value={reportDetails} onChange={e => setReportDetails(e.target.value)} />
-              </div>
-              <div className="flex gap-3">
-                <button type="button" onClick={() => setShowReport(false)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50">Cancel</button>
-                <button type="submit" disabled={reportLoading} className="flex-[2] btn-primary py-2.5 text-sm">{reportLoading ? 'Submitting…' : 'Submit Report'}</button>
-              </div>
-            </form>
+
+            {/* Scrollable body */}
+            <div className="overflow-y-auto flex-1 px-6 pb-6">
+              {reportDone ? (
+                <div className="py-8 flex flex-col items-center text-center gap-3">
+                  <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg className="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <p className="font-bold text-gray-900 text-base">Report received</p>
+                  <p className="text-sm text-gray-500 leading-relaxed max-w-xs">
+                    Thanks — we'll review this within two business days.
+                  </p>
+                </div>
+              ) : (
+                <form onSubmit={handleReport} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">What is the issue?</label>
+                    <select
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      value={reportType}
+                      onChange={e => setReportType(e.target.value)}
+                    >
+                      <option value="listing_details_incorrect">Listing details are incorrect</option>
+                      <option value="landlord_not_responding">Landlord is not responding</option>
+                      <option value="suspicious_activity">Suspicious or fraudulent activity</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Describe the issue</label>
+                    <textarea
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                      rows={3}
+                      required
+                      placeholder="Please describe what you observed…"
+                      value={reportDetails}
+                      onChange={e => setReportDetails(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={closeReport}
+                      className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={reportLoading}
+                      className="flex-[2] bg-[#975536] text-white font-semibold text-sm py-3 rounded-xl hover:bg-[#41271B] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {reportLoading ? 'Submitting…' : 'Submit Report'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
