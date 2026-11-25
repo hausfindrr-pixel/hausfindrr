@@ -199,10 +199,6 @@ export default function PropertyDetail() {
               </div>
             )}
 
-            <div className="absolute top-4 left-4">
-              <span className="text-sm font-semibold px-3 py-1.5 rounded-full bg-primary text-white">For Rent</span>
-            </div>
-
             {photos.length > 1 && (
               <div className="md:hidden absolute bottom-3 right-3 bg-black/50 text-white text-xs font-medium px-2.5 py-1 rounded-full">
                 {activePhoto + 1} / {photos.length}
