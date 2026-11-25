@@ -42,9 +42,11 @@ enum PropertyType {
 }
 
 enum PropertyStatus {
+  draft
   pending
   active
   rejected
+  rented
 }
 
 

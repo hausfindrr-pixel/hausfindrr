@@ -8,14 +8,11 @@ import MessageThread from '../../components/tenant/MessageThread';
 import { priceLabel } from '../../utils/format';
 
 const STATUS_BADGE = {
-  pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  active: 'bg-green-100 text-green-700 border-green-200',
+  draft:    'bg-gray-100 text-gray-500 border-gray-200',
+  pending:  'bg-yellow-100 text-yellow-700 border-yellow-200',
+  active:   'bg-green-100 text-green-700 border-green-200',
   rejected: 'bg-red-100 text-red-700 border-red-200',
-};
-
-const LISTING_TYPE_BADGE = {
-  rent: 'bg-primary/10 text-primary',
-  sale: 'bg-secondary/10 text-secondary',
+  rented:   'bg-blue-100 text-blue-700 border-blue-200',
 };
 
 export default function LandlordDashboard() {
@@ -87,6 +84,17 @@ export default function LandlordDashboard() {
       toast.error('Failed to mark as sold');
     } finally {
       setMarkingSold(null);
+    }
+  }
+
+  async function handleMarkRented(id) {
+    if (!window.confirm('Mark this property as rented? It will be hidden from search results.')) return;
+    try {
+      await api.patch(`/properties/${id}/rented`);
+      setProperties(prev => prev.map(p => p.id === id ? { ...p, status: 'rented' } : p));
+      toast.success('Property marked as rented');
+    } catch {
+      toast.error('Failed to mark as rented');
     }
   }
 
@@ -281,6 +289,16 @@ export default function LandlordDashboard() {
 
                     {/* Card footer actions */}
                     <div className="px-4 pb-4 space-y-2">
+                      {/* Mark as Rented — active rental listings */}
+                      {isActive && (
+                        <button
+                          onClick={() => handleMarkRented(p.id)}
+                          className="w-full text-xs font-medium text-blue-700 hover:text-blue-900 hover:bg-blue-50 border border-blue-200 rounded-lg py-2 transition-colors"
+                        >
+                          Mark as Rented
+                        </button>
+                      )}
+
                       {/* Occupied toggle — rental + active only */}
                       {isActive && p.listingType === 'rent' && (
                         <button

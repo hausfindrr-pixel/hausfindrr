@@ -182,6 +182,23 @@ async function markSold(req, res, next) {
   }
 }
 
+async function markRented(req, res, next) {
+  try {
+    const { id } = req.params;
+    const property = await prisma.property.findUnique({ where: { id } });
+    if (!property) return res.status(404).json({ error: 'Property not found' });
+    if (property.landlordId !== req.user.id)
+      return res.status(403).json({ error: 'Not your property' });
+    if (property.status !== 'active')
+      return res.status(400).json({ error: 'Only active listings can be marked as rented' });
+
+    await prisma.property.update({ where: { id }, data: { status: 'rented' } });
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function getListings(req, res, next) {
   try {
     const { type, location, minPrice, maxPrice, bedrooms, bathrooms, propertyType, amenities, page = 1, limit = 12 } = req.query;
@@ -233,11 +250,16 @@ async function getProperty(req, res, next) {
   try {
     const property = await getFullProperty(req.params.id);
     if (!property) return res.status(404).json({ error: 'Property not found' });
-    if (property.status !== 'active' || property.sold)
-      return res.status(404).json({ error: 'Property not available' });
 
-    const unlocked = req.user?.role === 'tenant' ||
-      (req.user?.role === 'landlord' && req.user.id === property.landlordId);
+    const isOwner = req.user?.role === 'landlord' && req.user.id === property.landlordId;
+    const isAdmin = req.user?.role === 'admin';
+
+    // Non-active listings are only visible to their owner or admin
+    if (property.status !== 'active' || property.sold) {
+      if (!isOwner && !isAdmin) return res.status(404).json({ error: 'Property not available' });
+    }
+
+    const unlocked = req.user?.role === 'tenant' || isOwner || isAdmin;
 
     res.json({ property: maskProperty(property, unlocked), unlocked });
   } catch (err) {
@@ -299,6 +321,7 @@ function maskProperty(p, unlocked) {
     amenities: p.amenities,
     rentFrequency: p.rentFrequency,
     metadata: p.metadata,
+    status: p.status,
     occupied: p.occupied,
     createdAt: p.createdAt,
     unlocked,
@@ -335,5 +358,5 @@ async function getFullProperty(id) {
 
 module.exports = {
   createProperty, updateProperty, getListings, getProperty,
-  getLandlordProperties, deleteProperty, toggleOccupied, markSold,
+  getLandlordProperties, deleteProperty, toggleOccupied, markSold, markRented,
 };
