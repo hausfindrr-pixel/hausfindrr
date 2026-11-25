@@ -1,5 +1,13 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Footer from '../components/shared/Footer';
+
+const BACK_LABELS = {
+  '/landlord/dashboard': 'Back to Account',
+  '/tenant/dashboard': 'Back to Account',
+  '/landlord/register': 'Back to Landlord Sign-up',
+  '/tenant/register': 'Back to Tenant Sign-up',
+  '/': 'Back to Home',
+};
 
 const AGREEMENT_VERSION = 'v1.0';
 const AGREEMENT_EFFECTIVE_DATE = 'July 2026';
@@ -77,6 +85,16 @@ This agreement is effective immediately upon confirmation and applies for the du
 ];
 
 export default function LandlordAgreementPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const returnTo = location.state?.returnTo;
+  const backLabel = returnTo ? (BACK_LABELS[returnTo] || 'Back') : 'Back';
+
+  function handleBack() {
+    if (returnTo) navigate(returnTo);
+    else navigate(-1);
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-10">
@@ -87,9 +105,13 @@ export default function LandlordAgreementPage() {
             </div>
             <span className="font-bold text-gray-900 text-sm">HausFindrr</span>
           </Link>
-          <Link to="/" className="text-sm font-medium hover:underline" style={{ color: '#975536' }}>
-            ← Back
-          </Link>
+          <button
+            onClick={handleBack}
+            className="text-sm font-medium hover:underline"
+            style={{ color: '#975536', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            ← {backLabel}
+          </button>
         </div>
       </header>
 

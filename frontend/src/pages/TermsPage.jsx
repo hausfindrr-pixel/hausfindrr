@@ -1,8 +1,26 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { TOS_SECTIONS, TOS_VERSION } from '../constants/tos';
 import Footer from '../components/shared/Footer';
 
+const BACK_LABELS = {
+  '/landlord/dashboard': 'Back to Account',
+  '/tenant/dashboard': 'Back to Account',
+  '/landlord/register': 'Back to Landlord Sign-up',
+  '/tenant/register': 'Back to Tenant Sign-up',
+  '/': 'Back to Home',
+};
+
 export default function TermsPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const returnTo = location.state?.returnTo;
+  const backLabel = returnTo ? (BACK_LABELS[returnTo] || 'Back') : 'Back';
+
+  function handleBack() {
+    if (returnTo) navigate(returnTo);
+    else navigate(-1);
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Minimal header */}
@@ -14,13 +32,13 @@ export default function TermsPage() {
             </div>
             <span className="font-bold text-gray-900 text-sm">HausFindrr</span>
           </Link>
-          <Link
-            to="/tenant/register"
+          <button
+            onClick={handleBack}
             className="text-sm font-medium hover:underline"
-            style={{ color: '#975536' }}
+            style={{ color: '#975536', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            ← Back to Registration
-          </Link>
+            ← {backLabel}
+          </button>
         </div>
       </header>
 

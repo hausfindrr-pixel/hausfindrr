@@ -115,6 +115,7 @@ export default function Navbar({ nonSticky = false }) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [modal, setModal] = useState(null); // 'signin' | 'register' | null
+  const [mobileExpanded, setMobileExpanded] = useState(null); // 'signin' | 'register' | null
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   function handleLogout() {
@@ -122,7 +123,7 @@ export default function Navbar({ nonSticky = false }) {
     navigate('/');
   }
 
-  const closeMenu = () => setMenuOpen(false);
+  const closeMenu = () => { setMenuOpen(false); setMobileExpanded(null); };
 
   function handleRoleSelect(path) {
     setModal(null);
@@ -210,28 +211,72 @@ export default function Navbar({ nonSticky = false }) {
             <div className="md:hidden border-t border-gray-100 py-3 space-y-1">
               {!user ? (
                 <>
-                  <button
-                    onClick={() => { closeMenu(); setModal('signin'); }}
-                    className="flex w-full items-center px-3 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 hover:text-primary transition-colors"
-                  >
-                    Sign In
-                  </button>
-                  <div className="px-1 pt-2 pb-1 space-y-2">
-                    <Link
-                      to="/tenant/register"
-                      onClick={closeMenu}
-                      className="block w-full text-center bg-secondary/10 text-secondary font-semibold text-sm py-3 rounded-xl hover:bg-secondary/20 transition-colors"
+                  {/* Sign in accordion */}
+                  <div>
+                    <button
+                      onClick={() => setMobileExpanded(e => e === 'signin' ? null : 'signin')}
+                      className="flex w-full items-center justify-between px-3 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
                     >
-                      Register as Tenant
-                    </Link>
-                    <Link
-                      to="/landlord/register"
-                      onClick={closeMenu}
-                      className="block w-full text-center btn-primary text-sm py-3"
-                    >
-                      Register as Landlord
-                    </Link>
+                      <span>Sign in</span>
+                      <svg
+                        className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${mobileExpanded === 'signin' ? 'rotate-180' : ''}`}
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {mobileExpanded === 'signin' && (
+                      <div className="pl-3 pb-1 space-y-1">
+                        <button
+                          onClick={() => { closeMenu(); navigate('/tenant/login'); }}
+                          className="flex w-full items-center px-3 py-2.5 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors"
+                        >
+                          I&apos;m a Tenant
+                        </button>
+                        <button
+                          onClick={() => { closeMenu(); navigate('/landlord/login'); }}
+                          className="flex w-full items-center px-3 py-2.5 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors"
+                        >
+                          I&apos;m a Landlord
+                        </button>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Register accordion */}
+                  <div>
+                    <button
+                      onClick={() => setMobileExpanded(e => e === 'register' ? null : 'register')}
+                      className="flex w-full items-center justify-between px-3 py-3 text-sm font-semibold bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors"
+                    >
+                      <span>Register</span>
+                      <svg
+                        className={`w-4 h-4 transition-transform duration-200 ${mobileExpanded === 'register' ? 'rotate-180' : ''}`}
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {mobileExpanded === 'register' && (
+                      <div className="pl-3 pb-1 space-y-1 mt-1">
+                        <Link
+                          to="/tenant/register"
+                          onClick={closeMenu}
+                          className="flex w-full items-center px-3 py-2.5 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors"
+                        >
+                          I&apos;m a Tenant
+                        </Link>
+                        <Link
+                          to="/landlord/register"
+                          onClick={closeMenu}
+                          className="flex w-full items-center px-3 py-2.5 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors"
+                        >
+                          I&apos;m a Landlord
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+
                   <button
                     onClick={() => { closeMenu(); setFeedbackOpen(true); }}
                     className="flex w-full items-center gap-2 px-3 py-3 text-sm font-medium text-gray-500 rounded-xl hover:bg-gray-50 transition-colors"

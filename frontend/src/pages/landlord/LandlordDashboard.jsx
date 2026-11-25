@@ -134,6 +134,7 @@ export default function LandlordDashboard() {
         <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 divide-y divide-gray-50">
           <Link
             to="/landlord-agreement"
+            state={{ returnTo: '/landlord/dashboard' }}
             className="flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors"
             style={{ minHeight: 56 }}
           >
@@ -147,6 +148,7 @@ export default function LandlordDashboard() {
           </Link>
           <Link
             to="/terms"
+            state={{ returnTo: '/landlord/dashboard' }}
             className="flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors"
             style={{ minHeight: 56 }}
           >

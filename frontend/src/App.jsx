@@ -16,6 +16,7 @@ import TenantLogin from './pages/tenant/TenantLogin';
 import TenantRegister from './pages/tenant/TenantRegister';
 import TenantBrowse from './pages/tenant/TenantBrowse';
 import TenantDashboard from './pages/tenant/TenantDashboard';
+import TenantSavedPage from './pages/tenant/TenantSavedPage';
 import TenantMessagesPage from './pages/tenant/TenantMessagesPage';
 import PropertyDetail from './pages/PropertyDetail';
 import AdminLogin from './pages/admin/AdminLogin';
@@ -74,6 +75,9 @@ function AppRoutes() {
       {/* Tenant */}
       <Route path="/tenant/login" element={<TenantLogin />} />
       <Route path="/tenant/register" element={<TenantRegister />} />
+      <Route path="/tenant/saved" element={
+        <ProtectedRoute role="tenant"><TenantSavedPage /></ProtectedRoute>
+      } />
       <Route path="/tenant/dashboard" element={
         <ProtectedRoute role="tenant"><TenantDashboard /></ProtectedRoute>
       } />

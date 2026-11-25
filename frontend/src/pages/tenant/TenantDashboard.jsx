@@ -1,352 +1,362 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import FeedbackSheet from '../../components/shared/FeedbackBubble';
-import FeedbackCard from '../../components/shared/FeedbackCard';
-import { shouldShowFeedback, markFeedbackShown } from '../../utils/feedbackState';
 
-// ── Brand tokens ──────────────────────────────────────────────────────────────
-const BROWN     = '#41271B';
-const CLAY      = '#975536';
-const CLAY_TINT = '#FBEEE7';
-const MUTED     = '#6A6A6A';
-const DIVIDER   = '#EBEBEB';
+const CLAY = '#975536';
 
-function timeAgo(date) {
-  const diff = Date.now() - new Date(date).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-}
-
-// ── SVG icon primitives ───────────────────────────────────────────────────────
-function KeyIcon({ size = 24, color = 'currentColor', sw = 1.7 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="8.5" cy="14.5" r="4.5" />
-      <path d="m12.7 10.3 6.3-6.3" />
-      <path d="m19 4 1 1" />
-      <path d="m16 4 3 3" />
-    </svg>
+function Row({ icon, label, onClick, to, state, danger = false, chevron = true }) {
+  const inner = (
+    <>
+      <span className="flex-shrink-0 w-5 h-5 text-[#975536]">{icon}</span>
+      <span className={`flex-1 text-sm font-medium ${danger ? 'text-red-500' : 'text-[#41271B]'}`}>{label}</span>
+      {chevron && (
+        <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      )}
+    </>
   );
-}
 
-function HeartIcon({ size = 24, color = 'currentColor', sw = 1.7 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-    </svg>
-  );
-}
+  const cls = `flex items-center gap-3 px-5 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors w-full text-left ${danger ? 'hover:bg-red-50' : ''}`;
 
-function ChatIcon({ size = 24, color = 'currentColor', sw = 1.7 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-}
-
-function HomeIcon({ size = 24, color = 'currentColor', sw = 1.7 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
-    </svg>
-  );
-}
-
-function UserIcon({ size = 24, color = 'currentColor', sw = 1.7 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
-}
-
-// ── Shared card shell ─────────────────────────────────────────────────────────
-const cardStyle = {
-  backgroundColor: '#fff',
-  borderRadius: 16,
-  border: `1px solid ${DIVIDER}`,
-  boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
-};
-
-// ── Empty state ───────────────────────────────────────────────────────────────
-function EmptyState() {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '52px 24px 40px', textAlign: 'center' }}>
-      <div style={{
-        width: 100, height: 100, borderRadius: '50%',
-        backgroundColor: CLAY_TINT,
-        boxShadow: '0 6px 28px rgba(151,85,54,0.15)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        marginBottom: 28, flexShrink: 0,
-      }}>
-        <HeartIcon size={46} color={CLAY} sw={1.5} />
-      </div>
-
-      <h2 style={{ color: BROWN, fontSize: 20, fontWeight: 800, margin: '0 0 10px', letterSpacing: '-0.3px' }}>
-        No saved properties
-      </h2>
-      <p style={{ color: MUTED, fontSize: 14, lineHeight: 1.65, maxWidth: 270, margin: '0 0 32px' }}>
-        Tap the heart icon on any listing to save it here for later.
-      </p>
-
-      <Link
-        to="/"
-        style={{
-          display: 'inline-block', textDecoration: 'none',
-          backgroundColor: CLAY, color: '#fff',
-          fontWeight: 700, fontSize: 15,
-          padding: '14px 36px', borderRadius: 12,
-          boxShadow: '0 4px 18px rgba(151,85,54,0.30)',
-          fontFamily: 'inherit',
-        }}
-      >
-        Start browsing
+  if (to) {
+    return (
+      <Link to={to} state={state} className={cls} style={{ minHeight: 56, textDecoration: 'none' }}>
+        {inner}
       </Link>
+    );
+  }
+  return (
+    <button onClick={onClick} className={cls} style={{ minHeight: 56 }}>
+      {inner}
+    </button>
+  );
+}
+
+const HeartSvg = (
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+  </svg>
+);
+const ChatSvg = (
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+  </svg>
+);
+const UserSvg = (
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  </svg>
+);
+const LockSvg = (
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+  </svg>
+);
+const DocSvg = (
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+);
+const FeedbackSvg = (
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+  </svg>
+);
+
+function Modal({ title, onClose, children }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 pt-5 pb-2">
+          <h2 className="text-lg font-bold text-[#41271B]">{title}</h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="px-6 pb-6">{children}</div>
+      </div>
     </div>
   );
 }
 
-// ── Property card ─────────────────────────────────────────────────────────────
-function PropertyRow({ property, onRemove }) {
-  const photo = property?.photos?.[0];
-  const isAvailable = property?.status === 'active';
-  const unavailableLabel = property?.status === 'rented' ? 'Rented' : 'No longer available';
-
-  const inner = (
-    <>
-      {photo ? (
-        <img src={photo.filePath} style={{ width: 80, height: 64, objectFit: 'cover', borderRadius: 10, flexShrink: 0, opacity: isAvailable ? 1 : 0.5 }} alt="" />
-      ) : (
-        <div style={{ width: 80, height: 64, borderRadius: 10, flexShrink: 0, backgroundColor: CLAY_TINT, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isAvailable ? 1 : 0.5 }}>
-          <HomeIcon size={28} color={CLAY} sw={1.5} />
-        </div>
-      )}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontWeight: 700, color: isAvailable ? BROWN : MUTED, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: '0 0 2px' }}>
-          {property.title}
-        </p>
-        {!isAvailable && (
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#B45309', backgroundColor: '#FEF3C7', padding: '2px 8px', borderRadius: 20, display: 'inline-block', marginBottom: 4 }}>
-            {unavailableLabel}
-          </span>
-        )}
-        <p style={{ color: MUTED, fontSize: 13, margin: '0 0 2px' }}>📍 {property.locationGeneral}</p>
-        <p style={{ color: isAvailable ? CLAY : MUTED, fontWeight: 700, fontSize: 14, margin: 0 }}>K{Number(property.price).toLocaleString()}</p>
-      </div>
-      <button
-        onClick={e => { e.preventDefault(); e.stopPropagation(); onRemove(); }}
-        title="Remove from saved"
-        style={{ width: 32, height: 32, borderRadius: '50%', border: `1px solid ${DIVIDER}`, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer' }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth={2} strokeLinecap="round">
-          <path d="M18 6L6 18M6 6l12 12" />
-        </svg>
-      </button>
-    </>
-  );
-
-  const rowStyle = { ...cardStyle, display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', textDecoration: 'none' };
-
-  if (isAvailable) {
-    return <Link to={`/property/${property.id}`} style={rowStyle}>{inner}</Link>;
-  }
-  return <div style={rowStyle}>{inner}</div>;
-}
-
-// ── Main dashboard ────────────────────────────────────────────────────────────
 export default function TenantDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
-  const [favorites, setFavorites] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [showFeedbackCard, setShowFeedbackCard] = useState(false);
 
-  useEffect(() => {
-    api.get('/tenant/favorites')
-      .then(res => {
-        const favs = res.data.favorites || [];
-        setFavorites(favs);
-        if (favs.length >= 3 && shouldShowFeedback()) {
-          setShowFeedbackCard(true);
-          markFeedbackShown();
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const [feedbackOpen, setFeedbackOpen]   = useState(false);
+  const [editModal, setEditModal]         = useState(false);
+  const [pwModal, setPwModal]             = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
-  const NAV_ITEMS = [
-    { key: 'browse',   label: 'Browse',   Icon: HomeIcon,  action: () => navigate('/') },
-    { key: 'saved',    label: 'Saved',    Icon: HeartIcon, action: () => {} },
-    { key: 'messages', label: 'Messages', Icon: ChatIcon,  action: () => navigate('/tenant/messages') },
-    { key: 'account',  label: 'Account',  Icon: UserIcon,  action: () => {} },
-  ];
+  const [editForm, setEditForm]       = useState({ name: '', phone: '' });
+  const [editLoading, setEditLoading] = useState(false);
+
+  const [pwForm, setPwForm]       = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [pwLoading, setPwLoading] = useState(false);
+
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  function openEdit() {
+    setEditForm({ name: user?.name || '', phone: user?.phone || '' });
+    setEditModal(true);
+  }
+
+  async function handleEditSubmit(e) {
+    e.preventDefault();
+    if (!editForm.name.trim() || !editForm.phone.trim()) {
+      toast.error('Name and phone are required');
+      return;
+    }
+    setEditLoading(true);
+    try {
+      await api.patch('/auth/profile', editForm);
+      await refreshUser();
+      setEditModal(false);
+      toast.success('Profile updated');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to update profile');
+    } finally {
+      setEditLoading(false);
+    }
+  }
+
+  async function handlePwSubmit(e) {
+    e.preventDefault();
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+    setPwLoading(true);
+    try {
+      await api.post('/auth/change-password', {
+        currentPassword: pwForm.currentPassword,
+        newPassword: pwForm.newPassword,
+      });
+      setPwModal(false);
+      setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      toast.success('Password changed');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to change password');
+    } finally {
+      setPwLoading(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteLoading(true);
+    try {
+      await api.delete('/auth/account');
+      logout();
+      navigate('/');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to delete account');
+      setDeleteLoading(false);
+    }
+  }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#fff', fontFamily: "'Inter', sans-serif", paddingBottom: 80 }}>
+    <div className="min-h-dvh bg-[#F5F0EB]">
 
-      {/* ── Sticky header ──────────────────────────────────────────────────── */}
-      <header style={{
-        position: 'sticky', top: 0, zIndex: 50, backgroundColor: '#fff',
-        borderBottom: `1px solid ${DIVIDER}`,
-        height: 64, padding: '0 20px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-          <img src="/logo.svg" alt="HausFindrr" style={{ width: 34, height: 34 }} />
-          <span style={{ fontSize: 20, fontWeight: 800, color: BROWN, letterSpacing: '-0.5px' }}>HausFindrr</span>
-        </Link>
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <h1 className="text-xl font-bold text-[#41271B]">Account</h1>
+        </div>
+      </div>
 
-        <button
-          onClick={() => setMenuOpen(o => !o)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            border: `1px solid ${DIVIDER}`, borderRadius: 40,
-            padding: '6px 8px 6px 14px', backgroundColor: '#fff',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.09)', cursor: 'pointer',
-          }}
-        >
-          <svg width="18" height="14" viewBox="0 0 18 14" fill="none" stroke={BROWN} strokeWidth={1.8} strokeLinecap="round">
-            <line x1="0" y1="1" x2="18" y2="1" />
-            <line x1="0" y1="7" x2="18" y2="7" />
-            <line x1="0" y1="13" x2="18" y2="13" />
-          </svg>
-          <div style={{
-            width: 32, height: 32, borderRadius: '50%', backgroundColor: CLAY,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontWeight: 800, fontSize: 14, lineHeight: 1,
-          }}>
-            {user?.name?.[0]?.toUpperCase() || 'U'}
+      <div
+        className="max-w-2xl mx-auto px-4 py-6 space-y-4"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
+      >
+
+        {/* Profile card */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0" style={{ backgroundColor: CLAY }}>
+              {user?.name?.[0]?.toUpperCase() || 'T'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-[#41271B] text-base truncate">{user?.name}</p>
+              <p className="text-sm text-gray-500 truncate">{user?.email}</p>
+            </div>
           </div>
-        </button>
-      </header>
+        </div>
 
-      {/* ── Dropdown menu ──────────────────────────────────────────────────── */}
-      {menuOpen && (
-        <>
-          <div
-            style={{ position: 'fixed', inset: 0, zIndex: 90 }}
-            onClick={() => setMenuOpen(false)}
-          />
-          <div style={{
-            position: 'fixed', top: 72, right: 16, zIndex: 100,
-            backgroundColor: '#fff', borderRadius: 16,
-            border: `1px solid ${DIVIDER}`,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.13)',
-            minWidth: 210, overflow: 'hidden',
-          }}>
-            <div style={{ padding: '14px 18px', borderBottom: `1px solid ${DIVIDER}` }}>
-              <p style={{ fontWeight: 700, color: BROWN, fontSize: 14, margin: 0 }}>{user?.name}</p>
-              <p style={{ color: MUTED, fontSize: 12, marginTop: 3, marginBottom: 0 }}>{user?.email}</p>
+        {/* My activity */}
+        <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 divide-y divide-gray-50">
+          <Row icon={HeartSvg} label="My saved homes" onClick={() => navigate('/tenant/saved')} />
+          <Row icon={ChatSvg}  label="My messages"    onClick={() => navigate('/tenant/messages')} />
+        </div>
+
+        {/* Account management */}
+        <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 divide-y divide-gray-50">
+          <Row icon={UserSvg} label="Edit profile"    onClick={openEdit} />
+          <Row icon={LockSvg} label="Change password" onClick={() => setPwModal(true)} />
+        </div>
+
+        {/* Legal */}
+        <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 divide-y divide-gray-50">
+          <Row icon={DocSvg} label="Terms of Service" to="/terms"   state={{ returnTo: '/tenant/dashboard' }} />
+          <Row icon={DocSvg} label="Privacy Policy"   to="/privacy" state={{ returnTo: '/tenant/dashboard' }} />
+        </div>
+
+        {/* Feedback */}
+        <button
+          onClick={() => setFeedbackOpen(true)}
+          className="w-full flex items-center gap-3 px-5 py-4 bg-white rounded-2xl shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors text-left"
+          style={{ minHeight: 56 }}
+        >
+          <span className="flex-shrink-0 w-5 h-5 text-gray-400">{FeedbackSvg}</span>
+          <span className="flex-1 text-sm font-medium text-[#41271B]">Send feedback</span>
+          <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        {/* Sign out */}
+        <button
+          onClick={() => { logout(); navigate('/'); }}
+          className="w-full text-sm font-semibold text-red-500 hover:text-red-700 bg-white hover:bg-red-50 border border-gray-100 rounded-2xl py-4 transition-colors shadow-sm"
+          style={{ minHeight: 56 }}
+        >
+          Sign out
+        </button>
+
+        {/* Delete account */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+          <p className="text-sm font-semibold text-gray-700 mb-1">Delete account</p>
+          <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+            This permanently removes your account, saved homes, and all your data. It cannot be undone.
+          </p>
+          {!deleteConfirm ? (
+            <button
+              onClick={() => setDeleteConfirm(true)}
+              className="text-sm font-medium text-red-500 hover:text-red-700 transition-colors"
+            >
+              Delete my account and data →
+            </button>
+          ) : (
+            <div>
+              <p className="text-sm text-red-600 font-semibold mb-3">
+                Are you sure? This cannot be undone.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setDeleteConfirm(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleteLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors disabled:opacity-50"
+                >
+                  {deleteLoading ? 'Deleting…' : 'Yes, delete everything'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Edit profile modal */}
+      {editModal && (
+        <Modal title="Edit profile" onClose={() => setEditModal(false)}>
+          <form onSubmit={handleEditSubmit} className="space-y-4 pt-2">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Full Name</label>
+              <input
+                className="input w-full"
+                required
+                value={editForm.name}
+                onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Phone</label>
+              <input
+                className="input w-full"
+                type="tel"
+                required
+                value={editForm.phone}
+                onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))}
+              />
             </div>
             <button
-              onClick={() => { setMenuOpen(false); setFeedbackOpen(true); }}
-              style={{
-                width: '100%', padding: '13px 18px', textAlign: 'left',
-                color: BROWN, fontWeight: 600, fontSize: 14,
-                background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                borderBottom: `1px solid ${DIVIDER}`,
-              }}
+              type="submit"
+              disabled={editLoading}
+              className="btn-primary w-full py-3 text-sm font-semibold disabled:opacity-50"
             >
-              Send feedback
+              {editLoading ? 'Saving…' : 'Save changes'}
             </button>
-            <button
-              onClick={() => { setMenuOpen(false); logout(); navigate('/'); }}
-              style={{
-                width: '100%', padding: '13px 18px', textAlign: 'left',
-                color: '#C0392B', fontWeight: 600, fontSize: 14,
-                background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              Sign out
-            </button>
-          </div>
-        </>
+          </form>
+        </Modal>
       )}
 
-      {/* ── Page title ─────────────────────────────────────────────────────── */}
-      <div style={{ padding: '24px 20px 0' }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: BROWN, letterSpacing: '-0.5px', margin: '0 0 4px' }}>
-          Saved homes
-        </h1>
-        <p style={{ color: MUTED, fontSize: 14, margin: 0 }}>
-          Hi, {user?.name?.split(' ')[0]}
-        </p>
-      </div>
-
-      {/* ── Tab content ────────────────────────────────────────────────────── */}
-      <div style={{ padding: '20px 16px' }}>
-        {loading ? (
-          <div style={{ textAlign: 'center', paddingTop: 64, color: MUTED, fontSize: 14 }}>Loading…</div>
-        ) : favorites.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {favorites.map(f => (
-              <PropertyRow
-                key={f.id}
-                property={f.property}
-                onRemove={async () => {
-                  try {
-                    await api.post(`/tenant/favorite/${f.property.id}`);
-                    setFavorites(prev => prev.filter(x => x.id !== f.id));
-                  } catch {
-                    // silent — user can retry
-                  }
-                }}
+      {/* Change password modal */}
+      {pwModal && (
+        <Modal title="Change password" onClose={() => { setPwModal(false); setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' }); }}>
+          <form onSubmit={handlePwSubmit} className="space-y-4 pt-2">
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Current password</label>
+              <input
+                className="input w-full"
+                type="password"
+                required
+                value={pwForm.currentPassword}
+                onChange={e => setPwForm(p => ({ ...p, currentPassword: e.target.value }))}
               />
-            ))}
-            {showFeedbackCard && (
-              <FeedbackCard onDismissed={() => setShowFeedbackCard(false)} />
-            )}
-          </div>
-        )}
-      </div>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">New password</label>
+              <input
+                className="input w-full"
+                type="password"
+                required
+                minLength={8}
+                value={pwForm.newPassword}
+                onChange={e => setPwForm(p => ({ ...p, newPassword: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Confirm new password</label>
+              <input
+                className="input w-full"
+                type="password"
+                required
+                minLength={8}
+                value={pwForm.confirmPassword}
+                onChange={e => setPwForm(p => ({ ...p, confirmPassword: e.target.value }))}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={pwLoading}
+              className="btn-primary w-full py-3 text-sm font-semibold disabled:opacity-50"
+            >
+              {pwLoading ? 'Changing…' : 'Change password'}
+            </button>
+          </form>
+        </Modal>
+      )}
 
       <FeedbackSheet open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
-
-      {/* ── Bottom navigation ──────────────────────────────────────────────── */}
-      <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
-        backgroundColor: '#fff', borderTop: `1px solid ${DIVIDER}`,
-        display: 'flex', paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      }}>
-        {NAV_ITEMS.map(({ key, label, Icon, action }) => {
-          const active = key === 'account' || key === 'saved';
-          return (
-            <button
-              key={key}
-              onClick={action}
-              style={{
-                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-                padding: '10px 0 8px', gap: 4,
-                background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              <Icon size={22} color={active ? BROWN : '#C5C5C5'} sw={active ? 2.2 : 1.6} />
-              <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, color: active ? BROWN : '#C5C5C5' }}>
-                {label}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
     </div>
   );
 }

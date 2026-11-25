@@ -364,8 +364,57 @@ function normaliseIdDocType(idType) {
   return 'passport';
 }
 
+async function updateProfile(req, res, next) {
+  try {
+    const { name, phone } = req.body;
+    if (!name?.trim() || !phone?.trim())
+      return res.status(400).json({ error: 'Name and phone are required' });
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { name: clamp(name.trim(), 100), phone: clamp(phone.trim(), 30) },
+    });
+    res.json({ user: safeUser(user) });
+  } catch (err) { next(err); }
+}
+
+async function changePassword(req, res, next) {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword)
+      return res.status(400).json({ error: 'Both passwords required' });
+    if (newPassword.length < 8)
+      return res.status(400).json({ error: 'New password must be at least 8 characters' });
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user.passwordHash)
+      return res.status(400).json({ error: 'No password set for this account' });
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid)
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await prisma.user.update({ where: { id: req.user.id }, data: { passwordHash } });
+    res.json({ success: true });
+  } catch (err) { next(err); }
+}
+
+async function deleteAccount(req, res, next) {
+  try {
+    if (req.user.role !== 'tenant')
+      return res.status(403).json({ error: 'Please contact info@hausfindrr.com to delete a landlord account.' });
+    const userId = req.user.id;
+    await prisma.$transaction([
+      prisma.favorite.deleteMany({ where: { tenantId: userId } }),
+      prisma.message.deleteMany({ where: { OR: [{ senderId: userId }, { receiverId: userId }] } }),
+      prisma.complaint.deleteMany({ where: { OR: [{ tenantId: userId }, { landlordId: userId }] } }),
+      prisma.announcement.deleteMany({ where: { senderId: userId } }),
+      prisma.user.delete({ where: { id: userId } }),
+    ]);
+    res.json({ success: true });
+  } catch (err) { next(err); }
+}
+
 module.exports = {
   registerLandlord, registerTenant, login, me, acceptTerms, completeProfile,
+  updateProfile, changePassword, deleteAccount,
   // Exported for use by oauthController
   createWelcomeNotifications, sendWelcomeMessages, generateAccountCode,
 };
