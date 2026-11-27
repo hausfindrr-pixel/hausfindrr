@@ -17,6 +17,7 @@ const { sendDirectMessage } = require('../controllers/messageController');
 const { getConsentLogs } = require('../controllers/consentController');
 const { getDocumentSignedUrl, setDocumentLegalHold } = require('../controllers/documentController');
 const { getDataRequests, completeDataRequest } = require('../controllers/dataRequestController');
+const { getFunnelReport } = require('../controllers/funnelController');
 
 router.use(authenticate, requireRole('admin'));
 
@@ -50,6 +51,8 @@ router.patch('/documents/:type/:id/legal-hold', setDocumentLegalHold);
 // Data requests
 router.get('/data-requests', getDataRequests);
 router.patch('/data-requests/:id/complete', completeDataRequest);
+
+router.get('/funnel/report', getFunnelReport);
 
 router.get('/2fa/setup', setupTwoFactor);
 router.post('/2fa/confirm', confirmTwoFactor);

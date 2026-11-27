@@ -141,53 +141,55 @@ function signTempToken(userId) {
 
 async function registerLandlord(req, res, next) {
   try {
-    const { name, phone, id_type } = req.body;
+    const { name, phone, campaign } = req.body;
     const password = req.body.password;
     const email = normaliseEmail(req.body.email);
 
-    if (!name || !phone || !email || !password)
-      return res.status(400).json({ error: 'All fields required' });
+    if (!name || !email || !password)
+      return res.status(400).json({ error: 'Name, email and password are required' });
     if (!validator.isEmail(email))
       return res.status(400).json({ error: 'Invalid email address' });
     if (password.length < 8)
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
 
     const safeName  = clamp(name, 100);
-    const safePhone = clamp(phone, 30);
+    const safePhone = phone ? clamp(phone.trim(), 30) : '';
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) return res.status(409).json({ error: 'Email already registered' });
 
+    const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || 'unknown';
     const passwordHash = await bcrypt.hash(password, 12);
     const accountCode = await generateAccountCode();
     const user = await prisma.user.create({
-      data: { name: safeName, phone: safePhone, email, passwordHash, role: 'landlord', status: 'pending_verification', accountCode },
+      data: {
+        name: safeName,
+        phone: safePhone,
+        email,
+        passwordHash,
+        role: 'landlord',
+        status: 'pending_verification',
+        accountCode,
+        termsAccepted: true,
+        termsAcceptedAt: new Date(),
+        termsAcceptedIp: ip,
+        termsVersion: 'v1.0-july2026',
+      },
     });
-
-    // Save single ID document
-    const files = req.files || {};
-    const idFiles = files['id_document'] || [];
-    const docType = normaliseIdDocType(id_type);
-
-    if (idFiles.length > 0) {
-      const docExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-      await prisma.landlordIdDocument.createMany({
-        data: idFiles.map(f => ({
-          userId: user.id,
-          docType,
-          filePath: f.path,
-          publicId: f.filename || null,
-          expiresAt: docExpiry,
-        })),
-      });
-    }
 
     await createWelcomeNotifications(user.id, 'landlord');
     await sendWelcomeMessages(user.id, 'landlord');
     await logSignupConsents(req, user);
+    await logLandlordAgreementConsent(req, user);
+
+    // Funnel tracking (non-fatal)
+    try {
+      const safeCampaign = typeof campaign === 'string' ? campaign.slice(0, 100) : null;
+      await prisma.funnelEvent.create({ data: { event: 'account_created', campaign: safeCampaign || null } });
+    } catch {}
 
     const token = signToken(user);
-    res.status(201).json({ token, user: safeUser(user) });
+    res.status(201).json({ token, user: { ...safeUser(user), profileComplete: false } });
   } catch (err) {
     next(err);
   }
@@ -314,6 +316,10 @@ async function completeProfile(req, res, next) {
           expiresAt: docExpiry,
         })),
       });
+      // Funnel tracking (non-fatal)
+      try {
+        await prisma.funnelEvent.create({ data: { event: 'id_uploaded', campaign: null } });
+      } catch {}
     }
 
     const user = await prisma.user.findUnique({

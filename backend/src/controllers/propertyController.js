@@ -4,8 +4,14 @@ const prisma = new PrismaClient();
 async function createProperty(req, res, next) {
   try {
     const landlord = await prisma.user.findUnique({ where: { id: req.user.id } });
-    if (landlord.status !== 'active')
-      return res.status(403).json({ error: 'Account not yet verified. Cannot post listings.' });
+    if (landlord.status === 'rejected' || landlord.status === 'suspended')
+      return res.status(403).json({ error: 'Your account is not in good standing. Please contact support.' });
+
+    if (landlord.status !== 'active') {
+      const idCount = await prisma.landlordIdDocument.count({ where: { userId: landlord.id } });
+      if (idCount === 0)
+        return res.status(403).json({ error: 'Please upload your ID document before submitting a listing.' });
+    }
 
     const {
       listingType, title, description, price,
@@ -74,6 +80,11 @@ async function createProperty(req, res, next) {
         })),
       });
     }
+
+    // Funnel tracking (non-fatal)
+    try {
+      await prisma.funnelEvent.create({ data: { event: 'listing_submitted', campaign: null } });
+    } catch {}
 
     const full = await getFullProperty(property.id);
     res.status(201).json({ property: full });

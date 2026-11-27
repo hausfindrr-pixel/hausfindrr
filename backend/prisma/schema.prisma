@@ -320,6 +320,19 @@ model PropertyViewLog {
   @@map("property_view_logs")
 }
 
+// Funnel event counter — no PII, no cookies.
+model FunnelEvent {
+  id         String   @id @default(uuid())
+  event      String   // page_opened | account_created | listing_started | listing_submitted | id_uploaded
+  campaign   String?  // utm_campaign value, null = direct
+  happenedAt DateTime @default(now()) @map("happened_at")
+
+  @@index([event])
+  @@index([campaign])
+  @@index([happenedAt])
+  @@map("funnel_events")
+}
+
 // Daily unique-viewer summary per property — pre-aggregated for fast stats queries.
 model PropertyViewSummary {
   id           String   @id @default(uuid())

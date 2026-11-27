@@ -227,6 +227,10 @@ const NAV = [
     key: 'security', label: 'Security',
     icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>,
   },
+  {
+    key: 'funnel', label: 'Funnel',
+    icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" /></svg>,
+  },
 ];
 
 // ─── Sidebar (must be top-level — defining inside AdminDashboard causes remount on every render) ──
@@ -381,6 +385,7 @@ export default function AdminDashboard() {
           {section === 'consent_logs' && <ConsentLogsSection />}
           {section === 'data_requests' && <DataRequestsSection />}
           {section === 'security'     && <SecuritySection />}
+          {section === 'funnel'       && <FunnelSection />}
         </main>
       </div>
     </div>
@@ -2047,6 +2052,115 @@ function DataRequestsSection() {
               ))}
             </>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Funnel ───────────────────────────────────────────────────────────────────
+const FUNNEL_EVENTS = ['page_opened', 'account_created', 'listing_started', 'listing_submitted', 'id_uploaded'];
+
+function FunnelSection() {
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get('/admin/funnel/report')
+      .then(r => setReport(r.data))
+      .catch(() => toast.error('Failed to load funnel data'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="text-sm text-gray-400 py-8 text-center">Loading…</div>;
+  if (!report) return null;
+
+  const { totals = [], byDay = [] } = report;
+
+  // Build pivot: campaign → event → count
+  const campaigns = [...new Set(totals.map(r => r.campaign || '(no campaign)'))].sort();
+  const totalsMap = {};
+  for (const row of totals) {
+    const camp = row.campaign || '(no campaign)';
+    if (!totalsMap[camp]) totalsMap[camp] = {};
+    totalsMap[camp][row.event] = Number(row.count);
+  }
+
+  // Last 14 days
+  const days = [...new Set(byDay.map(r => r.day))].sort().slice(-14);
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-lg font-bold text-[#41271B] mb-1">Funnel</h2>
+        <p className="text-sm text-gray-500">All-time counts by campaign</p>
+      </div>
+
+      {/* Totals by campaign × event */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100">
+              <th className="text-left px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Campaign</th>
+              {FUNNEL_EVENTS.map(ev => (
+                <th key={ev} className="text-right px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">
+                  {ev.replace(/_/g, ' ')}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {campaigns.length === 0 ? (
+              <tr><td colSpan={FUNNEL_EVENTS.length + 1} className="px-4 py-8 text-center text-gray-400">No data yet</td></tr>
+            ) : campaigns.map(camp => (
+              <tr key={camp} className="hover:bg-gray-50 transition-colors">
+                <td className="px-4 py-3 font-medium text-[#41271B] whitespace-nowrap">{camp}</td>
+                {FUNNEL_EVENTS.map(ev => (
+                  <td key={ev} className="px-4 py-3 text-right text-gray-700 tabular-nums">
+                    {totalsMap[camp]?.[ev] ?? 0}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* By day — last 14 days */}
+      {days.length > 0 && (
+        <div>
+          <p className="text-sm font-semibold text-gray-600 mb-3">Last 14 days — all campaigns combined</p>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">Date</th>
+                  {FUNNEL_EVENTS.map(ev => (
+                    <th key={ev} className="text-right px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">
+                      {ev.replace(/_/g, ' ')}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {days.map(day => {
+                  const counts = FUNNEL_EVENTS.map(ev =>
+                    byDay
+                      .filter(r => r.day === day && r.event === ev)
+                      .reduce((acc, r) => acc + Number(r.count), 0)
+                  );
+                  return (
+                    <tr key={day} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 font-mono text-gray-500 whitespace-nowrap">{day}</td>
+                      {counts.map((n, i) => (
+                        <td key={i} className="px-4 py-3 text-right text-gray-700 tabular-nums">{n}</td>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

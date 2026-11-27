@@ -1,8 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import toast from 'react-hot-toast';
 import FeedbackSheet from '../../components/shared/FeedbackBubble';
+
+const ID_TYPE_OPTIONS = [
+  { value: 'passport',        label: 'Passport' },
+  { value: 'drivers_licence', label: "Driver's Licence" },
+  { value: 'nid',             label: 'National ID (NID)' },
+];
 
 const STATUS_INFO = {
   active:               { label: 'Verified',         cls: 'bg-green-50 text-green-700 border-green-200' },
@@ -11,16 +18,41 @@ const STATUS_INFO = {
 };
 
 export default function LandlordDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [idType, setIdType] = useState('passport');
+  const [idFile, setIdFile] = useState(null);
+  const [idLoading, setIdLoading] = useState(false);
+  const fileRef = useRef(null);
 
   useEffect(() => {
     api.get('/notifications').then(r => setNotifications(r.data.notifications || [])).catch(() => {});
   }, []);
 
   const statusInfo = STATUS_INFO[user?.status] || { label: user?.status || '—', cls: 'bg-gray-50 text-gray-600 border-gray-200' };
+
+  async function handleIdUpload(e) {
+    e.preventDefault();
+    if (!idFile) return toast.error('Please select a file');
+    setIdLoading(true);
+    try {
+      const form = new FormData();
+      form.append('id_type', idType);
+      form.append('id_document', idFile);
+      await api.post('/auth/complete-profile', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      await refreshUser();
+      toast.success('ID uploaded — your account is under review');
+      setIdFile(null);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Upload failed. Please try again.');
+    } finally {
+      setIdLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-dvh bg-[#F5F0EB]">
@@ -71,6 +103,56 @@ export default function LandlordDashboard() {
             </p>
           )}
         </div>
+
+        {/* ID upload banner — shown until profileComplete */}
+        {user?.profileComplete === false && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 shadow-sm">
+            <div className="flex items-start gap-3 mb-4">
+              <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" />
+              </svg>
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Add your ID to get Verified and publish listings</p>
+                <p className="text-xs text-amber-700 mt-0.5">Your ID is kept private and deleted after 30 days. It is never shown to tenants.</p>
+              </div>
+            </div>
+            <form onSubmit={handleIdUpload} className="space-y-3">
+              <select
+                value={idType}
+                onChange={e => setIdType(e.target.value)}
+                className="w-full border border-amber-200 rounded-xl px-3 py-2.5 text-sm bg-white text-[#41271B] focus:outline-none focus:ring-2 focus:ring-amber-400"
+              >
+                {ID_TYPE_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+              <div
+                className="border-2 border-dashed border-amber-300 rounded-xl p-4 text-center cursor-pointer hover:bg-amber-100/50 transition-colors"
+                onClick={() => fileRef.current?.click()}
+              >
+                {idFile ? (
+                  <p className="text-sm text-amber-800 font-medium truncate">{idFile.name}</p>
+                ) : (
+                  <p className="text-sm text-amber-700">Tap to upload Passport or Driver's Licence</p>
+                )}
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="hidden"
+                  onChange={e => setIdFile(e.target.files[0] || null)}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={idLoading || !idFile}
+                className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                {idLoading ? 'Uploading…' : 'Upload ID'}
+              </button>
+            </form>
+          </div>
+        )}
 
         {/* Quick links */}
         <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 divide-y divide-gray-50">

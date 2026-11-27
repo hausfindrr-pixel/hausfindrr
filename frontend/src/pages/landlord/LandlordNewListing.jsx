@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Navbar from '../../components/shared/Navbar';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { PNG_CITIES } from '../../constants/pngCities';
 import { LISTING_TAGS } from '../../constants/listingTags';
@@ -71,6 +72,7 @@ async function compressPhoto(file, maxWidth = 1600) {
 
 export default function LandlordNewListing() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [photos, setPhotos] = useState([]);
   const [titleDocs, setTitleDocs] = useState([]);
@@ -124,6 +126,12 @@ export default function LandlordNewListing() {
     }
     setCustomAmenity('');
   }
+
+  // Track funnel event on mount
+  useEffect(() => {
+    const campaign = sessionStorage.getItem('hf_campaign') || null;
+    api.post('/funnel/event', { event: 'listing_started', campaign }).catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Map init
   useEffect(() => {
@@ -238,7 +246,12 @@ export default function LandlordNewListing() {
       sessionStorage.setItem('hf_just_published', '1');
       navigate('/landlord/properties');
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to submit listing');
+      const msg = err.response?.data?.error || 'Failed to submit listing';
+      if (err.response?.status === 403 && msg.toLowerCase().includes('id')) {
+        toast.error('Please upload your ID in your Account page before submitting a listing', { duration: 6000 });
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -269,6 +282,17 @@ export default function LandlordNewListing() {
           <h1 className="text-2xl font-bold text-gray-900">New Property Listing</h1>
           <p className="text-gray-500 text-sm mt-1">Fill in the details below. Your listing will be reviewed before going live.</p>
         </div>
+
+        {user?.profileComplete === false && (
+          <div className="mb-6 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+            <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" />
+            </svg>
+            <p className="text-sm text-amber-800">
+              You'll need to <a href="/landlord/dashboard" className="font-semibold underline">upload your ID</a> before this listing can go live.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
 

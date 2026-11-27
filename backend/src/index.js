@@ -16,6 +16,7 @@ const messageRoutes = require('./routes/message');
 const complaintRoutes = require('./routes/complaint');
 const announcementRoutes = require('./routes/announcement');
 const notificationRoutes = require('./routes/notification');
+const funnelRoutes = require('./routes/funnel');
 
 const { sanitizeBody } = require('./middleware/sanitize');
 
@@ -69,6 +70,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/funnel', funnelRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

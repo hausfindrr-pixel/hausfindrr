@@ -15,11 +15,7 @@ const loginLimiter = rateLimit({
   skipSuccessfulRequests: true,
 });
 
-router.post(
-  '/register/landlord',
-  documentUpload.fields([{ name: 'id_document', maxCount: 1 }]),
-  registerLandlord
-);
+router.post('/register/landlord', registerLandlord);
 router.post('/register/tenant', registerTenant);
 router.post('/login', loginLimiter, login);
 router.post('/2fa/verify', verifyTwoFactor);

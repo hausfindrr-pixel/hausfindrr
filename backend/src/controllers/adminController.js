@@ -28,7 +28,11 @@ async function attachStats(properties) {
 async function getPendingLandlords(req, res, next) {
   try {
     const landlords = await prisma.user.findMany({
-      where: { role: 'landlord', status: 'pending_verification' },
+      where: {
+        role: 'landlord',
+        status: 'pending_verification',
+        landlordIdDocuments: { some: {} },
+      },
       include: { landlordIdDocuments: true },
       orderBy: { createdAt: 'asc' },
     });
