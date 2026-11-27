@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import FeedbackSheet from '../../components/shared/FeedbackBubble';
+import PushPromptCard from '../../components/shared/PushPromptCard';
 
 const CLAY = '#975536';
 
@@ -183,6 +184,9 @@ export default function TenantDashboard() {
         className="max-w-2xl mx-auto px-4 py-6 space-y-4"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
       >
+
+        {/* Push prompt */}
+        <PushPromptCard />
 
         {/* Profile card */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">

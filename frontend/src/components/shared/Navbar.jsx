@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationsContext';
 import FeedbackSheet from './FeedbackBubble';
 
 const ROLE_LABELS = { landlord: 'Landlord', tenant: 'Tenant', admin: 'Admin' };
@@ -155,9 +156,30 @@ const REGISTER_OPTIONS = [
   },
 ];
 
+function BellIcon({ count }) {
+  return (
+    <Link
+      to="/notifications"
+      aria-label={`Notifications${count ? ` (${count} unread)` : ''}`}
+      className="relative p-1.5 rounded-xl text-gray-500 hover:bg-gray-100 hover:text-primary transition-colors"
+    >
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+      </svg>
+      {count > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-0.5">
+          {count > 9 ? '9+' : count}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 export default function Navbar({ nonSticky = false }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { unreadCount } = useNotifications();
   const [menuOpen, setMenuOpen] = useState(false);
   const [modal, setModal] = useState(null); // 'signin' | 'register' | null
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -209,6 +231,7 @@ export default function Navbar({ nonSticky = false }) {
               )}
               {user && (
                 <div className="flex items-center gap-3">
+                  <BellIcon count={unreadCount} />
                   <Link
                     to={user.role === 'landlord' ? '/landlord/dashboard' : user.role === 'admin' ? '/admin' : '/tenant/dashboard'}
                     className="text-sm font-medium text-gray-700 hover:text-primary transition-colors"
@@ -301,6 +324,18 @@ export default function Navbar({ nonSticky = false }) {
                     className="flex items-center px-3 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 hover:text-primary transition-colors"
                   >
                     My Dashboard
+                  </Link>
+                  <Link
+                    to="/notifications"
+                    onClick={closeMenu}
+                    className="flex items-center justify-between px-3 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 hover:text-primary transition-colors"
+                  >
+                    <span>Notifications</span>
+                    {unreadCount > 0 && (
+                      <span className="min-w-[20px] h-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center px-1">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
                   </Link>
                   <button
                     onClick={() => { closeMenu(); setFeedbackOpen(true); }}

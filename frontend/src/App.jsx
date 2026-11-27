@@ -1,7 +1,10 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { MessagesProvider } from './context/MessagesContext';
+import { NotificationsProvider } from './context/NotificationsContext';
 import BottomNav from './components/shared/BottomNav';
+import NotificationsPage from './pages/NotificationsPage';
+import NotificationSettingsPage from './pages/NotificationSettingsPage';
 
 import LandlordLogin from './pages/landlord/LandlordLogin';
 import LandlordRegister from './pages/landlord/LandlordRegister';
@@ -57,10 +60,10 @@ function AppRoutes() {
         <ProtectedRoute role="landlord" requireTerms={false} requireProfile={false}><LandlordAgreement /></ProtectedRoute>
       } />
       <Route path="/landlord/dashboard" element={
-        <ProtectedRoute role="landlord"><LandlordDashboard /></ProtectedRoute>
+        <ProtectedRoute role="landlord" requireProfile={false}><LandlordDashboard /></ProtectedRoute>
       } />
       <Route path="/landlord/new-listing" element={
-        <ProtectedRoute role="landlord"><LandlordNewListing /></ProtectedRoute>
+        <ProtectedRoute role="landlord" requireProfile={false}><LandlordNewListing /></ProtectedRoute>
       } />
       <Route path="/landlord/properties" element={
         <ProtectedRoute role="landlord"><LandlordPropertiesPage /></ProtectedRoute>
@@ -105,6 +108,14 @@ function AppRoutes() {
         <ProtectedRoute requireTerms={false} requireProfile={false}><CompleteProfile /></ProtectedRoute>
       } />
 
+      {/* Notifications */}
+      <Route path="/notifications" element={
+        <ProtectedRoute requireProfile={false}><NotificationsPage /></ProtectedRoute>
+      } />
+      <Route path="/notifications/settings" element={
+        <ProtectedRoute requireProfile={false}><NotificationSettingsPage /></ProtectedRoute>
+      } />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -113,10 +124,12 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <MessagesProvider>
-        <AppRoutes />
-        <BottomNav />
-      </MessagesProvider>
+      <NotificationsProvider>
+        <MessagesProvider>
+          <AppRoutes />
+          <BottomNav />
+        </MessagesProvider>
+      </NotificationsProvider>
     </AuthProvider>
   );
 }

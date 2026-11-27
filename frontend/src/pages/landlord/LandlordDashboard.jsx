@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import FeedbackSheet from '../../components/shared/FeedbackBubble';
+import PushPromptCard from '../../components/shared/PushPromptCard';
 
 const ID_TYPE_OPTIONS = [
   { value: 'passport',        label: 'Passport' },
@@ -103,6 +104,9 @@ export default function LandlordDashboard() {
             </p>
           )}
         </div>
+
+        {/* Push prompt — shown to verified landlords who haven't granted/denied yet */}
+        {user?.status === 'active' && <PushPromptCard />}
 
         {/* ID upload banner — shown until profileComplete */}
         {user?.profileComplete === false && (

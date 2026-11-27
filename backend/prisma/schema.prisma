@@ -69,18 +69,20 @@ model User {
   accountCode   String?    @unique @map("account_code")
   createdAt     DateTime   @default(now()) @map("created_at")
 
-  landlordIdDocuments  LandlordIdDocument[]
-  properties           Property[]
-  favorites            Favorite[]
-  sentMessages         Message[]      @relation("SentMessages")
-  receivedMessages     Message[]      @relation("ReceivedMessages")
-  sentAnnouncements    Announcement[] @relation("SentAnnouncements")
-  tenantComplaints     Complaint[]    @relation("TenantComplaints")
-  landlordComplaints   Complaint[]    @relation("LandlordComplaints")
-  notifications        UserNotification[]
-  consentLogs          ConsentLog[]
-  dataRequests         DataRequest[]
-  propertyViewLogs     PropertyViewLog[]
+  landlordIdDocuments   LandlordIdDocument[]
+  properties            Property[]
+  favorites             Favorite[]
+  sentMessages          Message[]      @relation("SentMessages")
+  receivedMessages      Message[]      @relation("ReceivedMessages")
+  sentAnnouncements     Announcement[] @relation("SentAnnouncements")
+  tenantComplaints      Complaint[]    @relation("TenantComplaints")
+  landlordComplaints    Complaint[]    @relation("LandlordComplaints")
+  notifications         UserNotification[]
+  pushSubscriptions     PushSubscription[]
+  notificationSettings  NotificationSettings?
+  consentLogs           ConsentLog[]
+  dataRequests          DataRequest[]
+  propertyViewLogs      PropertyViewLog[]
 
   @@index([role, status])
   @@index([createdAt])
@@ -251,6 +253,7 @@ model UserNotification {
   type      String
   title     String
   content   String
+  link      String?
   readAt    DateTime? @map("read_at")
   createdAt DateTime  @default(now()) @map("created_at")
 
@@ -259,6 +262,37 @@ model UserNotification {
   @@index([userId])
   @@index([createdAt])
   @@map("user_notifications")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+model NotificationSettings {
+  id                  String    @id @default(uuid())
+  userId              String    @unique @map("user_id")
+  pushMessages        Boolean   @default(true) @map("push_messages")
+  pushVerification    Boolean   @default(true) @map("push_verification")
+  pushListings        Boolean   @default(true) @map("push_listings")
+  emailVerification   Boolean   @default(true) @map("email_verification")
+  emailListingUpdates Boolean   @default(false) @map("email_listing_updates")
+  promptDismissedAt   DateTime? @map("prompt_dismissed_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
 }
 
 // Immutable consent audit log — one row per acceptance event, never updated.

@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { notifyMessage } = require('../services/notificationService');
 
 async function sendMessage(req, res, next) {
   try {
@@ -9,8 +10,20 @@ async function sendMessage(req, res, next) {
 
     const message = await prisma.message.create({
       data: { propertyId, senderId: req.user.id, receiverId, content: content.trim() },
-      include: { sender: { select: { id: true, name: true, role: true } } },
+      include: {
+        sender: { select: { id: true, name: true, role: true } },
+        property: { select: { title: true } },
+      },
     });
+
+    // Throttled notification — non-fatal
+    notifyMessage(receiverId, {
+      senderName:    message.sender.name,
+      propertyTitle: message.property?.title || null,
+      propertyId,
+      senderId:      req.user.id,
+    }).catch(() => {});
+
     res.status(201).json({ message });
   } catch (err) {
     next(err);

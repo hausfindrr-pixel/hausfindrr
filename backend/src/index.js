@@ -73,6 +73,10 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/funnel', funnelRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/api/push/vapid-public-key', (req, res) => {
+  const key = process.env.VAPID_PUBLIC_KEY || null;
+  res.json({ key });
+});
 
 app.use((err, req, res, next) => {
   console.error(err);
@@ -104,4 +108,9 @@ app.listen(PORT, async () => {
 // Daily 02:00 UTC — purge expired documents from Cloudinary and DB
 cron.schedule('0 2 * * *', () => {
   purgeExpiredDocuments().catch(err => console.error('[docPurge] cron error:', err.message));
+
+  // Delete read notifications older than 90 days
+  const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+  _prisma.userNotification.deleteMany({ where: { readAt: { not: null, lt: cutoff } } })
+    .catch(err => console.error('[notifPurge] error:', err.message));
 });

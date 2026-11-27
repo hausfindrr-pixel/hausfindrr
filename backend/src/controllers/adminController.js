@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { notify, notifyFavoriteWatchers } = require('../services/notificationService');
 
 async function attachStats(properties) {
   if (!properties.length) return properties;
@@ -43,12 +44,36 @@ async function getPendingLandlords(req, res, next) {
 async function verifyLandlord(req, res, next) {
   try {
     const { id } = req.params;
-    const { action } = req.body; // action: 'approve' | 'reject'
+    const { action, reason } = req.body; // action: 'approve' | 'reject'
     if (!['approve', 'reject'].includes(action))
       return res.status(400).json({ error: 'action must be approve or reject' });
 
     const status = action === 'approve' ? 'active' : 'rejected';
     const user = await prisma.user.update({ where: { id }, data: { status } });
+
+    if (action === 'approve') {
+      notify(id, {
+        type:  'id_approved',
+        title: 'Your ID has been verified',
+        body:  'Your account is now active. You can list properties and tenants can contact you.',
+        link:  '/landlord/dashboard',
+        emailText: 'Great news — your HausFindrr account has been verified. You can now post listings and receive messages from tenants.',
+        emailCtaUrl: '/landlord/dashboard',
+        emailCtaLabel: 'Go to your account',
+      });
+    } else {
+      const reasonNote = reason ? ` Reason: ${reason}.` : '';
+      notify(id, {
+        type:  'id_rejected',
+        title: 'ID not accepted',
+        body:  `We could not verify your ID.${reasonNote} Please upload a clearer copy in your account.`,
+        link:  '/landlord/dashboard',
+        emailText: `Your HausFindrr ID verification was not successful.${reasonNote}\n\nPlease sign in and upload a clearer copy of your passport or driver's licence.`,
+        emailCtaUrl: '/landlord/dashboard',
+        emailCtaLabel: 'Upload a new ID',
+      });
+    }
+
     res.json({ user: { id: user.id, status: user.status } });
   } catch (err) { next(err); }
 }
@@ -80,7 +105,31 @@ async function reviewProperty(req, res, next) {
     const property = await prisma.property.update({
       where: { id },
       data: { status, rejectionReason: reason || null },
+      include: { landlord: { select: { id: true } } },
     });
+
+    if (action === 'approve') {
+      notify(property.landlord.id, {
+        type:  'listing_live',
+        title: `Your listing is now live`,
+        body:  `"${property.title}" has been approved and is now visible to tenants.`,
+        link:  `/property/${property.id}`,
+      });
+    } else {
+      const reasonNote = reason ? ` Reason: ${reason}.` : '';
+      notify(property.landlord.id, {
+        type:  'listing_removed',
+        title: 'Listing not approved',
+        body:  `"${property.title}" was not approved.${reasonNote}`,
+        link:  '/landlord/properties',
+        emailText: `Your listing "${property.title}" was not approved by our team.${reasonNote}\n\nIf you have questions, reply to this email.`,
+        emailCtaUrl: '/landlord/properties',
+        emailCtaLabel: 'View your listings',
+      });
+      // Notify tenants who saved this listing
+      notifyFavoriteWatchers(id, 'saved_listing_removed', 'A saved listing was removed', `"${property.title}" is no longer available.`);
+    }
+
     res.json({ property: { id: property.id, status: property.status } });
   } catch (err) { next(err); }
 }

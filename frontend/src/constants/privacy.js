@@ -99,11 +99,17 @@ Objection: you may object to certain types of processing.
 To exercise any of these rights, please contact us at info@hausfindrr.com. We will respond within 30 days.`,
   },
   {
-    heading: '9. Cookies and Tracking',
+    heading: '9. Push Notifications',
+    body: `If you choose to enable push notifications, we store a push subscription token (issued by your browser or device) linked to your account. This token is used only to deliver notifications from HausFindrr — such as new messages, ID verification updates, and listing approvals — and is never shared with third parties.
+
+You can disable push notifications at any time from your browser or device settings, or from Notification Settings in the app. We delete your push subscription token automatically if it becomes invalid or when your account is deleted.`,
+  },
+  {
+    heading: '10. Cookies and Tracking',
     body: `HausFindrr uses only strictly necessary session storage and local storage to keep you signed in and remember your preferences. We do not use advertising cookies, tracking pixels, or third-party analytics services that share your data with advertisers.`,
   },
   {
-    heading: '10. Security',
+    heading: '11. Security',
     body: `We take the security of your personal data seriously. We use industry-standard measures including:
 • Encrypted data transmission (HTTPS/TLS)
 • Hashed and salted password storage
@@ -113,15 +119,15 @@ To exercise any of these rights, please contact us at info@hausfindrr.com. We wi
 No system is completely secure. If you suspect your account has been compromised, contact us immediately at info@hausfindrr.com.`,
   },
   {
-    heading: '11. Children',
+    heading: '12. Children',
     body: `HausFindrr is not directed at children under the age of 18. We do not knowingly collect personal data from anyone under 18. If you believe a child has registered, please contact us at info@hausfindrr.com and we will delete the account promptly.`,
   },
   {
-    heading: '12. Changes to This Policy',
+    heading: '13. Changes to This Policy',
     body: `We may update this Privacy Policy from time to time. When we make material changes, we will notify you by email or through a prominent notice on the platform, and update the version identifier. Continued use of the platform after the effective date constitutes your acceptance of the revised policy.`,
   },
   {
-    heading: '13. Contact Us',
+    heading: '14. Contact Us',
     body: `If you have any questions, concerns, or requests relating to this Privacy Policy or your personal data, please contact us at:
 
 HausFindrr

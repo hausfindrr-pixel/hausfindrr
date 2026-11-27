@@ -4,6 +4,7 @@ const validator = require('validator');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { logSignupConsents, logLandlordAgreementConsent } = require('../services/consentService');
+const { notify, notifyAdmin } = require('../services/notificationService');
 
 // Normalise + validate an email address
 function normaliseEmail(raw) {
@@ -188,6 +189,16 @@ async function registerLandlord(req, res, next) {
       await prisma.funnelEvent.create({ data: { event: 'account_created', campaign: safeCampaign || null } });
     } catch {}
 
+    // "Add your ID" nudge notification
+    notify(user.id, {
+      type:  'id_add_prompt',
+      title: 'Add your ID to get Verified',
+      body:  'Upload your passport or driver\'s licence to get verified and publish listings. Your ID is private and deleted after 30 days.',
+      link:  '/landlord/dashboard',
+    });
+
+    // Notify admin of new pending landlord when they upload their first ID (not yet, so skip here)
+
     const token = signToken(user);
     res.status(201).json({ token, user: { ...safeUser(user), profileComplete: false } });
   } catch (err) {
@@ -320,6 +331,17 @@ async function completeProfile(req, res, next) {
       try {
         await prisma.funnelEvent.create({ data: { event: 'id_uploaded', campaign: null } });
       } catch {}
+
+      // Notify landlord: ID is under review
+      notify(req.user.id, {
+        type:  'id_received',
+        title: 'ID received — under review',
+        body:  'We\'ve received your ID document and will verify it within 1–2 business days.',
+        link:  '/landlord/dashboard',
+      });
+
+      // Notify admin: new landlord awaiting verification
+      notifyAdmin('admin_pending_landlord', 'New landlord waiting for ID verification', 'A landlord has uploaded their ID and is waiting for review.', '/admin');
     }
 
     const user = await prisma.user.findUnique({
