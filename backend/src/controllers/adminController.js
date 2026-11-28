@@ -372,13 +372,14 @@ async function getAnalytics(req, res, next) {
 
 async function getAllMessages(req, res, next) {
   try {
+    // Only direct (null-propertyId) admin messages — not landlord↔tenant conversations
     const messages = await prisma.message.findMany({
+      where: { propertyId: null },
       orderBy: { sentAt: 'desc' },
       take: 200,
       include: {
         sender: { select: { name: true, role: true } },
         receiver: { select: { name: true, role: true } },
-        property: { select: { id: true, title: true, locationGeneral: true } },
       },
     });
 
@@ -388,9 +389,7 @@ async function getAllMessages(req, res, next) {
       if (!threadMap[key]) {
         threadMap[key] = {
           key,
-          property: msg.property,
-          propertyId: msg.propertyId,
-          isDirect: !msg.propertyId,
+          isDirect: true,
           participantIds: [msg.senderId, msg.receiverId],
           participants: [msg.sender.name, msg.receiver.name],
           lastMessage: {
