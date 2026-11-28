@@ -4,6 +4,7 @@ import { MessagesProvider } from './context/MessagesContext';
 import { NotificationsProvider } from './context/NotificationsContext';
 import BottomNav from './components/shared/BottomNav';
 import PushPermissionModal from './components/shared/PushPermissionModal';
+import InstallPrompt from './components/shared/InstallPrompt';
 import NotificationsPage from './pages/NotificationsPage';
 import NotificationSettingsPage from './pages/NotificationSettingsPage';
 
@@ -130,6 +131,7 @@ export default function App() {
           <AppRoutes />
           <BottomNav />
           <PushPermissionModal />
+          <InstallPrompt />
         </MessagesProvider>
       </NotificationsProvider>
     </AuthProvider>
