@@ -25,11 +25,15 @@ export default function TenantMessagesPage() {
   const [threads, setThreads] = useState([]);
   const [showFeedbackCard, setShowFeedbackCard] = useState(false);
 
+  const [directThreads, setDirectThreads] = useState([]);
+
   const load = useCallback(async () => {
     try {
       const { data } = await api.get('/messages/inbox');
       const all = data.threads || [];
+      const direct = all.filter(t => t.isDirect);
       const filtered = all.filter(t => !t.isDirect);
+      setDirectThreads(direct);
       setThreads(filtered);
       refreshUnread(all);
       if (filtered.length > 0 && shouldShowFeedback()) {
@@ -45,7 +49,7 @@ export default function TenantMessagesPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const totalUnread = threads.reduce((s, t) => s + (t.unreadCount || 0), 0);
+  const totalUnread = [...threads, ...directThreads].reduce((s, t) => s + (t.unreadCount || 0), 0);
 
   if (loading) return <Skeleton />;
 
@@ -67,7 +71,20 @@ export default function TenantMessagesPage() {
         className="max-w-4xl mx-auto px-4 py-4"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
       >
-        {threads.length === 0 ? (
+        {/* Admin / support direct messages */}
+        {directThreads.length > 0 && (
+          <div className="mb-3">
+            {directThreads.map(t => (
+              <DirectMessageRow
+                key={t.otherUser?.id}
+                thread={t}
+                onOpen={() => navigate(`/conversation/direct/${t.otherUser.id}`)}
+              />
+            ))}
+          </div>
+        )}
+
+        {threads.length === 0 && directThreads.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center shadow-sm mt-2">
             <div className="w-14 h-14 bg-[#EDE0CE] rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg className="w-7 h-7 text-[#975536]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,7 +96,7 @@ export default function TenantMessagesPage() {
               Message a landlord from any listing and your conversation will appear here.
             </p>
           </div>
-        ) : (
+        ) : threads.length > 0 ? (
           <>
             <div className="grid gap-2 md:grid-cols-2 md:gap-3">
               {threads.map(t => (
@@ -96,9 +113,48 @@ export default function TenantMessagesPage() {
               </div>
             )}
           </>
-        )}
+        ) : null}
       </div>
     </div>
+  );
+}
+
+function DirectMessageRow({ thread, onOpen }) {
+  const hasUnread = thread.unreadCount > 0;
+  return (
+    <button
+      onClick={onOpen}
+      className="w-full flex items-center gap-3 p-4 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left bg-white rounded-2xl shadow-sm mb-2"
+      style={{ minHeight: 72 }}
+    >
+      <div className="w-12 h-12 rounded-xl bg-[#EDE0CE] flex items-center justify-center flex-shrink-0">
+        <svg className="w-6 h-6 text-[#975536]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <p className={`text-sm truncate ${hasUnread ? 'font-semibold text-[#41271B]' : 'font-medium text-gray-700'}`}>
+            HausFindrr Support
+          </p>
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#EDE0CE] text-[#975536] flex-shrink-0">Official</span>
+          {hasUnread && <span className="w-2 h-2 rounded-full bg-[#975536] flex-shrink-0" />}
+        </div>
+        <p className={`text-xs truncate ${hasUnread ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
+          {thread.latestMessage?.content || 'Message from HausFindrr'}
+        </p>
+      </div>
+      <div className="flex-shrink-0 flex flex-col items-end gap-1">
+        {thread.latestMessage?.sentAt && (
+          <p className="text-[11px] text-gray-400">{timeAgo(thread.latestMessage.sentAt)}</p>
+        )}
+        {hasUnread && (
+          <span className="w-5 h-5 rounded-full bg-[#975536] text-white text-[11px] font-bold flex items-center justify-center">
+            {thread.unreadCount > 9 ? '9+' : thread.unreadCount}
+          </span>
+        )}
+      </div>
+    </button>
   );
 }
 

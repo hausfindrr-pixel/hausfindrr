@@ -77,11 +77,16 @@ export default function ConversationPage() {
     }
   }, [propertyId]);
 
-  useEffect(() => {
-    const bannerKey = SAFETY_KEY(propertyId, otherUserId);
-    setShowBanner(!localStorage.getItem(bannerKey));
+  const isDirect = propertyId === 'direct';
 
-    Promise.all([fetchMessages(true), fetchProperty()]).finally(() => setLoading(false));
+  useEffect(() => {
+    if (!isDirect) {
+      const bannerKey = SAFETY_KEY(propertyId, otherUserId);
+      setShowBanner(!localStorage.getItem(bannerKey));
+    }
+
+    const tasks = isDirect ? [fetchMessages(true)] : [fetchMessages(true), fetchProperty()];
+    Promise.all(tasks).finally(() => setLoading(false));
 
     // Poll every 5 seconds
     pollRef.current = setInterval(() => fetchMessages(false), 5000);
@@ -113,7 +118,13 @@ export default function ConversationPage() {
     const content = text.trim();
     setText('');
     try {
-      const { data } = await api.post('/messages', { propertyId, receiverId: otherUserId, content });
+      const endpoint = isDirect
+        ? `/messages/direct/${otherUserId}`
+        : '/messages';
+      const payload = isDirect
+        ? { content }
+        : { propertyId, receiverId: otherUserId, content };
+      const { data } = await api.post(endpoint, payload);
       setMessages(prev => [...prev, data.message]);
       setAtBottom(true);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
@@ -161,13 +172,13 @@ export default function ConversationPage() {
     }
   }
 
-  const tenantFirstName = (otherUser?.name || 'Tenant').split(' ')[0];
-  const listingTitle = property?.title || '';
+  const tenantFirstName = isDirect ? 'HausFindrr Support' : (otherUser?.name || 'Tenant').split(' ')[0];
+  const listingTitle = isDirect ? '' : (property?.title || '');
   const isLandlord = user?.role === 'landlord';
   const isTenant = user?.role === 'tenant';
-  const quickReplies = isLandlord
+  const quickReplies = isDirect ? [] : (isLandlord
     ? LANDLORD_QUICK_REPLIES
-    : (isTenant && messages.length === 0 ? TENANT_QUICK_STARTERS : []);
+    : (isTenant && messages.length === 0 ? TENANT_QUICK_STARTERS : []));
 
   if (loading) {
     return (
@@ -206,7 +217,7 @@ export default function ConversationPage() {
         </header>
 
         {/* Safety banner */}
-        {showBanner && (
+        {!isDirect && showBanner && (
           <div className="flex-shrink-0 bg-amber-50 border-b border-amber-100 px-4 py-3 flex items-start gap-3">
             <svg className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -223,7 +234,7 @@ export default function ConversationPage() {
         )}
 
         {/* Tenant: small listing card linking back to the listing */}
-        {isTenant && property && (
+        {!isDirect && isTenant && property && (
           <div className="flex-shrink-0 px-4 py-2 border-b border-gray-100 bg-white">
             <Link
               to={`/property/${propertyId}`}
@@ -340,35 +351,37 @@ export default function ConversationPage() {
             </button>
           </form>
 
-          {/* Action links */}
-          <div className="flex items-center gap-4 px-5 pb-2.5">
-            <button
-              onClick={() => setShowReport(true)}
-              className="text-xs text-gray-400 hover:text-red-500 transition-colors"
-              style={{ minHeight: 32 }}
-            >
-              Report conversation
-            </button>
-            <button
-              onClick={() => toast('Blocking coming soon')}
-              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-              style={{ minHeight: 32 }}
-            >
-              Block
-            </button>
-            <button
-              onClick={shareNumber}
-              className="text-xs text-[#975536] hover:text-[#41271B] font-medium transition-colors ml-auto"
-              style={{ minHeight: 32 }}
-            >
-              Share my number
-            </button>
-          </div>
+          {/* Action links — hidden for direct/admin threads */}
+          {!isDirect && (
+            <div className="flex items-center gap-4 px-5 pb-2.5">
+              <button
+                onClick={() => setShowReport(true)}
+                className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                style={{ minHeight: 32 }}
+              >
+                Report conversation
+              </button>
+              <button
+                onClick={() => toast('Blocking coming soon')}
+                className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                style={{ minHeight: 32 }}
+              >
+                Block
+              </button>
+              <button
+                onClick={shareNumber}
+                className="text-xs text-[#975536] hover:text-[#41271B] font-medium transition-colors ml-auto"
+                style={{ minHeight: 32 }}
+              >
+                Share my number
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Report modal */}
-      {showReport && (
+      {!isDirect && showReport && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm"
           onClick={e => e.target === e.currentTarget && setShowReport(false)}

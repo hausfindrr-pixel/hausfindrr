@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
 const {
-  sendMessage, sendDirectMessage,
+  sendMessage, sendDirectMessage, replyDirectMessage,
   getThread, getDirectThread,
   markRead, markDirectRead,
   getInbox,
@@ -14,6 +14,7 @@ router.post('/', sendMessage);
 router.get('/inbox', getInbox);
 
 // Direct (no-property) message threads — must come before /:propertyId routes
+router.post('/direct/:otherUserId', replyDirectMessage);
 router.get('/direct/:otherUserId', getDirectThread);
 router.patch('/direct/:otherUserId/read', markDirectRead);
 
