@@ -54,16 +54,16 @@ async function main() {
       END $$
     `);
 
-    // If this migration previously failed in _prisma_migrations, clear the failure
-    // so prisma migrate deploy can re-apply or skip it cleanly.
+    // If this migration previously failed in _prisma_migrations, mark it as resolved
+    // so prisma migrate deploy won't throw P3009.
+    // A failed migration has finished_at IS NULL; we set it to NOW() and clear logs.
     await prisma.$executeRawUnsafe(`
       UPDATE "_prisma_migrations"
-      SET rolled_back_at = NULL,
-          logs = NULL,
-          finished_at = NOW(),
-          applied_steps_count = 1
+      SET finished_at         = COALESCE(finished_at, NOW()),
+          logs                = NULL,
+          rolled_back_at      = NULL,
+          applied_steps_count = GREATEST(applied_steps_count, 1)
       WHERE migration_name = '20261128000002_revoke_verification'
-        AND rolled_back_at IS NOT NULL
     `);
 
     console.log('[pre-migrate] done');
