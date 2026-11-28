@@ -17,7 +17,7 @@ function urlBase64ToUint8Array(base64) {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
 }
 
-export default function PushPromptCard({ onDone }) {
+export default function PushPromptCard({ onDone, role = 'landlord' }) {
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -77,7 +77,9 @@ export default function PushPromptCard({ onDone }) {
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-gray-900">Stay in the loop</p>
         <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-          Get a notification when you receive a message or your account is approved.
+          {role === 'tenant'
+            ? 'Get notified the moment a landlord replies to your message.'
+            : 'Get notified when you receive a message, your ID is verified, or a listing is approved.'}
         </p>
         <div className="flex gap-2 mt-3">
           <button

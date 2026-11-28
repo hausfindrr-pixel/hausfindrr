@@ -186,7 +186,7 @@ export default function TenantDashboard() {
       >
 
         {/* Push prompt */}
-        <PushPromptCard />
+        <PushPromptCard role="tenant" />
 
         {/* Profile card */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
