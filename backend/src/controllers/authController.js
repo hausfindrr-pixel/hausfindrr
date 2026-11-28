@@ -435,6 +435,27 @@ async function updateProfile(req, res, next) {
   } catch (err) { next(err); }
 }
 
+async function updateProfilePhoto(req, res, next) {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Image required' });
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { profilePhotoUrl: req.file.path },
+    });
+    res.json({ user: safeUser(user) });
+  } catch (err) { next(err); }
+}
+
+async function removeProfilePhoto(req, res, next) {
+  try {
+    const user = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { profilePhotoUrl: null },
+    });
+    res.json({ user: safeUser(user) });
+  } catch (err) { next(err); }
+}
+
 async function changePassword(req, res, next) {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -472,7 +493,7 @@ async function deleteAccount(req, res, next) {
 
 module.exports = {
   registerLandlord, registerTenant, login, me, acceptTerms, completeProfile,
-  updateProfile, changePassword, deleteAccount,
+  updateProfile, updateProfilePhoto, removeProfilePhoto, changePassword, deleteAccount,
   // Exported for use by oauthController
   createWelcomeNotifications, sendWelcomeMessages, generateAccountCode,
 };
