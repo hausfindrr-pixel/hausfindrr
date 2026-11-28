@@ -115,6 +115,17 @@ export default function NotificationSettingsPage() {
               onChange={v => update('emailListingUpdates', v)}
             />
           </div>
+
+          {/* Account setup section */}
+          <div className="bg-white rounded-2xl shadow-sm px-4 divide-y divide-gray-50">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide py-3">Account setup</p>
+            <SettingRow
+              label="Account setup reminders"
+              description="Gentle nudges to upload your ID or add your first listing"
+              checked={settings.setupReminders ?? true}
+              onChange={v => update('setupReminders', v)}
+            />
+          </div>
         </div>
 
         <p className="text-xs text-gray-400 text-center mt-6 leading-relaxed">

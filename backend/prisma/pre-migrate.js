@@ -54,6 +54,25 @@ async function main() {
       END $$
     `);
 
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "first_verified_at" TIMESTAMP(3)`
+    );
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "id_reminder_count" INTEGER NOT NULL DEFAULT 0`
+    );
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "id_reminder_sent_at" TIMESTAMP(3)`
+    );
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "listing_reminder_count" INTEGER NOT NULL DEFAULT 0`
+    );
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "listing_reminder_sent_at" TIMESTAMP(3)`
+    );
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "notification_settings" ADD COLUMN IF NOT EXISTS "setup_reminders" BOOLEAN NOT NULL DEFAULT true`
+    );
+
     // If this migration previously failed in _prisma_migrations, mark it as resolved
     // so prisma migrate deploy won't throw P3009.
     // A failed migration has finished_at IS NULL; we set it to NOW() and clear logs.
@@ -64,6 +83,15 @@ async function main() {
           rolled_back_at      = NULL,
           applied_steps_count = GREATEST(applied_steps_count, 1)
       WHERE migration_name = '20261128000002_revoke_verification'
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      UPDATE "_prisma_migrations"
+      SET finished_at         = COALESCE(finished_at, NOW()),
+          logs                = NULL,
+          rolled_back_at      = NULL,
+          applied_steps_count = GREATEST(applied_steps_count, 1)
+      WHERE migration_name = '20261128000003_onboarding_reminders'
     `);
 
     console.log('[pre-migrate] done');

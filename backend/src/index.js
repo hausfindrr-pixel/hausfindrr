@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const path = require('path');
 const cron = require('node-cron');
 const { purgeExpiredDocuments } = require('./services/documentService');
+const { runOnboardingReminders } = require('./services/notificationService');
 
 const authRoutes = require('./routes/auth');
 const oauthRoutes = require('./routes/oauth');
@@ -113,4 +114,6 @@ cron.schedule('0 2 * * *', () => {
   const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
   _prisma.userNotification.deleteMany({ where: { readAt: { not: null, lt: cutoff } } })
     .catch(err => console.error('[notifPurge] error:', err.message));
+
+  runOnboardingReminders().catch(err => console.error('[reminders] cron error:', err.message));
 });

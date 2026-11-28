@@ -5,6 +5,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import FeedbackSheet from '../../components/shared/FeedbackBubble';
 import PushPromptCard from '../../components/shared/PushPromptCard';
+import OnboardingNudge from '../../components/shared/OnboardingNudge';
 
 const ID_TYPE_OPTIONS = [
   { value: 'passport',        label: 'Passport' },
@@ -72,6 +73,7 @@ export default function LandlordDashboard() {
         className="max-w-2xl mx-auto px-4 py-6 space-y-4"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
       >
+        <OnboardingNudge user={user} />
         {/* Profile card */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
           <div className="flex items-center gap-4 mb-4">

@@ -127,6 +127,12 @@ No system is completely secure. If you suspect your account has been compromised
     body: `We may update this Privacy Policy from time to time. When we make material changes, we will notify you by email or through a prominent notice on the platform, and update the version identifier. Continued use of the platform after the effective date constitutes your acceptance of the revised policy.`,
   },
   {
+    heading: '13a. Account Setup Reminders',
+    body: `If you are a landlord, HausFindrr may send you periodic reminders to help you complete your account setup — for example, to upload your identity document or to add your first property listing. These reminders are sent as push notifications and in-app alerts at most once per day, within reasonable hours (7 am – 9 pm Port Moresby time), and stop automatically once you have completed the relevant step or after a maximum of three reminders per stage.
+
+You can turn off account setup reminders at any time in your Notification Settings. Turning them off does not affect other notification types.`,
+  },
+  {
     heading: '14. Contact Us',
     body: `If you have any questions, concerns, or requests relating to this Privacy Policy or your personal data, please contact us at:
 

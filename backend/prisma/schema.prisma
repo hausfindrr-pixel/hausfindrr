@@ -69,8 +69,13 @@ model User {
   twoFactorBackupHash String?  @map("two_factor_backup_hash")
   accountCode      String?    @unique @map("account_code")
   rejectionReason  String?    @map("rejection_reason")
-  revocationReason String?    @map("revocation_reason")
-  createdAt        DateTime   @default(now()) @map("created_at")
+  revocationReason     String?   @map("revocation_reason")
+  firstVerifiedAt      DateTime? @map("first_verified_at")
+  idReminderCount      Int       @default(0) @map("id_reminder_count")
+  idReminderSentAt     DateTime? @map("id_reminder_sent_at")
+  listingReminderCount Int       @default(0) @map("listing_reminder_count")
+  listingReminderSentAt DateTime? @map("listing_reminder_sent_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
 
   landlordIdDocuments   LandlordIdDocument[]
   verificationLogs      VerificationLog[]
@@ -293,6 +298,7 @@ model NotificationSettings {
   emailVerification   Boolean   @default(true) @map("email_verification")
   emailListingUpdates Boolean   @default(false) @map("email_listing_updates")
   promptDismissedAt   DateTime? @map("prompt_dismissed_at")
+  setupReminders      Boolean   @default(true) @map("setup_reminders")
   createdAt           DateTime  @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

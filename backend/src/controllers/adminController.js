@@ -54,6 +54,8 @@ async function verifyLandlord(req, res, next) {
     if (action === 'approve') {
       updateData.rejectionReason = null;
       updateData.revocationReason = null;
+      const existing = await prisma.user.findUnique({ where: { id }, select: { firstVerifiedAt: true } });
+      if (!existing?.firstVerifiedAt) updateData.firstVerifiedAt = new Date();
     }
     const user = await prisma.user.update({ where: { id }, data: updateData });
 
@@ -183,9 +185,12 @@ async function reviewProperty(req, res, next) {
     });
 
     if (action === 'approve') {
+      const prevActive = await prisma.property.count({
+        where: { landlordId: property.landlord.id, status: 'active', id: { not: property.id } },
+      });
       notify(property.landlord.id, {
-        type:  'listing_live',
-        title: `Your listing is now live`,
+        type:  prevActive === 0 ? 'listing_first_live' : 'listing_live',
+        title: prevActive === 0 ? 'Your first listing is live!' : 'Your listing is now live',
         body:  `"${property.title}" has been approved and is now visible to tenants.`,
         link:  `/property/${property.id}`,
       });
@@ -219,7 +224,19 @@ async function getAllLandlords(req, res, next) {
       },
       orderBy: { createdAt: 'desc' },
     });
-    res.json({ landlords: landlords.map(u => { const { passwordHash, ...r } = u; return r; }) });
+    res.json({ landlords: landlords.map(u => {
+      const { passwordHash, ...r } = u;
+      let stage;
+      if (u.status === 'suspended') stage = 'suspended';
+      else if (u.status === 'rejected') stage = 'rejected';
+      else if (u.status === 'id_needed') stage = 'id_needed';
+      else if (u.status === 'pending_verification') {
+        stage = u.landlordIdDocuments?.length > 0 ? 'under_review' : 'no_id';
+      } else if (u.status === 'active') {
+        stage = u.properties?.some(p => p.status === 'active') ? 'live' : 'no_listing';
+      } else stage = 'unknown';
+      return { ...r, onboardingStage: stage };
+    }) });
   } catch (err) { next(err); }
 }
 

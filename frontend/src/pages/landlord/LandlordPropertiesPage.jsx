@@ -6,6 +6,7 @@ import api from '../../services/api';
 import { priceLabel } from '../../utils/format';
 import FeedbackCard from '../../components/shared/FeedbackCard';
 import { shouldShowFeedback, markFeedbackShown } from '../../utils/feedbackState';
+import OnboardingNudge from '../../components/shared/OnboardingNudge';
 
 const STATUS_BADGE = {
   draft:    { cls: 'bg-gray-100 text-gray-500 border-gray-200',    label: 'Draft' },
@@ -123,46 +124,7 @@ export default function LandlordPropertiesPage() {
         className="max-w-4xl mx-auto px-4 py-4"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
       >
-        {/* Account status banners */}
-        {isPending && (
-          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
-            <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-amber-800">Your ID is under review</p>
-              <p className="text-xs text-amber-700 mt-0.5">You'll be able to list properties once our team verifies your identity. This usually takes 1–2 business days.</p>
-            </div>
-          </div>
-        )}
-        {isRejected && (
-          <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
-            <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-red-800">We couldn't verify your ID</p>
-              <p className="text-xs text-red-700 mt-0.5">Go to your Account to see the reason and upload a new document.</p>
-              <Link to="/landlord/dashboard" className="inline-block mt-2 text-xs font-semibold text-red-700 underline underline-offset-2">
-                Upload ID again →
-              </Link>
-            </div>
-          </div>
-        )}
-        {isIdNeeded && (
-          <div className="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
-            <svg className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-orange-800">Please upload your ID to stay Verified</p>
-              <p className="text-xs text-orange-700 mt-0.5">Your Verified badge is hidden until you re-upload your ID document.</p>
-              <Link to="/landlord/dashboard" className="inline-block mt-2 text-xs font-semibold text-orange-700 underline underline-offset-2">
-                Upload ID →
-              </Link>
-            </div>
-          </div>
-        )}
+        <OnboardingNudge user={user} properties={loading ? null : properties} />
 
         {loading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
