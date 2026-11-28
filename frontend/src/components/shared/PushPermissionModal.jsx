@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
-const COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-const DELAY_MS = 3500;
+// "Not now" cooldown — come back tomorrow, not in 30 days
+const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 const COPY = {
   landlord: {
@@ -48,18 +48,21 @@ export default function PushPermissionModal() {
   const { user } = useAuth();
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const shownRef = useRef(false); // only trigger once per mount
 
   const copy = COPY[user?.role] || COPY.default;
   const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
+  // Fire immediately when the user logs in (user goes from null → non-null)
   useEffect(() => {
     if (!user || user.role === 'admin') return;
+    if (shownRef.current) return; // already triggered this session
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     if (Notification.permission !== 'default') return;
     if (wasDismissed()) return;
 
-    const timer = setTimeout(() => setVisible(true), DELAY_MS);
-    return () => clearTimeout(timer);
+    shownRef.current = true;
+    setVisible(true);
   }, [user]);
 
   async function handleEnable() {
