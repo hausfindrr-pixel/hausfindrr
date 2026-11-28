@@ -118,7 +118,13 @@ export default function ConversationPage() {
     const content = text.trim();
     setText('');
     try {
-      const { data } = await api.post('/messages', { propertyId, receiverId: otherUserId, content });
+      const endpoint = isDirect
+        ? `/messages/direct/${otherUserId}`
+        : '/messages';
+      const payload = isDirect
+        ? { content }
+        : { propertyId, receiverId: otherUserId, content };
+      const { data } = await api.post(endpoint, payload);
       setMessages(prev => [...prev, data.message]);
       setAtBottom(true);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
@@ -294,14 +300,6 @@ export default function ConversationPage() {
         </div>
 
         {/* Input bar — pinned at the bottom, sits above keyboard on iOS */}
-        {isDirect ? (
-          <div
-            className="flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3 text-center"
-            style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
-          >
-            <p className="text-xs text-gray-400">This is an official message from HausFindrr. Replies go to our support team.</p>
-          </div>
-        ) : (
         <div
           className="flex-shrink-0 bg-white border-t border-gray-100"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
@@ -353,32 +351,33 @@ export default function ConversationPage() {
             </button>
           </form>
 
-          {/* Action links */}
-          <div className="flex items-center gap-4 px-5 pb-2.5">
-            <button
-              onClick={() => setShowReport(true)}
-              className="text-xs text-gray-400 hover:text-red-500 transition-colors"
-              style={{ minHeight: 32 }}
-            >
-              Report conversation
-            </button>
-            <button
-              onClick={() => toast('Blocking coming soon')}
-              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-              style={{ minHeight: 32 }}
-            >
-              Block
-            </button>
-            <button
-              onClick={shareNumber}
-              className="text-xs text-[#975536] hover:text-[#41271B] font-medium transition-colors ml-auto"
-              style={{ minHeight: 32 }}
-            >
-              Share my number
-            </button>
-          </div>
+          {/* Action links — hidden for direct/admin threads */}
+          {!isDirect && (
+            <div className="flex items-center gap-4 px-5 pb-2.5">
+              <button
+                onClick={() => setShowReport(true)}
+                className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                style={{ minHeight: 32 }}
+              >
+                Report conversation
+              </button>
+              <button
+                onClick={() => toast('Blocking coming soon')}
+                className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                style={{ minHeight: 32 }}
+              >
+                Block
+              </button>
+              <button
+                onClick={shareNumber}
+                className="text-xs text-[#975536] hover:text-[#41271B] font-medium transition-colors ml-auto"
+                style={{ minHeight: 32 }}
+              >
+                Share my number
+              </button>
+            </div>
+          )}
         </div>
-        )}
       </div>
 
       {/* Report modal */}

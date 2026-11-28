@@ -30,6 +30,35 @@ async function sendMessage(req, res, next) {
   }
 }
 
+// Any authenticated user replies in a direct (null-property) thread
+async function replyDirectMessage(req, res, next) {
+  try {
+    const { otherUserId } = req.params;
+    const { content } = req.body;
+    if (!content?.trim())
+      return res.status(400).json({ error: 'content required' });
+
+    const other = await prisma.user.findUnique({ where: { id: otherUserId } });
+    if (!other) return res.status(404).json({ error: 'Recipient not found' });
+
+    const message = await prisma.message.create({
+      data: { propertyId: null, senderId: req.user.id, receiverId: otherUserId, content: content.trim() },
+      include: { sender: { select: { id: true, name: true, role: true } } },
+    });
+
+    notifyMessage(otherUserId, {
+      senderName:    message.sender.name,
+      propertyTitle: null,
+      propertyId:    null,
+      senderId:      req.user.id,
+    }).catch(() => {});
+
+    res.status(201).json({ message });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // Admin direct message to a landlord (no property context)
 async function sendDirectMessage(req, res, next) {
   try {
@@ -183,7 +212,7 @@ async function getInbox(req, res, next) {
 }
 
 module.exports = {
-  sendMessage, sendDirectMessage,
+  sendMessage, sendDirectMessage, replyDirectMessage,
   getThread, getDirectThread,
   markRead, markDirectRead,
   getInbox,
