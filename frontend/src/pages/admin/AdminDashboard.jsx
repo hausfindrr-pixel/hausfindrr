@@ -621,7 +621,7 @@ function PendingLandlordsSection({ onCountChange }) {
       toast.success(`Landlord ${action}d`);
       setLandlords(prev => { const u = prev.filter(l => l.id !== id); onCountChange?.(u.length); return u; });
       setRejectTarget(null);
-    } catch { toast.error('Action failed'); }
+    } catch (err) { toast.error('Action failed: ' + (err.response?.data?.error || err.message || 'unknown')); }
     finally { setActing(null); }
   }
 
@@ -735,7 +735,7 @@ function PendingListingsSection({ onCountChange }) {
       toast.success(`Listing ${action}d`);
       setProperties(prev => { const u = prev.filter(p => p.id !== id); onCountChange?.(u.length); return u; });
       setRejectTarget(null);
-    } catch { toast.error('Action failed'); }
+    } catch (err) { toast.error('Action failed: ' + (err.response?.data?.error || err.message || 'unknown')); }
     finally { setActing(null); }
   }
 
@@ -954,7 +954,7 @@ function AllLandlordsSection() {
       const { data } = await api.patch(`/admin/landlords/${id}/suspend`);
       setLandlords(prev => prev.map(l => l.id === id ? { ...l, status: data.status } : l));
       toast.success(data.status === 'suspended' ? 'Landlord suspended' : 'Landlord reactivated');
-    } catch { toast.error('Action failed'); }
+    } catch (err) { toast.error('Action failed: ' + (err.response?.data?.error || err.message || 'unknown')); }
     finally { setActing(null); }
   }
 
@@ -982,7 +982,11 @@ function AllLandlordsSection() {
         : 'Verification revoked'
       );
       setRevokeTarget(null);
-    } catch { toast.error('Action failed'); }
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'unknown';
+      toast.error('Revoke failed: ' + msg);
+      console.error('[revoke]', err.response?.data || err);
+    }
     finally { setActing(null); }
   }
 
@@ -1188,7 +1192,7 @@ function AllListingsSection() {
       setProperties(prev => prev.map(p => p.id === id ? { ...p, status: data.property.status } : p));
       toast.success(`Listing ${action}d`);
       setRejectTarget(null);
-    } catch { toast.error('Action failed'); }
+    } catch (err) { toast.error('Action failed: ' + (err.response?.data?.error || err.message || 'unknown')); }
     finally { setActing(null); }
   }
 

@@ -146,7 +146,10 @@ async function revokeVerification(req, res, next) {
     });
 
     res.json({ status: updated.status, pausedCount });
-  } catch (err) { next(err); }
+  } catch (err) {
+    console.error('[revokeVerification]', err);
+    next(err);
+  }
 }
 
 async function getPendingProperties(req, res, next) {
