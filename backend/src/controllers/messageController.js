@@ -11,7 +11,7 @@ async function sendMessage(req, res, next) {
     const message = await prisma.message.create({
       data: { propertyId, senderId: req.user.id, receiverId, content: content.trim() },
       include: {
-        sender: { select: { id: true, name: true, role: true } },
+        sender: { select: { id: true, name: true, role: true, profilePhotoUrl: true } },
         property: { select: { title: true } },
       },
     });
@@ -44,7 +44,7 @@ async function replyDirectMessage(req, res, next) {
 
     const message = await prisma.message.create({
       data: { propertyId: null, senderId: req.user.id, receiverId: otherUserId, content: content.trim() },
-      include: { sender: { select: { id: true, name: true, role: true } } },
+      include: { sender: { select: { id: true, name: true, role: true, profilePhotoUrl: true } } },
     });
 
     notifyMessage(otherUserId, {
@@ -72,7 +72,7 @@ async function sendDirectMessage(req, res, next) {
 
     const message = await prisma.message.create({
       data: { propertyId: null, senderId: req.user.id, receiverId, content: content.trim() },
-      include: { sender: { select: { id: true, name: true, role: true } } },
+      include: { sender: { select: { id: true, name: true, role: true, profilePhotoUrl: true } } },
     });
     res.status(201).json({ message });
   } catch (err) {
@@ -91,7 +91,7 @@ async function getThread(req, res, next) {
           { senderId: otherUserId, receiverId: req.user.id },
         ],
       },
-      include: { sender: { select: { id: true, name: true, role: true } } },
+      include: { sender: { select: { id: true, name: true, role: true, profilePhotoUrl: true } } },
       orderBy: { sentAt: 'asc' },
     });
     res.json({ messages });
@@ -112,7 +112,7 @@ async function getDirectThread(req, res, next) {
           { senderId: otherUserId, receiverId: req.user.id },
         ],
       },
-      include: { sender: { select: { id: true, name: true, role: true } } },
+      include: { sender: { select: { id: true, name: true, role: true, profilePhotoUrl: true } } },
       orderBy: { sentAt: 'asc' },
     });
     res.json({ messages });
@@ -164,8 +164,8 @@ async function getInbox(req, res, next) {
         OR: [{ senderId: req.user.id }, { receiverId: req.user.id }],
       },
       include: {
-        sender:   { select: { id: true, name: true, role: true } },
-        receiver: { select: { id: true, name: true, role: true } },
+        sender:   { select: { id: true, name: true, role: true, profilePhotoUrl: true } },
+        receiver: { select: { id: true, name: true, role: true, profilePhotoUrl: true } },
         property: {
           select: {
             id: true, title: true, status: true,

@@ -207,6 +207,18 @@ export default function ConversationPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
+            {/* Other user avatar */}
+            <div className="w-9 h-9 rounded-full overflow-hidden bg-[#EDE0CE] flex items-center justify-center flex-shrink-0">
+              {isDirect ? (
+                <svg className="w-5 h-5 text-[#975536]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              ) : otherUser?.profilePhotoUrl ? (
+                <img src={otherUser.profilePhotoUrl} alt={tenantFirstName} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-sm font-bold text-[#975536]">{tenantFirstName[0]?.toUpperCase()}</span>
+              )}
+            </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-[#41271B] text-base leading-tight truncate">{tenantFirstName}</p>
               {listingTitle && (
@@ -281,8 +293,20 @@ export default function ConversationPage() {
           )}
           {messages.map(m => {
             const mine = m.senderId === user.id;
+            const senderPhoto = m.sender?.profilePhotoUrl;
+            const senderInitial = (m.sender?.name || otherUser?.name || '?')[0].toUpperCase();
             return (
-              <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+              <div key={m.id} className={`flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
+                {/* Avatar for other person's messages */}
+                {!mine && (
+                  <div className="w-7 h-7 rounded-full overflow-hidden bg-[#EDE0CE] flex items-center justify-center flex-shrink-0 mb-0.5">
+                    {senderPhoto ? (
+                      <img src={senderPhoto} alt={senderInitial} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xs font-bold text-[#975536]">{senderInitial}</span>
+                    )}
+                  </div>
+                )}
                 <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
                   mine
                     ? 'bg-[#975536] text-white rounded-br-sm'
