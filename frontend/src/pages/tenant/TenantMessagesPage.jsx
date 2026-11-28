@@ -23,14 +23,19 @@ export default function TenantMessagesPage() {
 
   const [loading, setLoading] = useState(true);
   const [threads, setThreads] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
   const [showFeedbackCard, setShowFeedbackCard] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const { data } = await api.get('/messages/inbox');
-      const all = data.threads || [];
+      const [inboxRes, annRes] = await Promise.all([
+        api.get('/messages/inbox'),
+        api.get('/announcements'),
+      ]);
+      const all = inboxRes.data.threads || [];
       const propertyThreads = all.filter(t => !t.isDirect);
       setThreads(propertyThreads);
+      setAnnouncements(annRes.data.announcements || []);
       refreshUnread(all);
       if (propertyThreads.length > 0 && shouldShowFeedback()) {
         setShowFeedbackCard(true);
@@ -67,7 +72,31 @@ export default function TenantMessagesPage() {
         className="max-w-4xl mx-auto px-4 py-4"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
       >
-        {threads.length === 0 ? (
+        {/* Admin announcements — read-only, no reply */}
+        {announcements.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1 mb-2">Announcements</p>
+            <div className="space-y-2">
+              {announcements.map(a => (
+                <div key={a.id} className="bg-white rounded-2xl px-4 py-3.5 shadow-sm border border-gray-50">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="w-6 h-6 rounded-lg bg-[#EDE0CE] flex items-center justify-center flex-shrink-0">
+                      <svg className="w-3.5 h-3.5 text-[#975536]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                      </svg>
+                    </div>
+                    <span className="text-xs font-semibold text-[#41271B]">HausFindrr</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#EDE0CE] text-[#975536]">Announcement</span>
+                    <span className="text-[11px] text-gray-300 ml-auto">{timeAgo(a.createdAt)}</span>
+                  </div>
+                  <p className="text-sm text-gray-700 leading-relaxed">{a.content}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {threads.length === 0 && announcements.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center shadow-sm mt-2">
             <div className="w-14 h-14 bg-[#EDE0CE] rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg className="w-7 h-7 text-[#975536]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,7 +108,7 @@ export default function TenantMessagesPage() {
               Message a landlord from any listing and your conversation will appear here.
             </p>
           </div>
-        ) : (
+        ) : threads.length > 0 ? (
           <>
             <div className="grid gap-2 md:grid-cols-2 md:gap-3">
               {threads.map(t => (
@@ -96,7 +125,7 @@ export default function TenantMessagesPage() {
               </div>
             )}
           </>
-        )}
+        ) : null}
       </div>
     </div>
   );
