@@ -235,8 +235,8 @@ async function relistProperty(req, res, next) {
 async function getListings(req, res, next) {
   try {
     const { type, location, minPrice, maxPrice, bedrooms, bathrooms, propertyType, amenities, tags, page = 1, limit = 12 } = req.query;
-    // Only show active listings (rented/draft/pending are hidden); exclude legacy sold flag
-    const where = { status: 'active', sold: false };
+    // Only show active listings (rented/draft/pending are hidden); exclude legacy sold flag and admin-paused listings
+    const where = { status: 'active', sold: false, revokedPause: false };
     if (type) where.listingType = type;
     if (propertyType) where.propertyType = propertyType;
     if (location) where.locationGeneral = { contains: location, mode: 'insensitive' };
@@ -293,8 +293,8 @@ async function getProperty(req, res, next) {
     const isOwner = req.user?.role === 'landlord' && req.user.id === property.landlordId;
     const isAdmin = req.user?.role === 'admin';
 
-    // Non-active listings are only visible to their owner or admin
-    if (property.status !== 'active' || property.sold) {
+    // Non-active or admin-paused listings are only visible to their owner or admin
+    if (property.status !== 'active' || property.sold || property.revokedPause) {
       if (!isOwner && !isAdmin) return res.status(404).json({ error: 'Property not available' });
     }
 

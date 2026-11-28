@@ -13,9 +13,10 @@ const ID_TYPE_OPTIONS = [
 ];
 
 const STATUS_INFO = {
-  active:               { label: 'Verified',         cls: 'bg-green-50 text-green-700 border-green-200' },
-  pending_verification: { label: 'Under review',     cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  active:               { label: 'Verified',          cls: 'bg-green-50 text-green-700 border-green-200' },
+  pending_verification: { label: 'Under review',      cls: 'bg-amber-50 text-amber-700 border-amber-200' },
   rejected:             { label: 'Verification failed', cls: 'bg-red-50 text-red-700 border-red-200' },
+  id_needed:            { label: 'ID needed',          cls: 'bg-orange-50 text-orange-700 border-orange-200' },
 };
 
 export default function LandlordDashboard() {
@@ -158,6 +159,73 @@ export default function LandlordDashboard() {
                     type="submit"
                     disabled={idLoading || !idFile}
                     className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {idLoading ? 'Uploading…' : 'Submit ID'}
+                  </button>
+                </div>
+              </form>
+            )}
+            <p className="text-xs text-gray-400 mt-3 text-center">
+              Questions? <a href="mailto:info@hausfindrr.com" className="underline">info@hausfindrr.com</a>
+            </p>
+          </div>
+        )}
+
+        {/* ID needed card — shown when admin revoked verification */}
+        {user?.status === 'id_needed' && (
+          <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 shadow-sm">
+            <p className="text-sm font-bold text-orange-800 mb-1">Please upload your ID to stay Verified</p>
+            {user.revocationReason && (
+              <p className="text-sm text-orange-700 leading-relaxed mb-2">{user.revocationReason}</p>
+            )}
+            <p className="text-xs text-gray-600 mb-3">Upload a clear photo of your passport, driver's licence or National ID to restore your Verified badge.</p>
+            {!showReupload ? (
+              <button
+                onClick={() => setShowReupload(true)}
+                className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold transition-colors"
+              >
+                Upload ID
+              </button>
+            ) : (
+              <form onSubmit={handleIdUpload} className="space-y-3">
+                <select
+                  value={idType}
+                  onChange={e => setIdType(e.target.value)}
+                  className="w-full border border-orange-200 rounded-xl px-3 py-2.5 text-sm bg-white text-[#41271B] focus:outline-none focus:ring-2 focus:ring-orange-400"
+                >
+                  {ID_TYPE_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <div
+                  className="border-2 border-dashed border-orange-300 rounded-xl p-4 text-center cursor-pointer hover:bg-orange-100/50 transition-colors"
+                  onClick={() => reuploadFileRef.current?.click()}
+                >
+                  {idFile ? (
+                    <p className="text-sm text-orange-800 font-medium truncate">{idFile.name}</p>
+                  ) : (
+                    <p className="text-sm text-orange-700">Tap to choose your ID document</p>
+                  )}
+                  <input
+                    ref={reuploadFileRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={e => setIdFile(e.target.files[0] || null)}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowReupload(false); setIdFile(null); }}
+                    className="flex-1 py-2.5 rounded-xl border border-orange-200 text-orange-700 text-sm font-medium transition-colors hover:bg-orange-100"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={idLoading || !idFile}
+                    className="flex-1 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
                   >
                     {idLoading ? 'Uploading…' : 'Submit ID'}
                   </button>

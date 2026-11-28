@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticate, requireRole } = require('../middleware/auth');
 const {
-  getPendingLandlords, verifyLandlord,
+  getPendingLandlords, verifyLandlord, revokeVerification,
   getPendingProperties, reviewProperty,
   getAllLandlords, getAllListings,
   getAnalytics,
@@ -23,6 +23,7 @@ router.use(authenticate, requireRole('admin'));
 
 router.get('/landlords/pending', getPendingLandlords);
 router.patch('/landlords/:id/verify', verifyLandlord);
+router.patch('/landlords/:id/revoke', revokeVerification);
 router.patch('/landlords/:id/suspend', suspendLandlord);
 router.delete('/landlords/:id', deleteLandlord);
 router.get('/landlords', getAllLandlords);

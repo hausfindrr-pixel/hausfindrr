@@ -18,6 +18,7 @@ enum UserStatus {
   active
   rejected
   suspended
+  id_needed
 }
 
 enum IdDocType {
@@ -68,9 +69,11 @@ model User {
   twoFactorBackupHash String?  @map("two_factor_backup_hash")
   accountCode      String?    @unique @map("account_code")
   rejectionReason  String?    @map("rejection_reason")
+  revocationReason String?    @map("revocation_reason")
   createdAt        DateTime   @default(now()) @map("created_at")
 
   landlordIdDocuments   LandlordIdDocument[]
+  verificationLogs      VerificationLog[]
   properties            Property[]
   favorites             Favorite[]
   sentMessages          Message[]      @relation("SentMessages")
@@ -138,6 +141,7 @@ model Property {
   metadata        Json?
   occupied        Boolean        @default(false)
   sold            Boolean        @default(false)
+  revokedPause    Boolean        @default(false) @map("revoked_pause")
   status          PropertyStatus @default(pending)
   rejectionReason String?        @map("rejection_reason")
   createdAt       DateTime       @default(now()) @map("created_at")
@@ -366,6 +370,22 @@ model FunnelEvent {
   @@index([campaign])
   @@index([happenedAt])
   @@map("funnel_events")
+}
+
+// Verification log — one row per landlord verification state change.
+model VerificationLog {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  adminId   String?  @map("admin_id")
+  action    String   // 'approved' | 'rejected' | 'revoked' | 'submitted'
+  reason    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("verification_logs")
 }
 
 // Daily unique-viewer summary per property — pre-aggregated for fast stats queries.

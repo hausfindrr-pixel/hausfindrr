@@ -351,10 +351,15 @@ async function completeProfile(req, res, next) {
         await prisma.funnelEvent.create({ data: { event: 'id_uploaded', campaign: null } });
       } catch {}
 
-      // Reset rejection state if landlord is re-uploading after a rejection
+      // Reset rejection/revocation state if landlord is re-uploading
       await prisma.user.updateMany({
-        where: { id: req.user.id, status: 'rejected' },
-        data: { status: 'pending_verification', rejectionReason: null },
+        where: { id: req.user.id, status: { in: ['rejected', 'id_needed'] } },
+        data: { status: 'pending_verification', rejectionReason: null, revocationReason: null },
+      });
+
+      // Log the submission
+      await prisma.verificationLog.create({
+        data: { userId: req.user.id, action: 'submitted' },
       });
 
       // Notify landlord: ID is under review

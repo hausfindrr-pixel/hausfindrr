@@ -51,8 +51,29 @@ async function verifyLandlord(req, res, next) {
     const status = action === 'approve' ? 'active' : 'rejected';
     const updateData = { status };
     if (action === 'reject') updateData.rejectionReason = reason || null;
-    if (action === 'approve') updateData.rejectionReason = null;
+    if (action === 'approve') {
+      updateData.rejectionReason = null;
+      updateData.revocationReason = null;
+    }
     const user = await prisma.user.update({ where: { id }, data: updateData });
+
+    // On approve: restore any listings paused by revocation
+    if (action === 'approve') {
+      await prisma.property.updateMany({
+        where: { landlordId: id, revokedPause: true },
+        data: { revokedPause: false },
+      });
+    }
+
+    // Log the action
+    await prisma.verificationLog.create({
+      data: {
+        userId: id,
+        adminId: req.user?.id || null,
+        action: action === 'approve' ? 'approved' : 'rejected',
+        reason: reason || null,
+      },
+    });
 
     if (action === 'approve') {
       notify(id, {
@@ -78,6 +99,53 @@ async function verifyLandlord(req, res, next) {
     }
 
     res.json({ user: { id: user.id, status: user.status } });
+  } catch (err) { next(err); }
+}
+
+async function revokeVerification(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { reason, pauseListings = false } = req.body;
+    if (!reason || !reason.trim())
+      return res.status(400).json({ error: 'reason is required' });
+
+    const landlord = await prisma.user.findUnique({ where: { id } });
+    if (!landlord || landlord.role !== 'landlord')
+      return res.status(404).json({ error: 'Landlord not found' });
+    if (landlord.status !== 'active')
+      return res.status(400).json({ error: 'Landlord is not currently verified' });
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { status: 'id_needed', revocationReason: reason.trim() },
+    });
+
+    let pausedCount = 0;
+    if (pauseListings) {
+      const { count } = await prisma.property.updateMany({
+        where: { landlordId: id, status: 'active' },
+        data: { revokedPause: true },
+      });
+      pausedCount = count;
+    }
+
+    await prisma.verificationLog.create({
+      data: {
+        userId: id,
+        adminId: req.user?.id || null,
+        action: 'revoked',
+        reason: reason.trim(),
+      },
+    });
+
+    notify(id, {
+      type:  'id_needed',
+      title: 'Please upload your ID to stay Verified',
+      body:  reason.trim(),
+      link:  '/landlord/dashboard',
+    });
+
+    res.json({ status: updated.status, pausedCount });
   } catch (err) { next(err); }
 }
 
@@ -144,6 +212,7 @@ async function getAllLandlords(req, res, next) {
       include: {
         landlordIdDocuments: true,
         properties: { select: { id: true, status: true } },
+        verificationLogs: { orderBy: { createdAt: 'desc' }, take: 10 },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -355,7 +424,7 @@ async function deleteLandlord(req, res, next) {
 }
 
 module.exports = {
-  getPendingLandlords, verifyLandlord,
+  getPendingLandlords, verifyLandlord, revokeVerification,
   getPendingProperties, reviewProperty,
   getAllLandlords, getAllListings,
   getAnalytics,

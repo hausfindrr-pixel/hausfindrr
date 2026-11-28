@@ -10,6 +10,7 @@ const STATUS_COLORS = {
   active:              'bg-green-100 text-green-700',
   rejected:            'bg-red-100 text-red-700',
   suspended:           'bg-gray-100 text-gray-500',
+  id_needed:           'bg-orange-100 text-orange-700',
   pending:             'bg-amber-100 text-amber-700',
   success:             'bg-green-100 text-green-700',
   failed:              'bg-red-100 text-red-700',
@@ -163,6 +164,49 @@ function RejectModal({ title, onConfirm, onCancel, variant = 'landlord' }) {
             onClick={() => onConfirm(reason.trim())}
           >
             Confirm Rejection
+          </button>
+          <button className="flex-1 btn-outline text-sm py-2.5" onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const REVOKE_DEFAULT_REASON = 'Please upload your ID so we can verify you again.';
+
+function RevokeModal({ landlordName, onConfirm, onCancel }) {
+  const [reason, setReason] = useState(REVOKE_DEFAULT_REASON);
+  const [pauseListings, setPauseListings] = useState(false);
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onCancel}>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+        <h3 className="font-bold text-gray-900 mb-1">Revoke verification</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          {landlordName ? `${landlordName}'s` : "This landlord's"} Verified badge will be hidden until they re-upload their ID.
+        </p>
+        <label className="block text-xs font-semibold text-gray-600 mb-1.5">Reason shown to landlord</label>
+        <textarea
+          className="input h-20 resize-none mb-4 text-sm"
+          value={reason}
+          onChange={e => setReason(e.target.value)}
+          autoFocus
+        />
+        <label className="flex items-start gap-2.5 cursor-pointer select-none mb-5">
+          <input
+            type="checkbox"
+            checked={pauseListings}
+            onChange={e => setPauseListings(e.target.checked)}
+            className="mt-0.5 w-4 h-4 accent-primary flex-shrink-0"
+          />
+          <span className="text-sm text-gray-700">Also pause listings (hide from Browse until re-verified)</span>
+        </label>
+        <div className="flex gap-3">
+          <button
+            className="flex-1 bg-orange-500 text-white py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors text-sm disabled:opacity-40"
+            disabled={!reason.trim()}
+            onClick={() => onConfirm(reason.trim(), pauseListings)}
+          >
+            Revoke verification
           </button>
           <button className="flex-1 btn-outline text-sm py-2.5" onClick={onCancel}>Cancel</button>
         </div>
@@ -895,6 +939,7 @@ function AllLandlordsSection() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [lightbox, setLightbox] = useState(null);
+  const [revokeTarget, setRevokeTarget] = useState(null); // { id, name }
 
   useEffect(() => {
     api.get('/admin/landlords')
@@ -924,6 +969,23 @@ function AllLandlordsSection() {
     finally { setActing(null); }
   }
 
+  async function revoke(id, reason, pauseListings) {
+    setActing(id + '_r');
+    try {
+      const { data } = await api.patch(`/admin/landlords/${id}/revoke`, { reason, pauseListings });
+      setLandlords(prev => prev.map(l => l.id === id
+        ? { ...l, status: data.status, revocationReason: reason }
+        : l
+      ));
+      toast.success(pauseListings && data.pausedCount > 0
+        ? `Verification revoked — ${data.pausedCount} listing${data.pausedCount !== 1 ? 's' : ''} paused`
+        : 'Verification revoked'
+      );
+      setRevokeTarget(null);
+    } catch { toast.error('Action failed'); }
+    finally { setActing(null); }
+  }
+
   const filtered = landlords.filter(l =>
     !search || l.name?.toLowerCase().includes(search.toLowerCase()) || l.email?.toLowerCase().includes(search.toLowerCase())
   );
@@ -931,6 +993,13 @@ function AllLandlordsSection() {
   return (
     <div className="space-y-5">
       {lightbox && <DocLightbox url={lightbox} onClose={() => setLightbox(null)} />}
+      {revokeTarget && (
+        <RevokeModal
+          landlordName={revokeTarget.name}
+          onConfirm={(reason, pauseListings) => revoke(revokeTarget.id, reason, pauseListings)}
+          onCancel={() => setRevokeTarget(null)}
+        />
+      )}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
@@ -988,12 +1057,21 @@ function AllLandlordsSection() {
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <StatusBadge status={l.status} />
-                        {l.landlordIdDocuments?.length > 0 && (
+                        {(l.landlordIdDocuments?.length > 0 || l.verificationLogs?.length > 0 || l.revocationReason) && (
                           <button
                             onClick={() => setExpandedId(expandedId === l.id ? null : l.id)}
                             className="text-xs px-3 py-1.5 rounded-lg border border-secondary/30 text-secondary hover:bg-secondary/5 transition-colors font-medium"
                           >
-                            ID {expandedId === l.id ? '▲' : '▼'}
+                            Details {expandedId === l.id ? '▲' : '▼'}
+                          </button>
+                        )}
+                        {l.status === 'active' && (
+                          <button
+                            onClick={() => setRevokeTarget({ id: l.id, name: l.name })}
+                            disabled={acting === l.id + '_r'}
+                            className="text-xs px-3 py-1.5 rounded-lg border border-orange-200 text-orange-600 hover:bg-orange-50 transition-colors font-medium"
+                          >
+                            {acting === l.id + '_r' ? '…' : 'Revoke'}
                           </button>
                         )}
                         <button
@@ -1015,27 +1093,66 @@ function AllLandlordsSection() {
                         </button>
                       </div>
                     </div>
-                    {expandedId === l.id && l.landlordIdDocuments?.length > 0 && (
-                      <div className="px-5 pb-4 pt-0">
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">ID Documents</p>
-                        <div className="flex flex-wrap gap-2">
-                          {l.landlordIdDocuments.map(d => {
-                            const isImg = /\.(jpg|jpeg|png|webp)$/i.test(d.filePath) || d.filePath.includes('/image/upload/');
-                            return (
-                              <button
-                                key={d.id}
-                                onClick={() => setLightbox(d.filePath)}
-                                className="flex items-center gap-1.5 text-xs bg-secondary/10 text-secondary hover:bg-secondary/20 px-3 py-2 rounded-xl transition-colors font-medium"
-                              >
-                                {isImg
-                                  ? <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                  : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                }
-                                {d.docType.replace(/_/g, ' ')}
-                              </button>
-                            );
-                          })}
-                        </div>
+                    {expandedId === l.id && (
+                      <div className="px-5 pb-4 pt-0 space-y-4">
+                        {/* Revocation reason */}
+                        {l.status === 'id_needed' && l.revocationReason && (
+                          <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
+                            <p className="text-xs font-semibold text-orange-700 mb-0.5">Revocation reason (shown to landlord)</p>
+                            <p className="text-sm text-orange-800">{l.revocationReason}</p>
+                          </div>
+                        )}
+
+                        {/* ID Documents */}
+                        {l.landlordIdDocuments?.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">ID Documents</p>
+                            <div className="flex flex-wrap gap-2">
+                              {l.landlordIdDocuments.map(d => {
+                                const isImg = /\.(jpg|jpeg|png|webp)$/i.test(d.filePath) || d.filePath.includes('/image/upload/');
+                                return (
+                                  <button
+                                    key={d.id}
+                                    onClick={() => setLightbox(d.filePath)}
+                                    className="flex items-center gap-1.5 text-xs bg-secondary/10 text-secondary hover:bg-secondary/20 px-3 py-2 rounded-xl transition-colors font-medium"
+                                  >
+                                    {isImg
+                                      ? <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                      : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                    }
+                                    {d.docType.replace(/_/g, ' ')}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Verification history */}
+                        {l.verificationLogs?.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Verification history</p>
+                            <div className="space-y-1.5">
+                              {l.verificationLogs.map(log => {
+                                const colorMap = {
+                                  approved: 'text-green-600',
+                                  rejected: 'text-red-500',
+                                  revoked:  'text-orange-600',
+                                  submitted: 'text-blue-500',
+                                };
+                                return (
+                                  <div key={log.id} className="flex items-start gap-2 text-xs">
+                                    <span className={`font-semibold capitalize flex-shrink-0 ${colorMap[log.action] || 'text-gray-500'}`}>
+                                      {log.action}
+                                    </span>
+                                    {log.reason && <span className="text-gray-500 truncate">{log.reason}</span>}
+                                    <span className="text-gray-400 flex-shrink-0 ml-auto">{timeAgo(log.createdAt)}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

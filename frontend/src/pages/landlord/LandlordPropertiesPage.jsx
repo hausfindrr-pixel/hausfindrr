@@ -89,6 +89,7 @@ export default function LandlordPropertiesPage() {
   const isVerified = user?.status === 'active';
   const isPending  = user?.status === 'pending_verification';
   const isRejected = user?.status === 'rejected';
+  const isIdNeeded = user?.status === 'id_needed';
 
   return (
     <div className="min-h-dvh bg-[#F5F0EB]" onClick={() => { setMenuOpen(null); }}>
@@ -144,6 +145,20 @@ export default function LandlordPropertiesPage() {
               <p className="text-xs text-red-700 mt-0.5">Go to your Account to see the reason and upload a new document.</p>
               <Link to="/landlord/dashboard" className="inline-block mt-2 text-xs font-semibold text-red-700 underline underline-offset-2">
                 Upload ID again →
+              </Link>
+            </div>
+          </div>
+        )}
+        {isIdNeeded && (
+          <div className="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
+            <svg className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-orange-800">Please upload your ID to stay Verified</p>
+              <p className="text-xs text-orange-700 mt-0.5">Your Verified badge is hidden until you re-upload your ID document.</p>
+              <Link to="/landlord/dashboard" className="inline-block mt-2 text-xs font-semibold text-orange-700 underline underline-offset-2">
+                Upload ID →
               </Link>
             </div>
           </div>
