@@ -14,7 +14,7 @@ function normaliseEmail(raw) {
 }
 
 // Normalise a PNG mobile number to +675XXXXXXXX (8 digits after country code).
-// Accepts: 79597055, 7959 7055, +675 79597055, 675 79597055.
+// Accepts: 70000000, 7000 0000, +675 70000000, 675 70000000.
 // Returns the normalised string on success, or null on failure.
 function normalisePngPhone(raw) {
   if (!raw || typeof raw !== 'string') return null;
@@ -170,7 +170,7 @@ async function registerLandlord(req, res, next) {
 
     const normalisedPhone = normalisePngPhone(phone);
     if (!normalisedPhone)
-      return res.status(400).json({ error: 'Please enter a valid PNG mobile number (e.g. 79597055)' });
+      return res.status(400).json({ error: 'Please enter a valid PNG mobile number (e.g. 70000000)' });
 
     const safeName  = clamp(name, 100);
     const safePhone = normalisedPhone;

@@ -45,7 +45,7 @@ export default function LandlordRegister() {
     if (!agreed) return toast.error('Please accept the agreement to continue');
     if (form.password.length < 8) return toast.error('Password must be at least 8 characters');
     const phone = normalisePngPhone(form.phone);
-    if (!phone) return toast.error('Please enter a valid PNG mobile number (e.g. 79597055)');
+    if (!phone) return toast.error('Please enter a valid PNG mobile number (e.g. 70000000)');
     setLoading(true);
     try {
       const campaign = utmCampaign || sessionStorage.getItem('hf_campaign') || null;
@@ -127,11 +127,11 @@ export default function LandlordRegister() {
                 className="input"
                 type="tel"
                 required
-                placeholder="79597055"
+                placeholder="70000000"
                 value={form.phone}
                 onChange={set('phone')}
               />
-              <p className="text-xs text-gray-400 mt-1">PNG mobile number, e.g. 79597055 or +675 79597055</p>
+              <p className="text-xs text-gray-400 mt-1">PNG mobile number, e.g. 70000000 or +675 70000000</p>
             </div>
 
             <div>
