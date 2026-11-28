@@ -40,6 +40,7 @@ async function replyDirectMessage(req, res, next) {
 
     const other = await prisma.user.findUnique({ where: { id: otherUserId } });
     if (!other) return res.status(404).json({ error: 'Recipient not found' });
+    if (other.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
 
     const message = await prisma.message.create({
       data: { propertyId: null, senderId: req.user.id, receiverId: otherUserId, content: content.trim() },
