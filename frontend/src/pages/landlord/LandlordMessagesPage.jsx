@@ -30,16 +30,19 @@ export default function LandlordMessagesPage() {
   const [loading, setLoading] = useState(true);
   const [threads, setThreads] = useState([]);
   const [properties, setProperties] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
 
   const load = useCallback(async () => {
     try {
-      const [inboxRes, propsRes] = await Promise.all([
+      const [inboxRes, propsRes, annRes] = await Promise.all([
         api.get('/messages/inbox'),
         api.get('/properties/my'),
+        api.get('/announcements'),
       ]);
       const fetchedThreads = inboxRes.data.threads || [];
       setThreads(fetchedThreads);
       setProperties(propsRes.data.properties || []);
+      setAnnouncements(annRes.data.announcements || []);
       refreshUnread(fetchedThreads);
     } catch {
       // keep empty state
@@ -97,30 +100,60 @@ export default function LandlordMessagesPage() {
         className="max-w-2xl mx-auto px-4 py-4"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
       >
-        {/* Admin / support direct messages */}
-        {directThreads.length > 0 && (
-          <div className="mb-3 space-y-2">
-            {directThreads.map(t => (
-              <DirectMessageRow
-                key={t.otherUser?.id}
-                thread={t}
-                onPress={() => navigate(`/conversation/direct/${t.otherUser.id}`)}
-              />
-            ))}
+        {/* Admin announcements — read-only, no reply */}
+        {announcements.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1 mb-2">Announcements</p>
+            <div className="space-y-2">
+              {announcements.map(a => (
+                <div key={a.id} className="bg-white rounded-2xl px-4 py-3.5 shadow-sm border border-gray-50">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="w-6 h-6 rounded-lg bg-[#EDE0CE] flex items-center justify-center flex-shrink-0">
+                      <svg className="w-3.5 h-3.5 text-[#975536]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                      </svg>
+                    </div>
+                    <span className="text-xs font-semibold text-[#41271B]">HausFindrr</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#EDE0CE] text-[#975536]">Announcement</span>
+                    <span className="text-[11px] text-gray-300 ml-auto">{timeAgo(a.createdAt)}</span>
+                  </div>
+                  <p className="text-sm text-gray-700 leading-relaxed">{a.content}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {groups.length === 0 && directThreads.length === 0 ? (
+        {/* Admin direct conversation — can reply */}
+        {directThreads.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1 mb-2">Support</p>
+            <div className="space-y-2">
+              {directThreads.map(t => (
+                <DirectMessageRow
+                  key={t.otherUser?.id}
+                  thread={t}
+                  onPress={() => navigate(`/conversation/direct/${t.otherUser.id}`)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {groups.length === 0 && directThreads.length === 0 && announcements.length === 0 ? (
           <EmptyState />
         ) : groups.length > 0 ? (
-          <div className="space-y-2">
-            {groups.map(group => (
-              <PropertyRow
-                key={group.property.id}
-                group={group}
-                onPress={() => navigate(`/landlord/messages/${group.property.id}`)}
-              />
-            ))}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-1 mb-2">Your listings</p>
+            <div className="space-y-2">
+              {groups.map(group => (
+                <PropertyRow
+                  key={group.property.id}
+                  group={group}
+                  onPress={() => navigate(`/landlord/messages/${group.property.id}`)}
+                />
+              ))}
+            </div>
           </div>
         ) : null}
       </div>
