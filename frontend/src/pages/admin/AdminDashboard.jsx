@@ -931,10 +931,21 @@ function PendingListingsSection({ onCountChange }) {
 }
 
 // ─── All Landlords ────────────────────────────────────────────────────────────
+const STAGE_LABELS = {
+  no_id:       'No ID',
+  under_review:'Under Review',
+  rejected:    'Rejected',
+  id_needed:   'ID Needed',
+  no_listing:  'No Listing',
+  live:        'Live',
+  suspended:   'Suspended',
+};
+
 function AllLandlordsSection() {
   const [landlords, setLandlords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [stageFilter, setStageFilter] = useState('all');
   const [acting, setActing] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
@@ -990,9 +1001,11 @@ function AllLandlordsSection() {
     finally { setActing(null); }
   }
 
-  const filtered = landlords.filter(l =>
-    !search || l.name?.toLowerCase().includes(search.toLowerCase()) || l.email?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = landlords.filter(l => {
+    if (search && !l.name?.toLowerCase().includes(search.toLowerCase()) && !l.email?.toLowerCase().includes(search.toLowerCase())) return false;
+    if (stageFilter !== 'all' && l.onboardingStage !== stageFilter) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-5">
@@ -1033,6 +1046,21 @@ function AllLandlordsSection() {
           <input className="input pl-9 pr-4 py-2.5 text-sm w-full sm:w-64" placeholder="Search name or email…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
+      <div className="flex flex-wrap gap-2">
+        {['all', ...Object.keys(STAGE_LABELS)].map(s => (
+          <button
+            key={s}
+            onClick={() => setStageFilter(s)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+              stageFilter === s
+                ? 'bg-primary text-white border-primary'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-primary/40'
+            }`}
+          >
+            {s === 'all' ? 'All' : STAGE_LABELS[s]}
+          </button>
+        ))}
+      </div>
 
       {loading
         ? <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-16 bg-gray-100 animate-pulse rounded-2xl" />)}</div>
@@ -1061,6 +1089,11 @@ function AllLandlordsSection() {
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <StatusBadge status={l.status} />
+                        {l.onboardingStage && STAGE_LABELS[l.onboardingStage] && (
+                          <span className="text-[11px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                            {STAGE_LABELS[l.onboardingStage]}
+                          </span>
+                        )}
                         {(l.landlordIdDocuments?.length > 0 || l.verificationLogs?.length > 0 || l.revocationReason) && (
                           <button
                             onClick={() => setExpandedId(expandedId === l.id ? null : l.id)}

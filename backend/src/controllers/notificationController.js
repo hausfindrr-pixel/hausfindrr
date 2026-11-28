@@ -81,7 +81,7 @@ async function getNotificationSettings(req, res, next) {
 
 async function updateNotificationSettings(req, res, next) {
   try {
-    const allowed = ['pushMessages', 'pushVerification', 'pushListings', 'emailVerification', 'emailListingUpdates'];
+    const allowed = ['pushMessages', 'pushVerification', 'pushListings', 'emailVerification', 'emailListingUpdates', 'setupReminders'];
     const data = {};
     for (const key of allowed) {
       if (typeof req.body[key] === 'boolean') data[key] = req.body[key];

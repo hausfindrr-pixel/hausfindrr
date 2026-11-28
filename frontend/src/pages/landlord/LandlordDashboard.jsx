@@ -5,6 +5,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import FeedbackSheet from '../../components/shared/FeedbackBubble';
 import PushPromptCard from '../../components/shared/PushPromptCard';
+import OnboardingNudge from '../../components/shared/OnboardingNudge';
 
 const ID_TYPE_OPTIONS = [
   { value: 'passport',        label: 'Passport' },
@@ -72,6 +73,7 @@ export default function LandlordDashboard() {
         className="max-w-2xl mx-auto px-4 py-6 space-y-4"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
       >
+        <OnboardingNudge user={user} />
         {/* Profile card */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
           <div className="flex items-center gap-4 mb-4">
@@ -348,6 +350,21 @@ export default function LandlordDashboard() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>
+
+        {/* Notification settings */}
+        <Link
+          to="/notifications/settings"
+          className="bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors"
+          style={{ minHeight: 56 }}
+        >
+          <svg className="w-5 h-5 text-[#975536] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          <span className="flex-1 text-sm font-medium text-[#41271B]">Notification settings</span>
+          <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </Link>
 
         {/* Legal */}
         <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 divide-y divide-gray-50">

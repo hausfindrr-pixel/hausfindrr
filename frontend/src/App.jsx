@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { MessagesProvider } from './context/MessagesContext';
 import { NotificationsProvider } from './context/NotificationsContext';
 import BottomNav from './components/shared/BottomNav';
+import PushPermissionModal from './components/shared/PushPermissionModal';
 import NotificationsPage from './pages/NotificationsPage';
 import NotificationSettingsPage from './pages/NotificationSettingsPage';
 
@@ -128,6 +129,7 @@ export default function App() {
         <MessagesProvider>
           <AppRoutes />
           <BottomNav />
+          <PushPermissionModal />
         </MessagesProvider>
       </NotificationsProvider>
     </AuthProvider>

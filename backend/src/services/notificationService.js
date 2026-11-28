@@ -12,11 +12,14 @@ const PUSH_CATEGORY = {
   id_rejected:          'pushVerification',
   id_deleted:           'pushVerification',
   listing_live:         'pushListings',
+  listing_first_live:   'pushListings',
   listing_removed:      'pushListings',
   listing_rented:       'pushListings',
   saved_listing_rented: 'pushListings',
   saved_listing_removed:'pushListings',
   message_new:          'pushMessages',
+  reminder_id:          'pushVerification',
+  reminder_listing:     'pushListings',
 };
 const EMAIL_CATEGORY = {
   id_approved:     'emailVerification',
@@ -135,4 +138,75 @@ async function notifyAdmin(type, title, body, link) {
   }
 }
 
-module.exports = { notify, notifyMessage, notifyFavoriteWatchers, notifyAdmin, getSettings };
+async function runOnboardingReminders() {
+  try {
+    const now = new Date();
+    // Port Moresby UTC+10: quiet hours 9pm–7am PMT = 11:00–21:00 UTC
+    const utcHour = now.getUTCHours();
+    if (utcHour >= 11 && utcHour < 21) return;
+
+    const SCHEDULE = [1, 3, 7];
+    const MAX = 3;
+
+    // ID upload reminders
+    const noIdCandidates = await prisma.user.findMany({
+      where: { role: 'landlord', status: 'pending_verification', idReminderCount: { lt: MAX } },
+      include: {
+        landlordIdDocuments: { select: { id: true }, take: 1 },
+        notificationSettings: { select: { setupReminders: true } },
+      },
+    });
+    for (const u of noIdCandidates) {
+      if (u.landlordIdDocuments.length > 0) continue;
+      if (u.notificationSettings?.setupReminders === false) continue;
+      const daysSince = Math.floor((now - u.createdAt) / 86400000);
+      if (daysSince < SCHEDULE[u.idReminderCount]) continue;
+      if (u.idReminderSentAt && (now - u.idReminderSentAt) < 23 * 3600000) continue;
+      await notify(u.id, {
+        type: 'reminder_id',
+        title: 'Upload your ID to get Verified',
+        body: 'Your ID is needed before you can list properties on HausFindrr.',
+        link: '/landlord/dashboard',
+      });
+      await prisma.user.update({
+        where: { id: u.id },
+        data: { idReminderCount: { increment: 1 }, idReminderSentAt: now },
+      });
+    }
+
+    // Listing reminders
+    const noListingCandidates = await prisma.user.findMany({
+      where: {
+        role: 'landlord',
+        status: 'active',
+        firstVerifiedAt: { not: null },
+        listingReminderCount: { lt: MAX },
+      },
+      include: {
+        properties: { where: { status: 'active' }, select: { id: true }, take: 1 },
+        notificationSettings: { select: { setupReminders: true } },
+      },
+    });
+    for (const u of noListingCandidates) {
+      if (u.properties.length > 0) continue;
+      if (u.notificationSettings?.setupReminders === false) continue;
+      const daysSince = Math.floor((now - u.firstVerifiedAt) / 86400000);
+      if (daysSince < SCHEDULE[u.listingReminderCount]) continue;
+      if (u.listingReminderSentAt && (now - u.listingReminderSentAt) < 23 * 3600000) continue;
+      await notify(u.id, {
+        type: 'reminder_listing',
+        title: 'List your first property',
+        body: "You're verified on HausFindrr — add your first listing to reach tenants.",
+        link: '/landlord/properties',
+      });
+      await prisma.user.update({
+        where: { id: u.id },
+        data: { listingReminderCount: { increment: 1 }, listingReminderSentAt: now },
+      });
+    }
+  } catch (err) {
+    console.error('[runOnboardingReminders] error:', err.message);
+  }
+}
+
+module.exports = { notify, notifyMessage, notifyFavoriteWatchers, notifyAdmin, getSettings, runOnboardingReminders };
