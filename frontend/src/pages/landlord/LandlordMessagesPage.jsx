@@ -50,7 +50,8 @@ export default function LandlordMessagesPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Build grouped structure
+  // Split direct (admin) threads from property threads
+  const directThreads = threads.filter(t => t.isDirect);
   const propertyThreads = threads.filter(t => !t.isDirect);
 
   // Map threads onto properties; include all properties (even those with no threads)
@@ -96,9 +97,22 @@ export default function LandlordMessagesPage() {
         className="max-w-2xl mx-auto px-4 py-4"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}
       >
-        {groups.length === 0 ? (
+        {/* Admin / support direct messages */}
+        {directThreads.length > 0 && (
+          <div className="mb-3 space-y-2">
+            {directThreads.map(t => (
+              <DirectMessageRow
+                key={t.otherUser?.id}
+                thread={t}
+                onPress={() => navigate(`/conversation/direct/${t.otherUser.id}`)}
+              />
+            ))}
+          </div>
+        )}
+
+        {groups.length === 0 && directThreads.length === 0 ? (
           <EmptyState />
-        ) : (
+        ) : groups.length > 0 ? (
           <div className="space-y-2">
             {groups.map(group => (
               <PropertyRow
@@ -108,9 +122,54 @@ export default function LandlordMessagesPage() {
               />
             ))}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
+  );
+}
+
+function DirectMessageRow({ thread, onPress }) {
+  const hasUnread = thread.unreadCount > 0;
+  return (
+    <button
+      onClick={onPress}
+      className="w-full bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-50 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
+      style={{ minHeight: 72 }}
+    >
+      <div className="flex items-center gap-3 px-4 py-3.5">
+        <div className="w-12 h-12 rounded-xl bg-[#EDE0CE] flex items-center justify-center flex-shrink-0">
+          <svg className="w-6 h-6 text-[#975536]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <p className={`text-sm truncate ${hasUnread ? 'font-semibold text-[#41271B]' : 'font-medium text-gray-700'}`}>
+              HausFindrr Support
+            </p>
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#EDE0CE] text-[#975536] flex-shrink-0">Official</span>
+            {hasUnread && <span className="w-2 h-2 rounded-full bg-[#975536] flex-shrink-0" />}
+          </div>
+          <p className={`text-xs truncate ${hasUnread ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
+            {thread.latestMessage?.content || 'Message from HausFindrr'}
+          </p>
+        </div>
+        <div className="flex-shrink-0 flex flex-col items-end gap-1">
+          {thread.latestMessage?.sentAt && (
+            <p className="text-[11px] text-gray-400">{timeAgo(thread.latestMessage.sentAt)}</p>
+          )}
+          {hasUnread ? (
+            <span className="w-5 h-5 rounded-full bg-[#975536] text-white text-[11px] font-bold flex items-center justify-center">
+              {thread.unreadCount > 9 ? '9+' : thread.unreadCount}
+            </span>
+          ) : (
+            <svg className="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          )}
+        </div>
+      </div>
+    </button>
   );
 }
 

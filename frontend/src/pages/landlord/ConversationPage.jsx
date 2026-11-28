@@ -77,11 +77,16 @@ export default function ConversationPage() {
     }
   }, [propertyId]);
 
-  useEffect(() => {
-    const bannerKey = SAFETY_KEY(propertyId, otherUserId);
-    setShowBanner(!localStorage.getItem(bannerKey));
+  const isDirect = propertyId === 'direct';
 
-    Promise.all([fetchMessages(true), fetchProperty()]).finally(() => setLoading(false));
+  useEffect(() => {
+    if (!isDirect) {
+      const bannerKey = SAFETY_KEY(propertyId, otherUserId);
+      setShowBanner(!localStorage.getItem(bannerKey));
+    }
+
+    const tasks = isDirect ? [fetchMessages(true)] : [fetchMessages(true), fetchProperty()];
+    Promise.all(tasks).finally(() => setLoading(false));
 
     // Poll every 5 seconds
     pollRef.current = setInterval(() => fetchMessages(false), 5000);
@@ -161,13 +166,13 @@ export default function ConversationPage() {
     }
   }
 
-  const tenantFirstName = (otherUser?.name || 'Tenant').split(' ')[0];
-  const listingTitle = property?.title || '';
+  const tenantFirstName = isDirect ? 'HausFindrr Support' : (otherUser?.name || 'Tenant').split(' ')[0];
+  const listingTitle = isDirect ? '' : (property?.title || '');
   const isLandlord = user?.role === 'landlord';
   const isTenant = user?.role === 'tenant';
-  const quickReplies = isLandlord
+  const quickReplies = isDirect ? [] : (isLandlord
     ? LANDLORD_QUICK_REPLIES
-    : (isTenant && messages.length === 0 ? TENANT_QUICK_STARTERS : []);
+    : (isTenant && messages.length === 0 ? TENANT_QUICK_STARTERS : []));
 
   if (loading) {
     return (
@@ -206,7 +211,7 @@ export default function ConversationPage() {
         </header>
 
         {/* Safety banner */}
-        {showBanner && (
+        {!isDirect && showBanner && (
           <div className="flex-shrink-0 bg-amber-50 border-b border-amber-100 px-4 py-3 flex items-start gap-3">
             <svg className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -223,7 +228,7 @@ export default function ConversationPage() {
         )}
 
         {/* Tenant: small listing card linking back to the listing */}
-        {isTenant && property && (
+        {!isDirect && isTenant && property && (
           <div className="flex-shrink-0 px-4 py-2 border-b border-gray-100 bg-white">
             <Link
               to={`/property/${propertyId}`}
@@ -289,6 +294,14 @@ export default function ConversationPage() {
         </div>
 
         {/* Input bar — pinned at the bottom, sits above keyboard on iOS */}
+        {isDirect ? (
+          <div
+            className="flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3 text-center"
+            style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+          >
+            <p className="text-xs text-gray-400">This is an official message from HausFindrr. Replies go to our support team.</p>
+          </div>
+        ) : (
         <div
           className="flex-shrink-0 bg-white border-t border-gray-100"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
@@ -365,10 +378,11 @@ export default function ConversationPage() {
             </button>
           </div>
         </div>
+        )}
       </div>
 
       {/* Report modal */}
-      {showReport && (
+      {!isDirect && showReport && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm"
           onClick={e => e.target === e.currentTarget && setShowReport(false)}
