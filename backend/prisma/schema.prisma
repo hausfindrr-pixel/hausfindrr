@@ -75,6 +75,7 @@ model User {
   idReminderSentAt     DateTime? @map("id_reminder_sent_at")
   listingReminderCount Int       @default(0) @map("listing_reminder_count")
   listingReminderSentAt DateTime? @map("listing_reminder_sent_at")
+  profilePhotoUrl      String?   @map("profile_photo_url")
   createdAt            DateTime  @default(now()) @map("created_at")
 
   landlordIdDocuments   LandlordIdDocument[]

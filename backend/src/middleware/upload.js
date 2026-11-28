@@ -49,6 +49,12 @@ const photoUpload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
+const avatarUpload = multer({
+  storage: makePublicStorage('avatars'),
+  fileFilter: (req, file, cb) => cb(null, ALLOWED_PHOTO_TYPES.includes(file.mimetype)),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
 const propertyUpload = multer({
   storage: new CloudinaryStorage({
     cloudinary,
@@ -79,4 +85,4 @@ const propertyUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-module.exports = { cloudinary, documentUpload, photoUpload, propertyUpload };
+module.exports = { cloudinary, documentUpload, photoUpload, propertyUpload, avatarUpload };

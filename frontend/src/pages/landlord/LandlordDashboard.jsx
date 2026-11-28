@@ -29,8 +29,41 @@ export default function LandlordDashboard() {
   const [idFile, setIdFile] = useState(null);
   const [idLoading, setIdLoading] = useState(false);
   const [showReupload, setShowReupload] = useState(false);
+  const [photoLoading, setPhotoLoading] = useState(false);
   const fileRef = useRef(null);
   const reuploadFileRef = useRef(null);
+  const avatarFileRef = useRef(null);
+
+  async function handleAvatarChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append('photo', file);
+      await api.post('/auth/profile-photo', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await refreshUser();
+      toast.success('Profile photo updated');
+    } catch {
+      toast.error('Upload failed. Please try again.');
+    } finally {
+      setPhotoLoading(false);
+      e.target.value = '';
+    }
+  }
+
+  async function handleRemovePhoto() {
+    setPhotoLoading(true);
+    try {
+      await api.delete('/auth/profile-photo');
+      await refreshUser();
+      toast.success('Photo removed');
+    } catch {
+      toast.error('Failed to remove photo');
+    } finally {
+      setPhotoLoading(false);
+    }
+  }
 
   useEffect(() => {
     api.get('/notifications').then(r => setNotifications(r.data.notifications || [])).catch(() => {});
@@ -77,14 +110,49 @@ export default function LandlordDashboard() {
         {/* Profile card */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-14 h-14 rounded-full bg-[#975536] flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
-              {user?.name?.[0]?.toUpperCase() || 'L'}
+            {/* Tappable avatar */}
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={() => avatarFileRef.current?.click()}
+                disabled={photoLoading}
+                className="w-14 h-14 rounded-full overflow-hidden bg-[#975536] flex items-center justify-center text-white text-xl font-bold focus:outline-none"
+              >
+                {user?.profilePhotoUrl ? (
+                  <img src={user.profilePhotoUrl} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  photoLoading ? (
+                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                  ) : (
+                    user?.name?.[0]?.toUpperCase() || 'L'
+                  )
+                )}
+              </button>
+              {/* Camera overlay */}
+              <button
+                onClick={() => avatarFileRef.current?.click()}
+                disabled={photoLoading}
+                className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm"
+              >
+                <svg className="w-3 h-3 text-[#975536]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+              <input ref={avatarFileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarChange} />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-[#41271B] text-base truncate">{user?.name}</p>
               <p className="text-sm text-gray-500 truncate">{user?.email}</p>
               {user?.accountCode && (
                 <p className="text-xs text-gray-400 font-mono mt-0.5">ID: {user.accountCode}</p>
+              )}
+              {user?.profilePhotoUrl && (
+                <button onClick={handleRemovePhoto} className="text-xs text-gray-400 mt-0.5 hover:text-red-500 transition-colors">
+                  Remove photo
+                </button>
               )}
             </div>
           </div>
