@@ -26,7 +26,9 @@ export default function LandlordDashboard() {
   const [idType, setIdType] = useState('passport');
   const [idFile, setIdFile] = useState(null);
   const [idLoading, setIdLoading] = useState(false);
+  const [showReupload, setShowReupload] = useState(false);
   const fileRef = useRef(null);
+  const reuploadFileRef = useRef(null);
 
   useEffect(() => {
     api.get('/notifications').then(r => setNotifications(r.data.notifications || [])).catch(() => {});
@@ -39,15 +41,16 @@ export default function LandlordDashboard() {
     if (!idFile) return toast.error('Please select a file');
     setIdLoading(true);
     try {
-      const form = new FormData();
-      form.append('id_type', idType);
-      form.append('id_document', idFile);
-      await api.post('/auth/complete-profile', form, {
+      const fd = new FormData();
+      fd.append('id_type', idType);
+      fd.append('id_document', idFile);
+      await api.post('/auth/complete-profile', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       await refreshUser();
       toast.success('ID uploaded — your account is under review');
       setIdFile(null);
+      setShowReupload(false);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Upload failed. Please try again.');
     } finally {
@@ -98,18 +101,80 @@ export default function LandlordDashboard() {
               Your ID is under review. You'll be able to list properties once verified — usually 1–2 business days.
             </p>
           )}
-          {user?.status === 'rejected' && (
-            <p className="text-xs text-red-700 mt-3 leading-relaxed">
-              Verification failed. Contact us at <a href="mailto:info@hausfindrr.com" className="underline">info@hausfindrr.com</a>.
-            </p>
-          )}
         </div>
+
+        {/* Rejection card — shown when ID was rejected */}
+        {user?.status === 'rejected' && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-5 shadow-sm">
+            <p className="text-sm font-bold text-red-800 mb-1">We couldn't verify your ID</p>
+            {user.rejectionReason && (
+              <p className="text-sm text-red-700 leading-relaxed mb-2">{user.rejectionReason}</p>
+            )}
+            <p className="text-xs text-gray-600 mb-3">Please upload a new, clearer photo of your ID document and resubmit for review.</p>
+            {!showReupload ? (
+              <button
+                onClick={() => setShowReupload(true)}
+                className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors"
+              >
+                Upload ID again
+              </button>
+            ) : (
+              <form onSubmit={handleIdUpload} className="space-y-3">
+                <select
+                  value={idType}
+                  onChange={e => setIdType(e.target.value)}
+                  className="w-full border border-red-200 rounded-xl px-3 py-2.5 text-sm bg-white text-[#41271B] focus:outline-none focus:ring-2 focus:ring-red-400"
+                >
+                  {ID_TYPE_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <div
+                  className="border-2 border-dashed border-red-300 rounded-xl p-4 text-center cursor-pointer hover:bg-red-100/50 transition-colors"
+                  onClick={() => reuploadFileRef.current?.click()}
+                >
+                  {idFile ? (
+                    <p className="text-sm text-red-800 font-medium truncate">{idFile.name}</p>
+                  ) : (
+                    <p className="text-sm text-red-700">Tap to choose a new ID photo</p>
+                  )}
+                  <input
+                    ref={reuploadFileRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={e => setIdFile(e.target.files[0] || null)}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowReupload(false); setIdFile(null); }}
+                    className="flex-1 py-2.5 rounded-xl border border-red-200 text-red-700 text-sm font-medium transition-colors hover:bg-red-100"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={idLoading || !idFile}
+                    className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {idLoading ? 'Uploading…' : 'Submit ID'}
+                  </button>
+                </div>
+              </form>
+            )}
+            <p className="text-xs text-gray-400 mt-3 text-center">
+              Questions? <a href="mailto:info@hausfindrr.com" className="underline">info@hausfindrr.com</a>
+            </p>
+          </div>
+        )}
 
         {/* Push prompt — shown to verified landlords who haven't granted/denied yet */}
         {user?.status === 'active' && <PushPromptCard />}
 
         {/* ID upload banner — shown until profileComplete */}
-        {user?.profileComplete === false && (
+        {user?.profileComplete === false && user?.status !== 'rejected' && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 shadow-sm">
             <div className="flex items-start gap-3 mb-4">
               <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

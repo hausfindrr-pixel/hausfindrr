@@ -66,8 +66,9 @@ model User {
   twoFactorSecret     String?  @map("two_factor_secret")
   twoFactorEnabled    Boolean  @default(false) @map("two_factor_enabled")
   twoFactorBackupHash String?  @map("two_factor_backup_hash")
-  accountCode   String?    @unique @map("account_code")
-  createdAt     DateTime   @default(now()) @map("created_at")
+  accountCode      String?    @unique @map("account_code")
+  rejectionReason  String?    @map("rejection_reason")
+  createdAt        DateTime   @default(now()) @map("created_at")
 
   landlordIdDocuments   LandlordIdDocument[]
   properties            Property[]

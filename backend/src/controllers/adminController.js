@@ -49,7 +49,10 @@ async function verifyLandlord(req, res, next) {
       return res.status(400).json({ error: 'action must be approve or reject' });
 
     const status = action === 'approve' ? 'active' : 'rejected';
-    const user = await prisma.user.update({ where: { id }, data: { status } });
+    const updateData = { status };
+    if (action === 'reject') updateData.rejectionReason = reason || null;
+    if (action === 'approve') updateData.rejectionReason = null;
+    const user = await prisma.user.update({ where: { id }, data: updateData });
 
     if (action === 'approve') {
       notify(id, {

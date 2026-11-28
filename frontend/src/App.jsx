@@ -66,13 +66,13 @@ function AppRoutes() {
         <ProtectedRoute role="landlord" requireProfile={false}><LandlordNewListing /></ProtectedRoute>
       } />
       <Route path="/landlord/properties" element={
-        <ProtectedRoute role="landlord"><LandlordPropertiesPage /></ProtectedRoute>
+        <ProtectedRoute role="landlord" requireProfile={false}><LandlordPropertiesPage /></ProtectedRoute>
       } />
       <Route path="/landlord/messages" element={
-        <ProtectedRoute role="landlord"><LandlordMessagesPage /></ProtectedRoute>
+        <ProtectedRoute role="landlord" requireProfile={false}><LandlordMessagesPage /></ProtectedRoute>
       } />
       <Route path="/landlord/messages/:propertyId" element={
-        <ProtectedRoute role="landlord"><LandlordPropertyConversationsPage /></ProtectedRoute>
+        <ProtectedRoute role="landlord" requireProfile={false}><LandlordPropertyConversationsPage /></ProtectedRoute>
       } />
 
       {/* Tenant */}

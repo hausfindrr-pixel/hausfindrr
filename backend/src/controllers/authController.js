@@ -13,6 +13,19 @@ function normaliseEmail(raw) {
   return validator.isEmail(trimmed) ? trimmed : null;
 }
 
+// Normalise a PNG mobile number to +675XXXXXXXX (8 digits after country code).
+// Accepts: 79597055, 7959 7055, +675 79597055, 675 79597055.
+// Returns the normalised string on success, or null on failure.
+function normalisePngPhone(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  let s = raw.replace(/[\s\-().]/g, '');
+  if (/[a-zA-Z]/.test(s)) return null;
+  if (s.startsWith('+675')) s = s.slice(4);
+  else if (s.startsWith('675')) s = s.slice(3);
+  if (!/^\d{8}$/.test(s)) return null;
+  return '+675' + s;
+}
+
 // Generate a unique landlord account code: HL-XXXXX
 async function generateAccountCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -148,13 +161,19 @@ async function registerLandlord(req, res, next) {
 
     if (!name || !email || !password)
       return res.status(400).json({ error: 'Name, email and password are required' });
+    if (!phone || !phone.trim())
+      return res.status(400).json({ error: 'Phone number is required' });
     if (!validator.isEmail(email))
       return res.status(400).json({ error: 'Invalid email address' });
     if (password.length < 8)
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
 
+    const normalisedPhone = normalisePngPhone(phone);
+    if (!normalisedPhone)
+      return res.status(400).json({ error: 'Please enter a valid PNG mobile number (e.g. 79597055)' });
+
     const safeName  = clamp(name, 100);
-    const safePhone = phone ? clamp(phone.trim(), 30) : '';
+    const safePhone = normalisedPhone;
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) return res.status(409).json({ error: 'Email already registered' });
@@ -331,6 +350,12 @@ async function completeProfile(req, res, next) {
       try {
         await prisma.funnelEvent.create({ data: { event: 'id_uploaded', campaign: null } });
       } catch {}
+
+      // Reset rejection state if landlord is re-uploading after a rejection
+      await prisma.user.updateMany({
+        where: { id: req.user.id, status: 'rejected' },
+        data: { status: 'pending_verification', rejectionReason: null },
+      });
 
       // Notify landlord: ID is under review
       notify(req.user.id, {

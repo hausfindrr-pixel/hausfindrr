@@ -140,8 +140,11 @@ export default function LandlordPropertiesPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <p className="text-sm font-medium text-red-800">Account verification failed</p>
-              <p className="text-xs text-red-700 mt-0.5">Please contact us at info@hausfindrr.com for assistance.</p>
+              <p className="text-sm font-medium text-red-800">We couldn't verify your ID</p>
+              <p className="text-xs text-red-700 mt-0.5">Go to your Account to see the reason and upload a new document.</p>
+              <Link to="/landlord/dashboard" className="inline-block mt-2 text-xs font-semibold text-red-700 underline underline-offset-2">
+                Upload ID again →
+              </Link>
             </div>
           </div>
         )}

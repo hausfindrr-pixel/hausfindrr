@@ -5,6 +5,16 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import Footer from '../../components/shared/Footer';
 
+function normalisePngPhone(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  let s = raw.replace(/[\s\-().]/g, '');
+  if (/[a-zA-Z]/.test(s)) return null;
+  if (s.startsWith('+675')) s = s.slice(4);
+  else if (s.startsWith('675')) s = s.slice(3);
+  if (!/^\d{8}$/.test(s)) return null;
+  return '+675' + s;
+}
+
 const TRUST_LINES = [
   'Free to list',
   'No agents',
@@ -34,13 +44,15 @@ export default function LandlordRegister() {
     e.preventDefault();
     if (!agreed) return toast.error('Please accept the agreement to continue');
     if (form.password.length < 8) return toast.error('Password must be at least 8 characters');
+    const phone = normalisePngPhone(form.phone);
+    if (!phone) return toast.error('Please enter a valid PNG mobile number (e.g. 79597055)');
     setLoading(true);
     try {
       const campaign = utmCampaign || sessionStorage.getItem('hf_campaign') || null;
       const { data } = await api.post('/auth/register/landlord', {
         name: form.name,
         email: form.email,
-        phone: form.phone,
+        phone,
         password: form.password,
         campaign,
       });
@@ -110,17 +122,16 @@ export default function LandlordRegister() {
             </div>
 
             <div>
-              <label className="label">
-                Phone Number{' '}
-                <span className="text-gray-400 font-normal">(optional — add later)</span>
-              </label>
+              <label className="label">Phone Number</label>
               <input
                 className="input"
                 type="tel"
-                placeholder="+675 xxx xxxx"
+                required
+                placeholder="79597055"
                 value={form.phone}
                 onChange={set('phone')}
               />
+              <p className="text-xs text-gray-400 mt-1">PNG mobile number, e.g. 79597055 or +675 79597055</p>
             </div>
 
             <div>

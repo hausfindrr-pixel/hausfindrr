@@ -112,11 +112,12 @@ function DocLightbox({ url, onClose }) {
 
 const DECLINE_PRESETS = {
   landlord: [
-    'ID document is blurry or unreadable. Please resubmit a clear, well-lit photo.',
-    'ID document appears expired. Please submit a valid, current document.',
-    'The name on the ID does not match the name on your account.',
-    'Proof of right to rent is missing or unacceptable. Please upload a valid lease, title deed, or authority letter.',
-    'We could not verify this document. Please contact info@hausfindrr.com for assistance.',
+    'Photo is blurry — please resubmit a clear, well-lit photo.',
+    "Name on the document doesn't match your account name.",
+    'Document is expired — please submit a valid, current document.',
+    "Wrong document type — we need a passport, driver's licence or National ID.",
+    'Document not fully visible — please ensure all four corners are showing.',
+    'Other — please contact info@hausfindrr.com for details.',
   ],
   listing: [
     'Listing price appears incorrect or unrealistic. Please review and resubmit.',
