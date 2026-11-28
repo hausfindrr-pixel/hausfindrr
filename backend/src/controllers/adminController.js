@@ -389,6 +389,9 @@ async function getAllMessages(req, res, next) {
         threadMap[key] = {
           key,
           property: msg.property,
+          propertyId: msg.propertyId,
+          isDirect: !msg.propertyId,
+          participantIds: [msg.senderId, msg.receiverId],
           participants: [msg.sender.name, msg.receiver.name],
           lastMessage: {
             content: msg.content,

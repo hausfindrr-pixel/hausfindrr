@@ -1357,8 +1357,14 @@ function MessagesSection({ messageTarget, onClearTarget }) {
 }
 
 function MessageThreadsTab() {
+  const { user } = useAuth();
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [openThread, setOpenThread] = useState(null); // thread object
+  const [messages, setMessages] = useState([]);
+  const [msgLoading, setMsgLoading] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     api.get('/admin/messages')
@@ -1367,14 +1373,138 @@ function MessageThreadsTab() {
       .finally(() => setLoading(false));
   }, []);
 
+  async function openConversation(thread) {
+    setOpenThread(thread);
+    setMessages([]);
+    setMsgLoading(true);
+    try {
+      const otherId = thread.participantIds.find(id => id !== user.id);
+      let data;
+      if (thread.isDirect) {
+        ({ data } = await api.get(`/messages/direct/${otherId}`));
+      } else {
+        ({ data } = await api.get(`/messages/${thread.propertyId}/${otherId}`));
+      }
+      setMessages(data.messages || []);
+    } catch { /* silent */ } finally {
+      setMsgLoading(false);
+    }
+  }
+
+  async function sendReply(e) {
+    e?.preventDefault();
+    if (!replyText.trim() || !openThread) return;
+    setSending(true);
+    const content = replyText.trim();
+    setReplyText('');
+    const otherId = openThread.participantIds.find(id => id !== user.id);
+    try {
+      const { data } = await api.post(`/messages/direct/${otherId}`, { content });
+      setMessages(prev => [...prev, data.message]);
+      // Refresh thread list to update lastMessage
+      api.get('/admin/messages').then(({ data }) => setThreads(data.threads)).catch(() => {});
+    } catch {
+      toast.error('Failed to send');
+      setReplyText(content);
+    } finally {
+      setSending(false);
+    }
+  }
+
   if (loading) return <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-gray-100 animate-pulse rounded-2xl" />)}</div>;
+
+  // Conversation view
+  if (openThread) {
+    const otherName = openThread.participants.find(n => n !== 'HausFindrr Admin') || openThread.participants[0];
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col" style={{ minHeight: 480 }}>
+        {/* Header */}
+        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-gray-100">
+          <button
+            onClick={() => { setOpenThread(null); setMessages([]); }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors -ml-1 flex-shrink-0"
+          >
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-gray-900 text-sm">{otherName}</p>
+            {openThread.property?.title && (
+              <p className="text-xs text-gray-400 truncate">{openThread.property.title}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3" style={{ maxHeight: 380 }}>
+          {msgLoading ? (
+            <div className="flex justify-center pt-8">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : messages.length === 0 ? (
+            <p className="text-center text-gray-400 text-sm pt-8">No messages yet</p>
+          ) : messages.map(m => {
+            const mine = m.senderId === user.id;
+            return (
+              <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                  mine ? 'bg-primary text-white rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+                }`}>
+                  <p>{m.content}</p>
+                  <p className={`text-[11px] mt-1 ${mine ? 'text-white/60' : 'text-gray-400'}`}>
+                    {new Date(m.sentAt).toLocaleTimeString('en-PG', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Reply input */}
+        <div className="border-t border-gray-100 px-4 py-3">
+          <form onSubmit={sendReply} className="flex gap-2 items-end">
+            <textarea
+              value={replyText}
+              onChange={e => setReplyText(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply(); } }}
+              placeholder={`Reply to ${otherName}…`}
+              rows={1}
+              disabled={sending}
+              className="flex-1 resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-primary bg-gray-50 leading-normal"
+              style={{ maxHeight: 100, overflowY: 'auto' }}
+              onInput={e => {
+                e.target.style.height = 'auto';
+                e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
+              }}
+            />
+            <button
+              type="submit"
+              disabled={sending || !replyText.trim()}
+              className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center flex-shrink-0 disabled:opacity-40 hover:bg-primary/90 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Thread list
   if (threads.length === 0) return <Empty text="No messages yet" />;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="divide-y divide-gray-50">
         {threads.map(t => (
-          <div key={t.key} className="flex items-start gap-4 px-5 py-4">
+          <button
+            key={t.key}
+            onClick={() => openConversation(t)}
+            className="w-full flex items-start gap-4 px-5 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
+          >
             <div className="w-9 h-9 bg-secondary/10 rounded-xl flex items-center justify-center flex-shrink-0">
               <svg className="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
             </div>
@@ -1386,10 +1516,13 @@ function MessageThreadsTab() {
               <p className="text-gray-400 text-xs mt-0.5 truncate">{t.property?.title}</p>
               <p className="text-gray-400 text-xs mt-0.5 truncate">{t.lastMessage.senderName}: {t.lastMessage.content}</p>
             </div>
-            <span className="flex-shrink-0 bg-gray-100 text-gray-500 text-xs font-medium px-2 py-0.5 rounded-full">
-              {t.messageCount}
-            </span>
-          </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="bg-gray-100 text-gray-500 text-xs font-medium px-2 py-0.5 rounded-full">{t.messageCount}</span>
+              <svg className="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </button>
         ))}
       </div>
     </div>
